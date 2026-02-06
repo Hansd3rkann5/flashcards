@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engineering Flashcards | Local-First</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
+    integrity="sha384-wcIxYkQJvRV6A7vA3HfNdc0AGJi/7luWGINuD/7++UZ5EONosFVJeFt3uTJS3BM4" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"
+    integrity="sha384-hIoBPJpTUsM8c7kwh28ykVfoCENKz7LxyzKDn5XxhxL7sRKqzZo4PM5XgS5aXoaZ"
+    crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    integrity="sha384-hCXGrW6PitU8M1uuvvZp8K4D4ew3Efr2E1VlzDq+W8sELpAo0P5PLf4KJIp4jOSy"
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
+  <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
+  <aside class="sidebar">
+    <div>
+      <div class="app-title">⚙️ Engineering Flashcards</div>
+      <div class="tiny">Local-first IndexedDB trainer</div>
+    </div>
+    <button id="homeBtn">🏠 Home</button>
+    <button id="settingsBtn">⚙️ Settings</button>
+    <div>
+      <strong>Subjects</strong>
+      <div id="subjectList" class="tile-grid"></div>
+      <button class="btn" id="addSubjectBtn" style="margin-top:10px;">+ Add Subject</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="track" class="track">
+      <section class="panel" id="homePanel">
+        <div class="section">
+          <h2>Home</h2>
+          <p>Build and study engineering decks with Markdown + LaTeX. Cards are local to your browser via IndexedDB.</p>
+          <div class="grid two">
+            <div>
+              <div class="pill" id="summarySubjects">0 Subjects</div>
+              <div class="pill" id="summaryTopics">0 Topics</div>
+              <div class="pill" id="summaryCards">0 Cards</div>
+            </div>
+            <div>
+              <button class="btn" id="quickAddSubject">+ New Subject</button>
+              <button class="btn" id="quickExport" style="margin-top:8px;">⬇ Export JSON</button>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <h3>Selected Subject Topics</h3>
+          <div id="homeTopics" class="tile-grid"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="topicPanel">
+        <div class="section">
+          <div class="controls" style="margin-bottom:10px; align-items:center;margin-inline: 0; ">
+            <button class="btn" id="backToHomeBtn">← Back</button>
+            <h2 id="topicTitle" style="margin:0;">Topics</h2>
+          </div>
+          <div class="tiny" id="subjectColorHint">Subject theme adapts to the selected subject.</div>
+          <div class="study-selection section" style="margin-top:14px;">
+            <h3>Study Session</h3>
+            <div class="grid two">
+              <div>
+                <label>Session Size</label>
+                <div class="counter">
+                  <button class="btn counter-btn" id="sessionMinus">-</button>
+                  <div class="counter-value" id="sessionSizeValue">15</div>
+                  <button class="btn counter-btn" id="sessionPlus">+</button>
+                </div>
+                <div class="tiny">Pick how many cards to study this session.</div>
+              </div>
+              <div>
+                <label>Selected Topics</label>
+                <div class="tiny">Choose topics below (you can mix multiple).</div>
+              </div>
+            </div>
+            <button class="btn" id="startSessionBtn" style="margin-top:10px;">▶ Start Session</button>
+          </div>
+          <div id="topicList" class="topic-list"></div>
+          <hr style="border-color:#30456f">
+          <h3>Add Topic</h3>
+          <input id="topicName" placeholder="e.g., Thermodynamics" />
+          <button class="btn" id="addTopicBtn" style="margin-top:8px;">Add Topic</button>
+        </div>
+      </section>
+
+      <section class="panel" id="deckPanel">
+        <div class="section" id="cardsOverviewSection">
+          <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
+            <button class="btn" id="backToTopicsBtn">← Back</button>
+            <h2 id="deckTitle" style="margin:0;">Deck</h2>
+            <div style="margin-left:auto;">
+              <button class="btn" id="openCreateCardBtn" style="background-color: var(--success)">Create
+                Flashcards</button>
+            </div>
+          </div>
+          <div class="tiny" style="margin:10px; height:1px; display: flex; align-items: center;">
+            <separator class="card-tile-separator"></separator>
+          </div>
+          <div id="cardsGrid" class="card-grid"></div>
+        </div>
+
+        <div class="section hidden" id="studySessionSection" style="height: 100%;">
+          <div style="margin-inline: var(--space-4)">
+            <div class="session-top">
+              <button class="btn" id="backToTopicsBtnSession">← Back</button>
+              <h3>Study Session</h3>
+            </div>
+            <div class="session-pill-bar">
+              <div id="masteredPills" class="pill-row mastered"></div>
+              <div id="activePills" class="pill-row active"></div>
+            </div>
+          </div>
+          <div class="flash-area">
+            <div id="flashcard" class="flashcard hidden">
+              <div class="face" id="frontFace">
+                <div class="card-corner-label">Question</div>
+                <button class="btn card-edit-btn" id="editSessionCardBtn">Edit</button>
+                <div class="face-content" id="frontContent"></div>
+              </div>
+              <div class="face back" id="backFace">
+                <div class="card-corner-label">Answer</div>
+                <button class="btn card-edit-btn" id="editSessionCardBtnBack">Edit</button>
+                <div class="face-content" id="backContent"></div>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <button class="btn traffic green" data-grade="correct">Correct</button>
+            <button class="btn traffic yellow" data-grade="partial">Not quite</button>
+            <button class="btn traffic red" data-grade="wrong">Wrong</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="editorPanel">
+        <div class="section editor-shell">
+          <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
+            <button class="btn" id="backToDeckBtn">← Back</button>
+            <div>
+              <h2 id="editorTitle" style="margin:0;">Create Flashcards</h2>
+              <div class="tiny" id="editorSubtitle">Autosaved locally</div>
+            </div>
+            <button class="btn editor-sidebar-toggle" id="toggleEditorSidebarBtn">Cards</button>
+          </div>
+          <div id="editorOverlay" class="editor-overlay"></div>
+          <div class="editor-grid">
+            <div class="editor-list editor-sidebar">
+              <div class="tiny">Existing cards</div>
+              <div id="editorCardsList" class="editor-panel"></div>
+            </div>
+            <div class="editor-separator" aria-hidden="true"></div>
+            <div class="editor-panel editor-main">
+              <div class="editor-field">
+                <label>Question</label>
+                <textarea id="cardPrompt" placeholder="Type your question..."></textarea>
+                <div id="questionImagePreview" class="image-preview">Drop image here</div>
+              </div>
+              <div class="editor-field">
+                <label>Answer</label>
+                <textarea id="cardAnswer" placeholder="Type the answer..."></textarea>
+                <div id="answerImagePreview" class="image-preview">Drop image here</div>
+                <div class="editor-options">
+                  <div class="tiny">Multi-select answers (optional)</div>
+                  <div id="mcqOptions"></div>
+                  <button class="btn" id="addMcqOptionBtn">Add Answer</button>
+                </div>
+              </div>
+              <div class="tiny">Markdown colors syntax: [text]{#ff6b6b}</div>
+              <div class="editor-footer">
+                <button class="btn" id="addCardBtn" style="width: 100%; background-color: #d42dba6e">Create
+                  Flashcard</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const DB_NAME = 'eng_flashcards_db_v1';
+    const DB_VERSION = 1;
+    const CARD_BANK_DB = 'eng_flashcards_cardbank_v1';
+    const CARD_BANK_VERSION = 1;
+    let db;
+    let cardBankDb;
+    let selectedSubject = null;
+    let selectedTopic = null;
+    let selectedTopicIds = new Set();
+    let sessionSize = 15;
+    let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeMap: {} };
+    let editingCardId = null;
+    let editingSubjectId = null;
+
+    const el = id => document.getElementById(id);
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = e => {
+          const d = e.target.result;
+          if (!d.objectStoreNames.contains('subjects')) {
+            d.createObjectStore('subjects', { keyPath: 'id' });
+          }
+          if (!d.objectStoreNames.contains('topics')) {
+            const t = d.createObjectStore('topics', { keyPath: 'id' });
+            t.createIndex('subjectId', 'subjectId', { unique: false });
+          }
+          if (!d.objectStoreNames.contains('cards')) {
+            const c = d.createObjectStore('cards', { keyPath: 'id' });
+            c.createIndex('topicId', 'topicId', { unique: false });
+          }
+          if (!d.objectStoreNames.contains('progress')) {
+            d.createObjectStore('progress', { keyPath: 'cardId' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    function openCardBankDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(CARD_BANK_DB, CARD_BANK_VERSION);
+        req.onupgradeneeded = e => {
+          const d = e.target.result;
+          if (!d.objectStoreNames.contains('cards')) {
+            d.createObjectStore('cards', { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    function tx(store, mode = 'readonly') {
+      return db.transaction(store, mode).objectStore(store);
+    }
+
+    function put(store, value) {
+      return new Promise((res, rej) => {
+        const r = tx(store, 'readwrite').put(value);
+        r.onsuccess = () => res(value);
+        r.onerror = () => rej(r.error);
+      });
+    }
+
+    function putCardBank(value) {
+      if (!cardBankDb) return Promise.resolve();
+      return new Promise((res, rej) => {
+        const r = cardBankDb.transaction('cards', 'readwrite').objectStore('cards').put(value);
+        r.onsuccess = () => res(value);
+        r.onerror = () => rej(r.error);
+      });
+    }
+
+    function del(store, key) {
+      return new Promise((res, rej) => {
+        const r = tx(store, 'readwrite').delete(key);
+        r.onsuccess = () => res();
+        r.onerror = () => rej(r.error);
+      });
+    }
+
+    function getAll(store) {
+      return new Promise((res, rej) => {
+        const r = tx(store).getAll();
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    }
+
+    const uid = () => crypto.randomUUID();
+
+    function setView(step = 0) {
+      el('track').style.transform = `translateX(${-100 * step / 4}%)`;
+    }
+
+    function escapeHTML(str = '') {
+      return str.replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
+    }
+
+    function markdownToHtml(raw = '') {
+      let t = escapeHTML(raw);
+      t = t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      t = t.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      t = t.replace(/`(.*?)`/g, '<code>$1</code>');
+      t = t.replace(/\[(.*?)\]\{(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)\}/g, '<span style="color:$2">$1</span>');
+      t = t.replace(/\n/g, '<br>');
+      return t;
+    }
+
+    function renderRich(container, content) {
+      container.innerHTML = markdownToHtml(content || '');
+      if (window.renderMathInElement) {
+        renderMathInElement(container, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ]
+        });
+      }
+    }
+
+    function isInMathMode(text, pos) {
+      let count = 0;
+      for (let i = 0; i < pos; i++) {
+        if (text[i] === '$' && text[i - 1] !== '\\') count++;
+      }
+      return count % 2 === 1;
+    }
+
+    function attachAutoClose(elm) {
+      if (!elm) return;
+      const pairs = { '(': ')', '[': ']', '{': '}' };
+      elm.addEventListener('keydown', e => {
+        if (!pairs[e.key]) return;
+        const start = elm.selectionStart;
+        const end = elm.selectionEnd;
+        const text = elm.value;
+        if (!isInMathMode(text, start)) return;
+        e.preventDefault();
+        const open = e.key;
+        const close = pairs[e.key];
+        const before = text.slice(0, start);
+        const after = text.slice(end);
+        elm.value = `${before}${open}${close}${after}`;
+        const cursor = start + 1;
+        elm.setSelectionRange(cursor, cursor);
+      });
+    }
+
+    function fileToDataUrl(file) {
+      return new Promise(res => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function setImagePreview(previewEl, dataUrl, onClear) {
+      if (!previewEl) return;
+      if (!dataUrl) {
+        previewEl.innerHTML = 'Drop image here';
+        return;
+      }
+      previewEl.innerHTML = `
+        <div class="image-preview-wrap">
+          <img src="${dataUrl}" alt="preview">
+          <button type="button" class="image-remove-btn" aria-label="Remove image">×</button>
+        </div>
+      `;
+      const btn = previewEl.querySelector('.image-remove-btn');
+      if (btn) {
+        btn.onclick = e => {
+          e.stopPropagation();
+          if (onClear) onClear();
+          setImagePreview(previewEl, '', onClear);
+        };
+      }
+    }
+
+    function attachImageDrop(target, onImage) {
+      if (!target) return;
+      const prevent = e => { e.preventDefault(); e.stopPropagation(); };
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+        target.addEventListener(evt, prevent);
+      });
+      target.addEventListener('drop', async e => {
+        const file = e.dataTransfer?.files?.[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const dataUrl = await fileToDataUrl(file);
+        onImage(dataUrl);
+      });
+    }
+
+    function applySubjectTheme(accent) {
+      const hex = (accent || '#2dd4bf').replace('#', '');
+      const norm = hex.length === 3
+        ? hex.split('').map(c => c + c).join('')
+        : hex.padEnd(6, '0').slice(0, 6);
+      const r = parseInt(norm.slice(0, 2), 16);
+      const g = parseInt(norm.slice(2, 4), 16);
+      const b = parseInt(norm.slice(4, 6), 16);
+      const rgba = a => `rgba(${r}, ${g}, ${b}, ${a})`;
+      document.documentElement.style.setProperty('--accent', `#${norm}`);
+      document.documentElement.style.setProperty('--accent-glow', rgba(0.35));
+      document.documentElement.style.setProperty('--panel-accent', rgba(0.12));
+      document.documentElement.style.setProperty('--tile-accent-bg', rgba(0.18));
+      document.documentElement.style.setProperty('--face-accent', rgba(0.14));
+    }
+
+    async function refreshSidebar() {
+      const subjects = await getAll('subjects');
+      const list = el('subjectList');
+      list.innerHTML = '';
+      subjects.forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = 'tile subject-tile';
+        chip.style.setProperty('--tile-accent', s.accent || '#2dd4bf');
+        chip.innerHTML = `
+          <div class="tile-row">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="dot" style="background:${s.accent || '#2dd4bf'}"></span>
+              <div>${escapeHTML(s.name)}</div>
+            </div>
+            <div class="tile-menu">
+              <button class="btn tile-menu-btn" type="button">⋯</button>
+            </div>
+          </div>
+        `;
+        chip.onclick = () => {
+          selectedSubject = s;
+          selectedTopic = null;
+          applySubjectTheme(s.accent || '#2dd4bf');
+          loadTopics();
+          setView(1);
+          document.body.classList.remove('sidebar-open');
+        };
+        const menuBtn = chip.querySelector('.tile-menu-btn');
+        if (menuBtn) {
+          menuBtn.onclick = e => {
+            e.stopPropagation();
+            editingSubjectId = s.id;
+            el('editSubjectName').value = s.name;
+            el('editSubjectColor').value = s.accent || '#2dd4bf';
+            el('subjectEditDialog').showModal();
+          };
+        }
+        list.appendChild(chip);
+      });
+      const topics = await getAll('topics');
+      const cards = await getAll('cards');
+      el('summarySubjects').textContent = `${subjects.length} Subjects`;
+      el('summaryTopics').textContent = `${topics.length} Topics`;
+      el('summaryCards').textContent = `${cards.length} Cards`;
+      applySubjectTheme(selectedSubject?.accent || '#2dd4bf');
+      loadHomeTopics();
+    }
+
+    async function loadHomeTopics() {
+      const wrap = el('homeTopics');
+      if (!selectedSubject) {
+        wrap.innerHTML = '<div class="tiny">Select a subject from the sidebar to drill down.</div>';
+        return;
+      }
+      const topics = (await getAll('topics')).filter(t => t.subjectId === selectedSubject.id);
+      if (!topics.length) {
+        wrap.innerHTML = '<div class="tiny">No topics yet.</div>';
+        return;
+      }
+      wrap.innerHTML = '';
+      topics.forEach(t => {
+        const tile = document.createElement('div');
+        tile.className = 'tile topic-tile';
+        tile.textContent = t.name;
+        tile.onclick = () => {
+          selectedTopic = t;
+          session.active = false;
+          el('cardsOverviewSection').classList.remove('hidden');
+          el('studySessionSection')?.classList.add('hidden');
+          renderSessionPills();
+          loadDeck();
+          setView(2);
+        };
+        wrap.appendChild(tile);
+      });
+    }
+
+    async function loadTopics() {
+      if (!selectedSubject) return;
+      el('topicTitle').textContent = `Topics • ${selectedSubject.name}`;
+      applySubjectTheme(selectedSubject.accent || '#2dd4bf');
+      const topics = (await getAll('topics')).filter(t => t.subjectId === selectedSubject.id);
+      selectedTopicIds = new Set(topics.map(t => t.id));
+      const list = el('topicList');
+      list.innerHTML = '';
+      topics.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'tile topic-tile';
+        row.innerHTML = `
+          <div class="tile-check">
+            <div>${escapeHTML(t.name)}</div>
+            <input type="checkbox" data-topic-id="${t.id}" checked />
+          </div>
+        `;
+        row.classList.toggle('selected', selectedTopicIds.has(t.id));
+        row.onclick = () => {
+          selectedTopic = t;
+          session.active = false;
+          el('cardsOverviewSection').classList.remove('hidden');
+          el('studySessionSection')?.classList.add('hidden');
+          renderSessionPills();
+          loadDeck();
+          setView(2);
+        };
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('click', e => {
+          e.stopPropagation();
+          if (checkbox.checked) selectedTopicIds.add(t.id);
+          else selectedTopicIds.delete(t.id);
+          row.classList.toggle('selected', checkbox.checked);
+        });
+        list.appendChild(row);
+      });
+      if (!topics.length) list.innerHTML = '<div class="tiny">No topics yet.</div>';
+    }
+
+    function parseMcqOptions() {
+      const options = [];
+      const primaryText = el('cardAnswer').value.trim();
+      const primaryToggle = document.querySelector('.mcq-row[data-primary="true"] .mcq-toggle input[type="checkbox"]');
+      if (primaryText) {
+        options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true });
+      }
+      const rows = Array.from(document.querySelectorAll('.mcq-row[data-primary="false"]'));
+      rows.forEach(row => {
+        const text = row.querySelector('input[type="text"]').value.trim();
+        const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
+        if (text) options.push({ text, correct });
+      });
+      return options;
+    }
+
+    function ensurePrimaryAnswerRow() {
+      const existing = document.querySelector('.mcq-row[data-primary="true"]');
+      if (existing) {
+        existing.querySelector('.mcq-row-text').textContent = el('cardAnswer').value.trim() || 'Primary answer (empty)';
+        return;
+      }
+      const wrap = document.createElement('div');
+      wrap.className = 'mcq-row correct';
+      wrap.dataset.primary = 'true';
+      wrap.innerHTML = `
+        <div class="mcq-row-header">
+          <span class="mcq-badge correct">Correct Answer ✓</span>
+          <label class="toggle mcq-toggle">
+            <input type="checkbox" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="mcq-row-text">${escapeHTML(el('cardAnswer').value.trim() || 'Primary answer (empty)')}</div>
+      `;
+      const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
+      const update = () => {
+        const isCorrect = toggle.checked;
+        wrap.classList.toggle('correct', isCorrect);
+        wrap.classList.toggle('wrong', !isCorrect);
+        const badge = wrap.querySelector('.mcq-badge');
+        badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
+        badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
+      };
+      toggle.addEventListener('change', update);
+      update();
+      el('mcqOptions').prepend(wrap);
+    }
+
+    function addMcqRow(text = '', correct = false) {
+      const wrap = document.createElement('div');
+      wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
+      wrap.dataset.primary = 'false';
+      wrap.innerHTML = `
+        <div class="mcq-row-header">
+          <span class="mcq-badge ${correct ? 'correct' : 'wrong'}">${correct ? 'Correct Answer ✓' : 'Wrong Answer ✕'}</span>
+          <label class="toggle mcq-toggle">
+            <input type="checkbox" ${correct ? 'checked' : ''} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <input type="text" placeholder="Answer option..." value="${escapeHTML(text)}" />
+        <div class="mcq-row-actions">
+          <div class="tiny">Additional answer option</div>
+          <button class="btn mcq-remove" type="button">Remove</button>
+        </div>
+      `;
+      const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
+      const update = () => {
+        const isCorrect = toggle.checked;
+        wrap.classList.toggle('correct', isCorrect);
+        wrap.classList.toggle('wrong', !isCorrect);
+        const badge = wrap.querySelector('.mcq-badge');
+        badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
+        badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
+      };
+      toggle.addEventListener('change', update);
+      wrap.querySelector('.mcq-remove').onclick = () => wrap.remove();
+      update();
+      el('mcqOptions').appendChild(wrap);
+    }
+
+    function parseEditMcqOptions() {
+      const options = [];
+      const primaryText = el('editCardAnswer').value.trim();
+      const primaryToggle = document.querySelector('#editMcqOptions .mcq-row[data-primary="true"] .mcq-toggle input[type="checkbox"]');
+      if (primaryText) {
+        options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true });
+      }
+      const rows = Array.from(document.querySelectorAll('#editMcqOptions .mcq-row[data-primary="false"]'));
+      rows.forEach(row => {
+        const text = row.querySelector('input[type="text"]').value.trim();
+        const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
+        if (text) options.push({ text, correct });
+      });
+      return options;
+    }
+
+    function ensureEditPrimaryAnswerRow() {
+      const wrap = document.querySelector('#editMcqOptions .mcq-row[data-primary="true"]');
+      if (wrap) {
+        wrap.querySelector('.mcq-row-text').textContent = el('editCardAnswer').value.trim() || 'Primary answer (empty)';
+        return;
+      }
+      const row = document.createElement('div');
+      row.className = 'mcq-row correct';
+      row.dataset.primary = 'true';
+      row.innerHTML = `
+        <div class="mcq-row-header">
+          <span class="mcq-badge correct">Correct Answer ✓</span>
+          <label class="toggle mcq-toggle">
+            <input type="checkbox" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="mcq-row-text">${escapeHTML(el('editCardAnswer').value.trim() || 'Primary answer (empty)')}</div>
+      `;
+      const toggle = row.querySelector('.mcq-toggle input[type="checkbox"]');
+      const update = () => {
+        const isCorrect = toggle.checked;
+        row.classList.toggle('correct', isCorrect);
+        row.classList.toggle('wrong', !isCorrect);
+        const badge = row.querySelector('.mcq-badge');
+        badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
+        badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
+      };
+      toggle.addEventListener('change', update);
+      update();
+      el('editMcqOptions').prepend(row);
+    }
+
+    function addEditMcqRow(text = '', correct = false) {
+      const wrap = document.createElement('div');
+      wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
+      wrap.dataset.primary = 'false';
+      wrap.innerHTML = `
+        <div class="mcq-row-header">
+          <span class="mcq-badge ${correct ? 'correct' : 'wrong'}">${correct ? 'Correct Answer ✓' : 'Wrong Answer ✕'}</span>
+          <label class="toggle mcq-toggle">
+            <input type="checkbox" ${correct ? 'checked' : ''} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <input type="text" placeholder="Answer option..." value="${escapeHTML(text)}" />
+        <div class="mcq-row-actions">
+          <div class="tiny">Additional answer option</div>
+          <button class="btn mcq-remove" type="button">Remove</button>
+        </div>
+      `;
+      const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
+      const update = () => {
+        const isCorrect = toggle.checked;
+        wrap.classList.toggle('correct', isCorrect);
+        wrap.classList.toggle('wrong', !isCorrect);
+        const badge = wrap.querySelector('.mcq-badge');
+        badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
+        badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
+      };
+      toggle.addEventListener('change', update);
+      wrap.querySelector('.mcq-remove').onclick = () => wrap.remove();
+      update();
+      el('editMcqOptions').appendChild(wrap);
+    }
+
+    function openEditDialog(card) {
+      editingCardId = card.id;
+      el('editCardPrompt').value = card.prompt || '';
+      el('editCardAnswer').value = card.answer || '';
+      el('editCardPrompt').dataset.imageDataQ = card.imageDataQ || card.imageData || '';
+      el('editCardAnswer').dataset.imageDataA = card.imageDataA || '';
+      setImagePreview(
+        el('editQuestionImagePreview'),
+        card.imageDataQ || card.imageData || '',
+        () => { el('editCardPrompt').dataset.imageDataQ = ''; }
+      );
+      setImagePreview(
+        el('editAnswerImagePreview'),
+        card.imageDataA || '',
+        () => { el('editCardAnswer').dataset.imageDataA = ''; }
+      );
+      el('editMcqOptions').innerHTML = '';
+      ensureEditPrimaryAnswerRow();
+      (card.options || []).forEach((opt, i) => {
+        if (i === 0 && opt.text === el('editCardAnswer').value) return;
+        addEditMcqRow(opt.text, opt.correct);
+      });
+      el('editCardDialog').showModal();
+    }
+
+    async function deleteCardById(cardId) {
+      await del('cards', cardId);
+      await del('progress', cardId);
+      if (cardBankDb) {
+        await new Promise((res, rej) => {
+          const r = cardBankDb.transaction('cards', 'readwrite').objectStore('cards').delete(cardId);
+          r.onsuccess = () => res();
+          r.onerror = () => rej(r.error);
+        });
+      }
+      if (session.active) {
+        session.activeQueue = session.activeQueue.filter(c => c.id !== cardId);
+        session.mastered = session.mastered.filter(c => c.id !== cardId);
+        delete session.counts[cardId];
+        delete session.gradeMap[cardId];
+        renderSessionPills();
+        renderSessionCard();
+      }
+    }
+
+    function buildCardTile(card, idx, compact = false) {
+      const tile = document.createElement('div');
+      tile.className = 'card-tile';
+      if (compact) tile.classList.add('card-tile-compact');
+
+      const menu = document.createElement('div');
+      menu.className = 'card-tile-menu';
+      menu.innerHTML = `
+        <button class="btn card-menu-btn" type="button">⋯</button>
+        <div class="card-menu">
+          <button class="btn card-menu-item" style="background-color: var(--accent)" type="button">Edit</button>
+          <button class="btn delete card-menu-item delete-card-btn" type="button">Delete</button>
+        </div>
+      `;
+      menu.querySelector('.card-menu-item').onclick = (e) => {
+        e.stopPropagation();
+        openEditDialog(card);
+      };
+      menu.querySelector('.delete-card-btn').onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm('Delete this flashcard?')) return;
+        await deleteCardById(card.id);
+        loadDeck();
+        loadEditorCards();
+        refreshSidebar();
+      };
+      menu.querySelector('.card-menu-btn').onclick = (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      };
+      document.addEventListener('click', () => menu.classList.remove('open'));
+
+      const qTitle = document.createElement('div');
+      qTitle.className = 'card-tile-title';
+      qTitle.textContent = 'Q';
+      const qBody = document.createElement('div');
+      qBody.className = 'card-tile-body';
+      renderRich(qBody, card.prompt || '');
+      const thumbSrc = card.imageDataQ || card.imageData || card.imageDataA || '';
+      if (thumbSrc) {
+        const thumb = document.createElement('img');
+        thumb.src = thumbSrc;
+        thumb.className = 'card-thumb';
+        qBody.appendChild(thumb);
+      }
+      const separator = document.createElement('div');
+      separator.className = 'card-tile-separator';
+      const aTitle = document.createElement('div');
+      aTitle.className = 'card-tile-title';
+      aTitle.textContent = 'A';
+      const aBody = document.createElement('div');
+      aBody.className = 'card-tile-body';
+      renderRich(aBody, card.answer || '');
+
+      tile.append(menu, qTitle, qBody, separator, aTitle, aBody);
+      return tile;
+    }
+
+    async function deleteSubjectById(subjectId) {
+      const topics = (await getAll('topics')).filter(t => t.subjectId === subjectId);
+      const topicIds = topics.map(t => t.id);
+      const cards = (await getAll('cards')).filter(c => topicIds.includes(c.topicId));
+      for (const c of cards) await deleteCardById(c.id);
+      for (const t of topics) await del('topics', t.id);
+      await del('subjects', subjectId);
+      if (selectedSubject?.id === subjectId) {
+        selectedSubject = null;
+        selectedTopic = null;
+        setView(0);
+      }
+      refreshSidebar();
+      loadTopics();
+    }
+
+    async function loadDeck() {
+      if (!selectedTopic) return;
+      el('deckTitle').textContent = `${selectedTopic.name}`;
+      const cards = (await getAll('cards')).filter(c => c.topicId === selectedTopic.id);
+      const grid = el('cardsGrid');
+      if (!cards.length) {
+        grid.innerHTML = '<div class="tiny">No cards yet.</div>';
+        return;
+      }
+      grid.innerHTML = '';
+      cards.forEach((c, idx) => {
+        grid.appendChild(buildCardTile(c, idx));
+      });
+    }
+
+    async function loadEditorCards() {
+      if (!selectedTopic) return;
+      const cards = (await getAll('cards')).filter(c => c.topicId === selectedTopic.id);
+      const list = el('editorCardsList');
+      if (!cards.length) {
+        list.innerHTML = '<div class="tiny">No cards yet.</div>';
+        return;
+      }
+      list.innerHTML = '';
+      cards.forEach((c, idx) => {
+        list.appendChild(buildCardTile(c, idx, true));
+      });
+    }
+
+    async function startSession() {
+      if (!selectedSubject) return alert('Pick a subject first.');
+      const topics = (await getAll('topics')).filter(t => t.subjectId === selectedSubject.id);
+      const topicIds = topics.map(t => t.id).filter(id => selectedTopicIds.has(id));
+      if (!topicIds.length) return alert('Select at least one topic.');
+      const cards = (await getAll('cards')).filter(c => topicIds.includes(c.topicId));
+      if (!cards.length) return alert('Add cards first.');
+      const shuffled = cards.sort(() => Math.random() - 0.5).slice(0, sessionSize);
+      const sessionCards = shuffled.map(c => ({ ...c, sessionCorrectCount: 0 }));
+      session = {
+        active: true,
+        activeQueue: sessionCards,
+        mastered: [],
+        counts: Object.fromEntries(sessionCards.map(c => [c.id, 0])),
+        gradeMap: {}
+      };
+      el('deckTitle').textContent = `${selectedSubject.name}`;
+      el('cardsOverviewSection').classList.add('hidden');
+      el('studySessionSection')?.classList.remove('hidden');
+      el('flashcard').classList.remove('hidden');
+      setView(2);
+      renderSessionPills();
+      renderSessionCard();
+    }
+
+    function renderCardContent(card) {
+      const isMcq = card.type === 'mcq' && (card.options || []).length > 1;
+      const front = el('frontContent');
+      const back = el('backContent');
+      const flashcardEl = el('flashcard');
+      if (flashcardEl) {
+        flashcardEl.dataset.type = isMcq ? 'mcq' : 'qa';
+        flashcardEl.classList.toggle('mcq-mode', isMcq);
+      }
+      const sessionSection = el('studySessionSection');
+      if (sessionSection) sessionSection.classList.toggle('mcq-mode', isMcq);
+
+      let promptHtml = `<div></div><div class="qtxt"></div>`;
+      front.innerHTML = promptHtml;
+      renderRich(front.querySelector('.qtxt'), card.prompt);
+      const qImgSrc = card.imageDataQ || card.imageData || '';
+      if (qImgSrc) {
+        const img = document.createElement('img');
+        img.src = qImgSrc;
+        img.style.maxWidth = '100%';
+        img.style.scale = '0.8';
+        img.style.marginTop = '10px';
+        img.style.borderRadius = '8px';
+        front.appendChild(img);
+      }
+      if (isMcq) {
+        const opts = card.options || [];
+        const optionsWrap = document.createElement('div');
+        optionsWrap.className = 'mcq-options';
+        opts.forEach((o, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'mcq-option';
+          btn.dataset.idx = String(i);
+          const textEl = document.createElement('span');
+          textEl.className = 'mcq-text';
+          renderRich(textEl, o.text || '');
+          btn.appendChild(textEl);
+          btn.addEventListener('click', () => {
+            btn.classList.toggle('selected');
+          });
+          optionsWrap.appendChild(btn);
+        });
+        const checkRow = document.createElement('div');
+        checkRow.className = 'mcq-check-row';
+        const checkBtn = document.createElement('button');
+        checkBtn.className = 'btn mcq-check-btn';
+        checkBtn.textContent = 'Check';
+        checkRow.appendChild(checkBtn);
+        const separator = document.createElement('div');
+        separator.className = 'card-tile-separator';
+        front.appendChild(separator);
+        front.appendChild(optionsWrap);
+        front.appendChild(checkRow);
+
+        checkBtn.onclick = async () => {
+          const buttons = Array.from(optionsWrap.querySelectorAll('.mcq-option'));
+          const selected = buttons
+            .filter(b => b.classList.contains('selected'))
+            .map(b => Number(b.dataset.idx));
+          const correctIdx = opts.map((o, i) => o.correct ? i : null).filter(i => i !== null);
+          const correctSet = new Set(correctIdx);
+          const selectedSet = new Set(selected);
+          const selectedCorrect = selected.filter(i => correctSet.has(i)).length;
+          const selectedWrong = selected.filter(i => !correctSet.has(i)).length;
+          const correctCount = correctIdx.length || 0;
+
+          // visual feedback
+          buttons.forEach((btn, i) => {
+            btn.classList.remove('correct', 'wrong');
+            if (correctSet.has(i)) btn.classList.add('correct');
+            if (btn.classList.contains('selected') && !correctSet.has(i)) btn.classList.add('wrong');
+          });
+
+          let result = 'wrong';
+          if (selectedWrong > 0) {
+            result = 'wrong';
+          } else if (selectedCorrect === correctCount && correctCount > 0) {
+            result = 'correct';
+          } else if (correctCount > 1 && selectedCorrect / correctCount >= 0.5) {
+            result = 'partial';
+          } else {
+            result = 'wrong';
+          }
+
+          checkBtn.textContent = 'Next';
+          checkBtn.onclick = () => {
+            checkBtn.textContent = 'Check';
+            // reset option visuals for next card
+            buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'selected'));
+            gradeCard(result);
+          };
+        };
+      } else {
+        back.innerHTML = `<div></div><div class="atxt"></div>`;
+        renderRich(back.querySelector('.atxt'), card.answer || '');
+      }
+      const aImgSrc = card.imageDataA || '';
+      if (aImgSrc) {
+        const img = document.createElement('img');
+        img.src = aImgSrc;
+        img.style.maxWidth = '100%';
+        img.style.scale = '0.8';
+        img.style.marginTop = '10px';
+        img.style.borderRadius = '8px';
+        back.appendChild(img);
+      }
+    }
+
+    async function renderSessionCard() {
+      if (!session.active) return;
+      if (!el('flashcard')) return;
+      if (!session.activeQueue.length) {
+        session.active = false;
+        el('cardsOverviewSection').classList.remove('hidden');
+        el('studySessionSection')?.classList.add('hidden');
+        renderSessionPills();
+        return;
+      }
+      const card = session.activeQueue[0];
+      el('flashcard').classList.remove('flipped');
+      renderCardContent(card);
+    }
+
+    async function gradeCard(result) {
+      if (!session.active) return;
+      const card = session.activeQueue.shift();
+      if (!card) return;
+      let count = session.counts[card.id] ?? 0;
+
+      if (result === 'correct') count += 1;
+      else count = 0;
+
+      session.counts[card.id] = count;
+      card.sessionCorrectCount = count;
+
+      if (result === 'correct' && count >= 3) {
+        session.mastered.push(card);
+        delete session.gradeMap[card.id];
+      } else if (result === 'wrong') {
+        const target = Math.min(4, session.activeQueue.length);
+        session.activeQueue.splice(target, 0, card);
+        session.gradeMap[card.id] = result;
+      } else {
+        session.activeQueue.push(card);
+        session.gradeMap[card.id] = result;
+      }
+
+      renderSessionPills();
+      await renderSessionCard();
+      loadDeck();
+    }
+
+    function renderSessionPills() {
+      const masteredWrap = el('masteredPills');
+      const activeWrap = el('activePills');
+      if (!masteredWrap || !activeWrap) return;
+      if (!session.active) {
+        masteredWrap.innerHTML = '';
+        activeWrap.innerHTML = '';
+        return;
+      }
+
+      const prev = new Map();
+      document.querySelectorAll('.pill-dot').forEach(el => {
+        prev.set(el.dataset.id, el.getBoundingClientRect());
+      });
+
+      masteredWrap.innerHTML = '';
+      activeWrap.innerHTML = '';
+
+      session.mastered.forEach(card => {
+        const dot = document.createElement('div');
+        dot.className = 'pill-dot mastered';
+        dot.dataset.id = card.id;
+        masteredWrap.appendChild(dot);
+      });
+
+      session.activeQueue.forEach(card => {
+        const dot = document.createElement('div');
+        dot.className = 'pill-dot';
+        dot.dataset.id = card.id;
+        const grade = session.gradeMap[card.id];
+        if (grade) dot.classList.add(grade);
+        activeWrap.appendChild(dot);
+      });
+
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.pill-dot').forEach(el => {
+          const prevRect = prev.get(el.dataset.id);
+          if (!prevRect) return;
+          const nextRect = el.getBoundingClientRect();
+          const dx = prevRect.left - nextRect.left;
+          const dy = prevRect.top - nextRect.top;
+          if (dx || dy) {
+            el.style.transform = `translate(${dx}px, ${dy}px)`;
+            el.style.transition = 'transform 0s';
+            requestAnimationFrame(() => {
+              el.style.transform = '';
+              el.style.transition = 'transform 0.3s ease';
+            });
+          }
+        });
+      });
+    }
+
+    function wireSwipe() {
+      const card = el('flashcard');
+      if (!card) return;
+      let startX = 0, startY = 0;
+      card.addEventListener('touchstart', e => {
+        if (card.dataset.type === 'mcq') return;
+        if (!e.changedTouches[0]) return;
+        startX = e.changedTouches[0].clientX;
+        startY = e.changedTouches[0].clientY;
+      });
+      card.addEventListener('touchend', e => {
+        if (card.dataset.type === 'mcq') return;
+        if (!e.changedTouches[0]) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+          if (dx < 0) gradeCard('correct');
+          else gradeCard('wrong');
+        } else if (dy > 50) {
+          gradeCard('partial');
+        }
+      });
+    }
+
+    function openSubjectDialog() {
+      el('subjectNameInput').value = '';
+      el('subjectAccentPicker').value = '#2dd4bf';
+      el('subjectAccentText').value = '#2dd4bf';
+      el('subjectDialog').showModal();
+    }
+
+    async function addSubjectFromDialog() {
+      const name = el('subjectNameInput').value.trim();
+      if (!name) return;
+      const accent = el('subjectAccentText').value.trim() || '#2dd4bf';
+      await put('subjects', { id: uid(), name, accent });
+      el('subjectDialog').close();
+      refreshSidebar();
+    }
+
+    async function exportJSON() {
+      const subjects = await getAll('subjects');
+      const topics = await getAll('topics');
+      const cards = await getAll('cards');
+      const subjectMap = Object.fromEntries(subjects.map(s => [s.id, s]));
+      const topicMap = Object.fromEntries(topics.map(t => [t.id, t]));
+      const payload = {
+        subjects,
+        topics: topics.map(t => ({
+          ...t,
+          subjectName: subjectMap[t.subjectId]?.name || ''
+        })),
+        cards: cards.map(c => ({
+          ...c,
+          topicName: topicMap[c.topicId]?.name || '',
+          subjectName: subjectMap[topicMap[c.topicId]?.subjectId]?.name || ''
+        })),
+        progress: await getAll('progress')
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'flashcards-export.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function exportCSV() {
+      const subjects = await getAll('subjects');
+      const topics = await getAll('topics');
+      const cards = await getAll('cards');
+      const subjectMap = Object.fromEntries(subjects.map(s => [s.id, s]));
+      const topicMap = Object.fromEntries(topics.map(t => [t.id, t]));
+      const lines = ['id,topicId,topicName,subjectName,type,prompt,answer,options'];
+      cards.forEach(c => {
+        const options = c.options ? JSON.stringify(c.options).replaceAll('"', '""') : '';
+        const esc = s => `"${String(s || '').replaceAll('"', '""')}"`;
+        const topic = topicMap[c.topicId];
+        const subject = topic ? subjectMap[topic.subjectId] : null;
+        lines.push([
+          c.id,
+          c.topicId,
+          esc(topic?.name || ''),
+          esc(subject?.name || ''),
+          c.type,
+          esc(c.prompt),
+          esc(c.answer),
+          esc(options)
+        ].join(','));
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'flashcards-cards.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function importJSON(file) {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      for (const s of ['subjects', 'topics', 'cards', 'progress']) {
+        for (const row of (data[s] || [])) {
+          await put(s, row);
+          if (s === 'cards') await putCardBank(row);
+        }
+      }
+      alert('Imported successfully.');
+      refreshSidebar();
+      if (selectedSubject) loadTopics();
+      if (selectedTopic) loadDeck();
+    }
+
+    async function boot() {
+      db = await openDB();
+      cardBankDb = await openCardBankDB();
+      wireSwipe();
+
+      el('homeBtn').onclick = () => {
+        setView(0);
+        document.body.classList.remove('sidebar-open');
+      };
+      el('settingsBtn').onclick = () => document.getElementById('settingsDialog').showModal();
+      el('quickAddSubject').onclick = openSubjectDialog;
+      el('addSubjectBtn').onclick = openSubjectDialog;
+      el('quickExport').onclick = exportJSON;
+      const startBtn = el('startSessionBtn');
+      if (startBtn) startBtn.onclick = startSession;
+      el('backToTopicsBtn').onclick = () => setView(1);
+      el('backToHomeBtn').onclick = () => setView(0);
+      el('backToTopicsBtnSession').onclick = () => {
+        session.active = false;
+        el('cardsOverviewSection').classList.remove('hidden');
+        el('studySessionSection')?.classList.add('hidden');
+        renderSessionPills();
+        setView(1);
+      };
+      el('backToDeckBtn').onclick = () => setView(2);
+      const flashcardEl = el('flashcard');
+      if (flashcardEl) {
+        flashcardEl.onclick = () => {
+          if (flashcardEl.dataset.type === 'mcq') return;
+          flashcardEl.classList.toggle('flipped');
+        };
+      }
+      const editBtn = el('editSessionCardBtn');
+      if (editBtn) {
+        editBtn.onclick = () => {
+          if (!session.active) return;
+          const card = session.activeQueue[0];
+          if (!card) return;
+          openEditDialog(card);
+        };
+      }
+      const editBtnBack = el('editSessionCardBtnBack');
+      if (editBtnBack && editBtn) editBtnBack.onclick = () => editBtn.click();
+      const editDialog = el('editCardDialog');
+      if (editDialog) {
+        editDialog.addEventListener('click', e => {
+          if (e.target === editDialog) editDialog.close();
+        });
+      }
+
+      const sidebarToggle = el('sidebarToggle');
+      const sidebarOverlay = el('sidebarOverlay');
+      if (sidebarToggle && sidebarOverlay) {
+        sidebarToggle.onclick = () => document.body.classList.toggle('sidebar-open');
+        sidebarOverlay.onclick = () => document.body.classList.remove('sidebar-open');
+      }
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) document.body.classList.remove('sidebar-open');
+      });
+
+      const editorShell = document.querySelector('#editorPanel .editor-shell');
+      const editorOverlay = el('editorOverlay');
+      const toggleSidebarBtn = el('toggleEditorSidebarBtn');
+      if (toggleSidebarBtn && editorShell) {
+        toggleSidebarBtn.onclick = () => editorShell.classList.toggle('sidebar-open');
+      }
+      if (editorOverlay && editorShell) {
+        editorOverlay.onclick = () => editorShell.classList.remove('sidebar-open');
+      }
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 980 && editorShell) editorShell.classList.remove('sidebar-open');
+      });
+      el('closeEditCardBtn').onclick = () => el('editCardDialog').close();
+      el('editAddMcqOptionBtn').onclick = () => {
+        ensureEditPrimaryAnswerRow();
+        addEditMcqRow();
+      };
+      el('editCardAnswer').addEventListener('input', ensureEditPrimaryAnswerRow);
+      el('openCreateCardBtn').onclick = () => {
+        if (!selectedTopic) return alert('Pick a topic first.');
+        el('editorTitle').textContent = `Create Flashcards • ${selectedTopic.name}`;
+        el('cardPrompt').value = '';
+        el('cardAnswer').value = '';
+        el('cardPrompt').dataset.imageDataQ = '';
+        el('cardAnswer').dataset.imageDataA = '';
+        setImagePreview(el('questionImagePreview'), '', () => { el('cardPrompt').dataset.imageDataQ = ''; });
+        setImagePreview(el('answerImagePreview'), '', () => { el('cardAnswer').dataset.imageDataA = ''; });
+        el('mcqOptions').innerHTML = '';
+        ensurePrimaryAnswerRow();
+        loadEditorCards();
+        setView(3);
+      };
+      el('addMcqOptionBtn').onclick = () => {
+        ensurePrimaryAnswerRow();
+        addMcqRow();
+      };
+      el('cardAnswer').addEventListener('input', ensurePrimaryAnswerRow);
+      attachAutoClose(el('cardPrompt'));
+      attachAutoClose(el('cardAnswer'));
+      attachAutoClose(el('editCardPrompt'));
+      attachAutoClose(el('editCardAnswer'));
+      ['dragover', 'drop'].forEach(evt => {
+        document.addEventListener(evt, e => {
+          e.preventDefault();
+        }, true);
+      });
+      const createShortcut = e => {
+        if (e.key === 'Enter' && e.shiftKey) {
+          e.preventDefault();
+          el('addCardBtn').click();
+        }
+      };
+      el('cardPrompt').addEventListener('keydown', createShortcut);
+      el('cardAnswer').addEventListener('keydown', createShortcut);
+      attachImageDrop(el('cardPrompt'), dataUrl => {
+        el('cardPrompt').dataset.imageDataQ = dataUrl;
+        setImagePreview(el('questionImagePreview'), dataUrl, () => { el('cardPrompt').dataset.imageDataQ = ''; });
+      });
+      attachImageDrop(el('questionImagePreview'), dataUrl => {
+        el('cardPrompt').dataset.imageDataQ = dataUrl;
+        setImagePreview(el('questionImagePreview'), dataUrl, () => { el('cardPrompt').dataset.imageDataQ = ''; });
+      });
+      attachImageDrop(el('cardAnswer'), dataUrl => {
+        el('cardAnswer').dataset.imageDataA = dataUrl;
+        setImagePreview(el('answerImagePreview'), dataUrl, () => { el('cardAnswer').dataset.imageDataA = ''; });
+      });
+      attachImageDrop(el('answerImagePreview'), dataUrl => {
+        el('cardAnswer').dataset.imageDataA = dataUrl;
+        setImagePreview(el('answerImagePreview'), dataUrl, () => { el('cardAnswer').dataset.imageDataA = ''; });
+      });
+      attachImageDrop(el('editCardPrompt'), dataUrl => {
+        el('editCardPrompt').dataset.imageDataQ = dataUrl;
+        setImagePreview(el('editQuestionImagePreview'), dataUrl, () => { el('editCardPrompt').dataset.imageDataQ = ''; });
+      });
+      attachImageDrop(el('editQuestionImagePreview'), dataUrl => {
+        el('editCardPrompt').dataset.imageDataQ = dataUrl;
+        setImagePreview(el('editQuestionImagePreview'), dataUrl, () => { el('editCardPrompt').dataset.imageDataQ = ''; });
+      });
+      attachImageDrop(el('editCardAnswer'), dataUrl => {
+        el('editCardAnswer').dataset.imageDataA = dataUrl;
+        setImagePreview(el('editAnswerImagePreview'), dataUrl, () => { el('editCardAnswer').dataset.imageDataA = ''; });
+      });
+      attachImageDrop(el('editAnswerImagePreview'), dataUrl => {
+        el('editCardAnswer').dataset.imageDataA = dataUrl;
+        setImagePreview(el('editAnswerImagePreview'), dataUrl, () => { el('editCardAnswer').dataset.imageDataA = ''; });
+      });
+
+      el('cancelSubjectBtn').onclick = () => el('subjectDialog').close();
+      el('createSubjectBtn').onclick = addSubjectFromDialog;
+      el('cancelSubjectEditBtn').onclick = () => el('subjectEditDialog').close();
+      el('saveSubjectEditBtn').onclick = async () => {
+        if (!editingSubjectId) return;
+        const name = el('editSubjectName').value.trim();
+        const accent = el('editSubjectColor').value || '#2dd4bf';
+        if (!name) return;
+        await put('subjects', { id: editingSubjectId, name, accent });
+        if (selectedSubject?.id === editingSubjectId) {
+          selectedSubject = { ...selectedSubject, name, accent };
+          applySubjectTheme(accent);
+        }
+        editingSubjectId = null;
+        el('subjectEditDialog').close();
+        refreshSidebar();
+        if (selectedSubject) loadTopics();
+      };
+      el('deleteSubjectBtn').onclick = async () => {
+        if (!editingSubjectId) return;
+        if (!confirm('Delete this subject and all its topics/cards?')) return;
+        const id = editingSubjectId;
+        editingSubjectId = null;
+        el('subjectEditDialog').close();
+        await deleteSubjectById(id);
+      };
+
+      el('subjectAccentPicker').addEventListener('input', e => {
+        el('subjectAccentText').value = e.target.value;
+      });
+      el('subjectAccentText').addEventListener('input', e => {
+        const v = e.target.value.trim();
+        if (/^#([0-9a-fA-F]{3}){1,2}$/.test(v)) el('subjectAccentPicker').value = v;
+      });
+      el('subjectPalette').addEventListener('click', e => {
+        const btn = e.target.closest('button[data-color]');
+        if (!btn) return;
+        const c = btn.dataset.color;
+        el('subjectAccentPicker').value = c;
+        el('subjectAccentText').value = c;
+      });
+
+      // subject accent editing moved to subject edit dialog
+
+      const sessionMinus = el('sessionMinus');
+      const sessionPlus = el('sessionPlus');
+      const sessionSizeValue = el('sessionSizeValue');
+      if (sessionMinus && sessionPlus && sessionSizeValue) {
+        sessionMinus.onclick = () => {
+          sessionSize = Math.max(5, sessionSize - 1);
+          sessionSizeValue.textContent = sessionSize;
+        };
+        sessionPlus.onclick = () => {
+          sessionSize = Math.min(100, sessionSize + 1);
+          sessionSizeValue.textContent = sessionSize;
+        };
+        sessionSizeValue.textContent = sessionSize;
+      }
+
+      el('addTopicBtn').onclick = async () => {
+        if (!selectedSubject) return alert('Pick a subject first.');
+        const name = el('topicName').value.trim();
+        if (!name) return;
+        await put('topics', { id: uid(), subjectId: selectedSubject.id, name });
+        el('topicName').value = '';
+        loadTopics();
+        refreshSidebar();
+      };
+
+      el('addCardBtn').onclick = async () => {
+        if (!selectedTopic) return alert('Pick a topic first.');
+        const imageDataQ = el('cardPrompt').dataset.imageDataQ || '';
+        const imageDataA = el('cardAnswer').dataset.imageDataA || '';
+        const options = parseMcqOptions();
+        const type = options.length > 1 ? 'mcq' : 'qa';
+        const card = {
+          id: uid(),
+          topicId: selectedTopic.id,
+          type,
+          prompt: el('cardPrompt').value,
+          answer: el('cardAnswer').value,
+          options: type === 'mcq' ? options : [],
+          imageDataQ,
+          imageDataA
+        };
+        await put('cards', card);
+        await putCardBank(card);
+        el('cardPrompt').value = '';
+        el('cardAnswer').value = '';
+        el('cardPrompt').dataset.imageDataQ = '';
+        el('cardAnswer').dataset.imageDataA = '';
+        setImagePreview(el('questionImagePreview'), '', () => { el('cardPrompt').dataset.imageDataQ = ''; });
+        setImagePreview(el('answerImagePreview'), '', () => { el('cardAnswer').dataset.imageDataA = ''; });
+        el('mcqOptions').innerHTML = '';
+        ensurePrimaryAnswerRow();
+        loadEditorCards();
+        loadDeck();
+        refreshSidebar();
+      };
+
+      el('saveEditCardBtn').onclick = async () => {
+        if (!editingCardId) return;
+        const card = (await getAll('cards')).find(c => c.id === editingCardId);
+        if (!card) return;
+        const imageDataQ = el('editCardPrompt').dataset.imageDataQ || card.imageDataQ || card.imageData || '';
+        const imageDataA = el('editCardAnswer').dataset.imageDataA || card.imageDataA || '';
+        const options = parseEditMcqOptions();
+        const type = options.length > 1 ? 'mcq' : 'qa';
+        const updated = {
+          ...card,
+          prompt: el('editCardPrompt').value,
+          answer: el('editCardAnswer').value,
+          options: type === 'mcq' ? options : [],
+          type,
+          imageDataQ,
+          imageDataA
+        };
+        await put('cards', updated);
+        await putCardBank(updated);
+        if (session.active) {
+          const idx = session.activeQueue.findIndex(c => c.id === updated.id);
+          if (idx !== -1) session.activeQueue[idx] = { ...session.activeQueue[idx], ...updated };
+          const mIdx = session.mastered.findIndex(c => c.id === updated.id);
+          if (mIdx !== -1) session.mastered[mIdx] = { ...session.mastered[mIdx], ...updated };
+        }
+        el('editCardDialog').close();
+        el('editCardPrompt').dataset.imageDataQ = '';
+        el('editCardAnswer').dataset.imageDataA = '';
+        editingCardId = null;
+        loadDeck();
+        loadEditorCards();
+        refreshSidebar();
+        renderSessionCard();
+      };
+
+      document.querySelectorAll('[data-grade]').forEach(btn => {
+        btn.addEventListener('click', () => gradeCard(btn.dataset.grade));
+      });
+
+      refreshSidebar();
+    }
+
+    window.addEventListener('DOMContentLoaded', boot);
+  </script>
+
+  <dialog id="subjectDialog" class="modal">
+    <h3>New Subject</h3>
+    <div class="grid two">
+      <div>
+        <label>Subject Name</label>
+        <input class="input" id="subjectNameInput" placeholder="e.g., Fluid Mechanics" />
+      </div>
+      <div>
+        <label>Accent Color</label>
+        <input class="input" type="color" id="subjectAccentPicker" value="#2dd4bf" />
+      </div>
+    </div>
+    <label>Accent Hex</label>
+    <input class="input" id="subjectAccentText" value="#2dd4bf" />
+    <div class="tiny" style="margin:6px 0 10px;">Pick a color or paste a hex value.</div>
+    <div class="palette" id="subjectPalette">
+      <button type="button" data-color="#2dd4bf" style="background:#2dd4bf"></button>
+      <button type="button" data-color="#22c55e" style="background:#22c55e"></button>
+      <button type="button" data-color="#f59e0b" style="background:#f59e0b"></button>
+      <button type="button" data-color="#ef4444" style="background:#ef4444"></button>
+      <button type="button" data-color="#60a5fa" style="background:#60a5fa"></button>
+      <button type="button" data-color="#a855f7" style="background:#a855f7"></button>
+      <button type="button" data-color="#f472b6" style="background:#f472b6"></button>
+    </div>
+    <div class="controls" style="margin-top:14px;">
+      <button class="btn" id="createSubjectBtn">Create Subject</button>
+      <button class="btn" id="cancelSubjectBtn">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="subjectEditDialog" class="modal">
+    <h3>Edit Subject</h3>
+    <div class="grid two">
+      <div>
+        <label>Name</label>
+        <input id="editSubjectName" placeholder="e.g., Fluid Mechanics" />
+      </div>
+      <div>
+        <label>Accent Color</label>
+        <input type="color" id="editSubjectColor" value="#2dd4bf" />
+      </div>
+    </div>
+    <div class="controls" style="margin-top:12px;">
+      <button class="btn save-primary" id="saveSubjectEditBtn">Save</button>
+      <button class="btn delete" id="deleteSubjectBtn">Delete</button>
+      <button class="btn" id="cancelSubjectEditBtn">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDialog" class="modal">
+    <h3>Settings & Data</h3>
+    <p class="tiny">Export and import your IndexedDB dataset.</p>
+    <div class="controls">
+      <button class="btn" onclick="exportJSON()">Export JSON</button>
+      <button class="btn" onclick="exportCSV()">Export CSV</button>
+      <label class="btn" for="importInput">Import JSON</label>
+      <input id="importInput" type="file" accept="application/json" class="hidden" />
+      <button class="btn" onclick="document.getElementById('settingsDialog').close()">Close</button>
+    </div>
+    <script>
+      document.getElementById('importInput').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) importJSON(file);
+      });
+    </script>
+  </dialog>
+
+  <dialog id="editCardDialog" class="modal modal-wide">
+    <div class="editor-header">
+      <h3>Edit Flashcard</h3>
+      <button class="btn" id="closeEditCardBtn">Close</button>
+    </div>
+    <div class="editor-grid editor-grid-single">
+      <div class="editor-panel editor-main">
+        <div class="editor-field">
+          <label>Question</label>
+          <textarea id="editCardPrompt" placeholder="Type your question..."></textarea>
+          <div id="editQuestionImagePreview" class="image-preview">Drop image here</div>
+        </div>
+        <div class="editor-field">
+          <label>Answer</label>
+          <textarea id="editCardAnswer" placeholder="Type the answer..."></textarea>
+          <div id="editAnswerImagePreview" class="image-preview">Drop image here</div>
+          <div class="editor-options">
+            <div class="tiny">Multi-select answers (optional)</div>
+            <div id="editMcqOptions"></div>
+            <button class="btn" id="editAddMcqOptionBtn">Add Answer</button>
+          </div>
+        </div>
+        <div class="editor-footer">
+          <button class="btn save-primary" id="saveEditCardBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+</body>
+
+</html>
