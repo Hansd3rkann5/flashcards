@@ -3,8 +3,13 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Engineering Flashcards | Local-First</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0f1e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Engineering Flashcards | Shared Server</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
     integrity="sha384-wcIxYkQJvRV6A7vA3HfNdc0AGJi/7luWGINuD/7++UZ5EONosFVJeFt3uTJS3BM4" crossorigin="anonymous">
@@ -14,22 +19,21 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
     integrity="sha384-hCXGrW6PitU8M1uuvvZp8K4D4ew3Efr2E1VlzDq+W8sELpAo0P5PLf4KJIp4jOSy"
     crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 
 <body>
-  <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
   <aside class="sidebar">
     <div>
       <div class="app-title">⚙️ Engineering Flashcards</div>
-      <div class="tiny">Local-first IndexedDB trainer</div>
     </div>
     <button id="homeBtn">🏠 Home</button>
     <button id="settingsBtn">⚙️ Settings</button>
     <div>
       <strong>Subjects</strong>
       <div id="subjectList" class="tile-grid"></div>
-      <button class="btn" id="addSubjectBtn" style="margin-top:10px;">+ Add Subject</button>
+      <button class="btn" id="addSubjectBtn" style="margin-top:10px;width: 100%;">+ Add Subject</button>
     </div>
   </aside>
 
@@ -38,7 +42,7 @@
       <section class="panel" id="homePanel">
         <div class="section">
           <h2>Home</h2>
-          <p>Build and study engineering decks with Markdown + LaTeX. Cards are local to your browser via IndexedDB.</p>
+          <p>Build and study engineering decks with Markdown + LaTeX. Cards are shared through your laptop server.</p>
           <div class="grid two">
             <div>
               <div class="pill" id="summarySubjects">0 Subjects</div>
@@ -51,23 +55,19 @@
             </div>
           </div>
         </div>
-        <div class="section">
-          <h3>Selected Subject Topics</h3>
-          <div id="homeTopics" class="tile-grid"></div>
-        </div>
       </section>
 
       <section class="panel" id="topicPanel">
         <div class="section">
-          <div class="controls" style="margin-bottom:10px; align-items:center;margin-inline: 0; ">
-            <button class="btn" id="backToHomeBtn">← Back</button>
-            <h2 id="topicTitle" style="margin:0;">Topics</h2>
+          <div class="topic-sticky-stack">
+            <div class="controls topic-header" style="align-items:center;margin-inline: 0; ">
+              <h2 id="topicTitle" style="margin:0;">Subject</h2>
+            </div>
           </div>
-          <div class="tiny" id="subjectColorHint">Subject theme adapts to the selected subject.</div>
-          <div class="study-selection section" style="margin-top:14px;">
+          <div class="study-selection section">
             <h3>Study Session</h3>
-            <div class="grid two">
-              <div>
+            <div class="grid two study-selection-grid">
+              <div class="study-selection-card">
                 <label>Session Size</label>
                 <div class="counter">
                   <button class="btn counter-btn" id="sessionMinus">-</button>
@@ -76,33 +76,73 @@
                 </div>
                 <div class="tiny">Pick how many cards to study this session.</div>
               </div>
-              <div>
+              <div class="study-selection-card">
                 <label>Selected Topics</label>
-                <div class="tiny">Choose topics below (you can mix multiple).</div>
+                <div class="tiny" id="selectedTopicsSummary">Choose topics below (you can mix multiple).</div>
               </div>
             </div>
-            <button class="btn" id="startSessionBtn" style="margin-top:10px;">▶ Start Session</button>
+            <div class="study-session-actions">
+              <button class="btn" id="startSessionBtn" type="button">▶ Start Session</button>
+              <button class="btn" id="openSessionFilterBtn" type="button">Filter</button>
+            </div>
+            <div class="tiny session-filter-summary" id="sessionFilterSummary"></div>
+          </div>
+          <div class="topic-list-head">
+            <h3 id="topicListTitle" class="topic-list-title">Topics</h3>
+            <div class="topic-list-actions">
+              <button class="btn select-cards-btn topic-search-btn" id="openTopicSearchBtn" aria-label="Search cards"
+                title="Search cards" type="button">
+                <img src="icons8-suche-48.svg" alt="" />
+              </button>
+              <button class="btn select-cards-btn" id="toggleTopicSelectBtn" aria-label="Select topics"
+                title="Select topics" type="button">
+                <img src="icons8-ha%CC%88kchen.svg" alt="" />
+              </button>
+            </div>
+          </div>
+          <div class="topic-bulk-actions hidden" id="topicBulkActions">
+            <div class="tiny" id="topicSelectionCount">0 topics selected</div>
+            <button class="btn" id="moveSelectedTopicsBtn" type="button">Move</button>
+            <button class="btn delete" id="deleteSelectedTopicsBtn" type="button">Delete</button>
+            <button class="btn" id="cancelTopicSelectionBtn" type="button">Cancel</button>
           </div>
           <div id="topicList" class="topic-list"></div>
           <hr style="border-color:#30456f">
           <h3>Add Topic</h3>
-          <input id="topicName" placeholder="e.g., Thermodynamics" />
-          <button class="btn" id="addTopicBtn" style="margin-top:8px;">Add Topic</button>
+          <div class="topic-input-wrap">
+            <input id="topicName" class="topic-input" placeholder="e.g., Thermodynamics" />
+            <button class="btn create-card-icon-btn topic-add-btn" id="addTopicBtn" type="button"
+              aria-label="Add topic" title="Add topic" style="background-color: var(--success)">+</button>
+          </div>
         </div>
       </section>
 
       <section class="panel" id="deckPanel">
         <div class="section" id="cardsOverviewSection">
-          <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
-            <button class="btn" id="backToTopicsBtn">← Back</button>
-            <h2 id="deckTitle" style="margin:0;">Deck</h2>
-            <div style="margin-left:auto;">
-              <button class="btn" id="openCreateCardBtn" style="background-color: var(--success)">Create
-                Flashcards</button>
+          <!-- <div class="deck-sticky-stack"> -->
+            <div class="controls deck-controls deck-header-tile">
+              <button class="btn" id="backToTopicsBtn">←</button>
+              <div class="deck-title-wrap">
+                <h2 id="deckTitle" class="deck-title">Deck</h2>
+              </div>
+              <div class="deck-actions">
+                <button class="btn select-cards-btn" id="toggleCardSelectBtn" aria-label="Karten auswählen"
+                  title="Karten auswählen" type="button">
+                  <img src="icons8-ha%CC%88kchen.svg" alt="" />
+                </button>
+                <button class="btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
+                  aria-label="Create flashcard" title="Create flashcard">+</button>
+              </div>
+            <!-- </div> -->
+            <!-- <div class="tiny deck-separator-row">
+              <separator class="card-tile-separator"></separator>
+            </div> -->
+            <div class="deck-bulk-actions hidden" id="deckBulkActions">
+              <div class="tiny" id="deckSelectionCount">0 ausgewählt</div>
+              <button class="btn" id="moveSelectedCardsBtn" type="button">Verschieben</button>
+              <button class="btn delete" id="deleteSelectedCardsBtn" type="button">Löschen</button>
+              <button class="btn" id="cancelCardSelectionBtn" type="button">Abbrechen</button>
             </div>
-          </div>
-          <div class="tiny" style="margin:10px; height:1px; display: flex; align-items: center;">
-            <separator class="card-tile-separator"></separator>
           </div>
           <div id="cardsGrid" class="card-grid"></div>
         </div>
@@ -110,7 +150,7 @@
         <div class="section hidden" id="studySessionSection" style="height: 100%;">
           <div style="margin-inline: var(--space-4)">
             <div class="session-top">
-              <button class="btn" id="backToTopicsBtnSession">← Back</button>
+              <button class="btn" id="backToTopicsBtnSession">←</button>
               <h3>Study Session</h3>
             </div>
             <div class="session-pill-bar">
@@ -130,6 +170,8 @@
                 <button class="btn card-edit-btn" id="editSessionCardBtnBack">Edit</button>
                 <div class="face-content" id="backContent"></div>
               </div>
+              <div class="swipe-glow" id="swipeGlow" aria-hidden="true"></div>
+              <div class="swipe-badge" id="swipeBadge" aria-hidden="true"></div>
             </div>
           </div>
           <div class="controls">
@@ -143,37 +185,111 @@
       <section class="panel" id="editorPanel">
         <div class="section editor-shell">
           <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
-            <button class="btn" id="backToDeckBtn">← Back</button>
+            <button class="btn" id="backToDeckBtn">←</button>
             <div>
-              <h2 id="editorTitle" style="margin:0;">Create Flashcards</h2>
+              <h2 id="editorTitle" style="margin:0;">+</h2>
               <div class="tiny" id="editorSubtitle">Autosaved locally</div>
             </div>
             <button class="btn editor-sidebar-toggle" id="toggleEditorSidebarBtn">Cards</button>
           </div>
           <div id="editorOverlay" class="editor-overlay"></div>
           <div class="editor-grid">
-            <div class="editor-list editor-sidebar">
+            <div class="editor-list editor-sidebar" style="overflow: auto;">
               <div class="tiny">Existing cards</div>
               <div id="editorCardsList" class="editor-panel"></div>
             </div>
             <div class="editor-separator" aria-hidden="true"></div>
             <div class="editor-panel editor-main">
+              <div class="editor-main-scroll">
               <div class="editor-field">
-                <label>Question</label>
+                <div class="field-head">
+                  <label>Question</label>
+                  <button class="btn btn-small formula-btn" data-formula-target="cardPrompt" type="button">Formula</button>
+                </div>
                 <textarea id="cardPrompt" placeholder="Type your question..."></textarea>
+                <div class="text-toolbar" data-group="create-question">
+                  <div class="toolbar-segment">
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="create-question"
+                      data-align="left">Left</button>
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="create-question"
+                      data-align="center">Center</button>
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="create-question"
+                      data-align="justify">Justify</button>
+                  </div>
+                  <div class="toolbar-segment">
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="cardPrompt"
+                      data-format="bold" title="Bold (Cmd/Ctrl+B)"><strong>B</strong></button>
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="cardPrompt"
+                      data-format="italic" title="Italic (Cmd/Ctrl+I)"><em>I</em></button>
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="cardPrompt"
+                      data-format="underline" title="Underline (Cmd/Ctrl+U)"><u>U</u></button>
+                  </div>
+                  <div class="toolbar-segment">
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="cardPrompt"
+                      data-list="ul">• List</button>
+                    <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="cardPrompt"
+                      data-list="ol">1. List</button>
+                  </div>
+                </div>
                 <div id="questionImagePreview" class="image-preview">Drop image here</div>
+                <div class="field-error hidden" id="questionError">Please fill in the question.</div>
               </div>
-              <div class="editor-field">
-                <label>Answer</label>
-                <textarea id="cardAnswer" placeholder="Type the answer..."></textarea>
-                <div id="answerImagePreview" class="image-preview">Drop image here</div>
+              <div class="editor-field" id="answerField">
+                <div class="mcq-primary-row" id="primaryAnswerRow">
+                  <div class="mcq-primary-header hidden" id="primaryAnswerHeader">
+                    <span class="mcq-badge correct" id="primaryAnswerBadge">Correct Answer ✓</span>
+                    <label class="toggle mcq-toggle">
+                      <input type="checkbox" id="primaryAnswerToggle" checked />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="field-head">
+                    <label>Answer</label>
+                    <button class="btn btn-small formula-btn" data-formula-target="cardAnswer" type="button">Formula</button>
+                  </div>
+                  <textarea id="cardAnswer" placeholder="Type the answer..."></textarea>
+                  <div class="text-toolbar" data-group="create-answer">
+                    <div class="toolbar-segment">
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="create-answer"
+                        data-align="left">Left</button>
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="create-answer"
+                        data-align="center">Center</button>
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="create-answer"
+                        data-align="justify">Justify</button>
+                    </div>
+                    <div class="toolbar-segment">
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="cardAnswer"
+                        data-format="bold" title="Bold (Cmd/Ctrl+B)"><strong>B</strong></button>
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="cardAnswer"
+                        data-format="italic" title="Italic (Cmd/Ctrl+I)"><em>I</em></button>
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="cardAnswer"
+                        data-format="underline" title="Underline (Cmd/Ctrl+U)"><u>U</u></button>
+                    </div>
+                    <div class="toolbar-segment">
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="cardAnswer"
+                        data-list="ul">• List</button>
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="cardAnswer"
+                        data-list="ol">1. List</button>
+                    </div>
+                  </div>
+                  <div id="answerImagePreview" class="image-preview">Drop image here</div>
+                </div>
                 <div class="editor-options">
                   <div class="tiny">Multi-select answers (optional)</div>
-                  <div id="mcqOptions"></div>
+                  <div class="text-toolbar" data-group="create-options">
+                    <div class="toolbar-segment">
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="align"
+                        data-group="create-options" data-align="left">Options Left</button>
+                      <button class="btn btn-small toolbar-btn" type="button" data-action="align"
+                        data-group="create-options" data-align="center">Options Center</button>
+                    </div>
+                  </div>
+                  <div id="mcqOptions" class="hidden"></div>
                   <button class="btn" id="addMcqOptionBtn">Add Answer</button>
                 </div>
+                <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
               </div>
-              <div class="tiny">Markdown colors syntax: [text]{#ff6b6b}</div>
+              </div>
               <div class="editor-footer">
                 <button class="btn" id="addCardBtn" style="width: 100%; background-color: #d42dba6e">Create
                   Flashcard</button>
@@ -186,119 +302,655 @@
   </main>
 
   <script>
-    const DB_NAME = 'eng_flashcards_db_v1';
-    const DB_VERSION = 1;
-    const CARD_BANK_DB = 'eng_flashcards_cardbank_v1';
-    const CARD_BANK_VERSION = 1;
-    let db;
-    let cardBankDb;
+    const API_BASE = '/api';
+    const STORE_KEYS = {
+      subjects: 'id',
+      topics: 'id',
+      cards: 'id',
+      progress: 'cardId',
+      cardbank: 'id'
+    };
+    let dbReady = false;
     let selectedSubject = null;
     let selectedTopic = null;
     let selectedTopicIds = new Set();
     let sessionSize = 15;
+    let availableSessionCards = 0;
     let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeMap: {} };
     let editingCardId = null;
     let editingSubjectId = null;
+    let mcqMode = false;
+    let editMcqMode = false;
+    let createQuestionTextAlign = 'center';
+    let createAnswerTextAlign = 'center';
+    let editQuestionTextAlign = 'center';
+    let editAnswerTextAlign = 'center';
+    let createOptionsTextAlign = 'left';
+    let editOptionsTextAlign = 'left';
+    let formulaTarget = null;
+    let suppressFlashcardTapUntil = 0;
+    let deckSelectionMode = false;
+    let deckSelectedCardIds = new Set();
+    let topicSelectionMode = false;
+    let topicSelectedIds = new Set();
+    const SESSION_FILTER_DEFAULT = Object.freeze({
+      all: true,
+      correct: false,
+      wrong: false,
+      partial: false
+    });
+    let sessionFilterState = { ...SESSION_FILTER_DEFAULT };
+    let progressLoaded = false;
+    let progressByCardId = new Map();
+    let sessionRunState = { startedAt: 0, topicIds: [], filters: { ...SESSION_FILTER_DEFAULT } };
+    let sessionRepeatState = { remaining: 0, size: 0, topicIds: [], filters: { ...SESSION_FILTER_DEFAULT } };
 
     const el = id => document.getElementById(id);
 
-    function openDB() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = e => {
-          const d = e.target.result;
-          if (!d.objectStoreNames.contains('subjects')) {
-            d.createObjectStore('subjects', { keyPath: 'id' });
-          }
-          if (!d.objectStoreNames.contains('topics')) {
-            const t = d.createObjectStore('topics', { keyPath: 'id' });
-            t.createIndex('subjectId', 'subjectId', { unique: false });
-          }
-          if (!d.objectStoreNames.contains('cards')) {
-            const c = d.createObjectStore('cards', { keyPath: 'id' });
-            c.createIndex('topicId', 'topicId', { unique: false });
-          }
-          if (!d.objectStoreNames.contains('progress')) {
-            d.createObjectStore('progress', { keyPath: 'cardId' });
-          }
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+    function setDeckTitle(title = 'Deck') {
+      const titleEl = el('deckTitle');
+      if (!titleEl) return;
+      const text = String(title || 'Deck').trim() || 'Deck';
+      titleEl.textContent = text;
+      titleEl.classList.toggle('is-long', text.length > 22);
+      titleEl.classList.toggle('is-very-long', text.length > 36);
+      titleEl.setAttribute('title', text);
+    }
+
+    function normalizeSessionFilters(state = null) {
+      const raw = (state && typeof state === 'object') ? state : SESSION_FILTER_DEFAULT;
+      const normalized = {
+        all: !!raw.all,
+        correct: !!raw.correct,
+        wrong: !!raw.wrong,
+        partial: !!raw.partial
+      };
+      if (!normalized.all && !normalized.correct && !normalized.wrong && !normalized.partial) {
+        normalized.all = true;
+      }
+      if (normalized.all) {
+        normalized.correct = false;
+        normalized.wrong = false;
+        normalized.partial = false;
+      }
+      return normalized;
+    }
+
+    function getTodayKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function normalizeDayProgress(raw = null) {
+      const src = (raw && typeof raw === 'object') ? raw : {};
+      return {
+        correct: Number.isFinite(Number(src.correct)) ? Number(src.correct) : 0,
+        wrong: Number.isFinite(Number(src.wrong)) ? Number(src.wrong) : 0,
+        partial: Number.isFinite(Number(src.partial)) ? Number(src.partial) : 0,
+        lastGrade: typeof src.lastGrade === 'string' ? src.lastGrade : '',
+        lastAnsweredAt: typeof src.lastAnsweredAt === 'string' ? src.lastAnsweredAt : ''
+      };
+    }
+
+    function normalizeProgressRecord(record, cardId) {
+      const src = (record && typeof record === 'object') ? record : {};
+      const byDay = {};
+      if (src.byDay && typeof src.byDay === 'object') {
+        Object.keys(src.byDay).forEach(dayKey => {
+          byDay[dayKey] = normalizeDayProgress(src.byDay[dayKey]);
+        });
+      }
+      const totalsSrc = (src.totals && typeof src.totals === 'object') ? src.totals : {};
+      return {
+        cardId,
+        byDay,
+        totals: {
+          correct: Number.isFinite(Number(totalsSrc.correct)) ? Number(totalsSrc.correct) : 0,
+          wrong: Number.isFinite(Number(totalsSrc.wrong)) ? Number(totalsSrc.wrong) : 0,
+          partial: Number.isFinite(Number(totalsSrc.partial)) ? Number(totalsSrc.partial) : 0
+        },
+        lastGrade: typeof src.lastGrade === 'string' ? src.lastGrade : '',
+        lastAnsweredAt: typeof src.lastAnsweredAt === 'string' ? src.lastAnsweredAt : ''
+      };
+    }
+
+    async function ensureProgressLoaded(force = false) {
+      if (progressLoaded && !force) return;
+      const records = await getAll('progress');
+      progressByCardId = new Map();
+      records.forEach(record => {
+        const key = record?.cardId;
+        if (!key) return;
+        progressByCardId.set(key, normalizeProgressRecord(record, key));
       });
+      progressLoaded = true;
+    }
+
+    function getCardDayProgress(cardId, dayKey = getTodayKey()) {
+      const record = progressByCardId.get(cardId);
+      return normalizeDayProgress(record?.byDay?.[dayKey]);
+    }
+
+    async function recordCardProgress(cardId, grade) {
+      if (!cardId) return;
+      if (!['correct', 'wrong', 'partial'].includes(grade)) return;
+      await ensureProgressLoaded();
+      const nowIso = new Date().toISOString();
+      const todayKey = getTodayKey();
+      const record = normalizeProgressRecord(progressByCardId.get(cardId), cardId);
+      const day = normalizeDayProgress(record.byDay[todayKey]);
+      day[grade] += 1;
+      day.lastGrade = grade;
+      day.lastAnsweredAt = nowIso;
+      record.byDay[todayKey] = day;
+      record.totals[grade] += 1;
+      record.lastGrade = grade;
+      record.lastAnsweredAt = nowIso;
+      await put('progress', record);
+      progressByCardId.set(cardId, record);
+    }
+
+    function cardMatchesSessionFilter(cardId, filters = sessionFilterState, dayKey = getTodayKey()) {
+      const config = normalizeSessionFilters(filters);
+      const day = getCardDayProgress(cardId, dayKey);
+      if (config.all) {
+        return day.correct < 1;
+      }
+      const matchCorrect = config.correct && day.correct > 0;
+      const matchWrong = config.wrong && day.wrong > 0;
+      const matchPartial = config.partial && day.partial > 0;
+      return matchCorrect || matchWrong || matchPartial;
+    }
+
+    async function getEligibleSessionCardsByTopicIds(topicIds, filters = sessionFilterState) {
+      if (!Array.isArray(topicIds) || !topicIds.length) return [];
+      const cards = (await getAll('cards')).filter(card => topicIds.includes(card.topicId));
+      if (!cards.length) return [];
+      // Always refresh progress from server so multi-device sessions stay in sync.
+      await ensureProgressLoaded(true);
+      return cards.filter(card => cardMatchesSessionFilter(card.id, filters));
+    }
+
+    function getSessionFilterSummaryText(filters = sessionFilterState) {
+      const config = normalizeSessionFilters(filters);
+      if (config.all) {
+        return 'Filter: All remaining cards (excluding cards answered correctly today).';
+      }
+      const labels = [];
+      if (config.correct) labels.push('Correctly answered');
+      if (config.wrong) labels.push('Wrong');
+      if (config.partial) labels.push('Not quite');
+      if (!labels.length) return 'Filter: No grade filter selected.';
+      return `Filter: ${labels.join(', ')}`;
+    }
+
+    function renderSessionFilterSummary() {
+      const summary = el('sessionFilterSummary');
+      if (!summary) return;
+      summary.textContent = getSessionFilterSummaryText(sessionFilterState);
+    }
+
+    async function setSessionFilterState(nextState, options = {}) {
+      const { refresh = true } = options;
+      sessionFilterState = normalizeSessionFilters(nextState);
+      renderSessionFilterSummary();
+      if (refresh && selectedSubject) {
+        await refreshTopicSessionMeta();
+      }
+    }
+
+    function syncSessionFilterDialogControls() {
+      const all = el('sessionFilterAll');
+      const correct = el('sessionFilterCorrect');
+      const wrong = el('sessionFilterWrong');
+      const partial = el('sessionFilterPartial');
+      if (!all || !correct || !wrong || !partial) return;
+      const locked = all.checked;
+      correct.disabled = locked;
+      wrong.disabled = locked;
+      partial.disabled = locked;
+    }
+
+    function fillSessionFilterDialogFromState() {
+      const config = normalizeSessionFilters(sessionFilterState);
+      const all = el('sessionFilterAll');
+      const correct = el('sessionFilterCorrect');
+      const wrong = el('sessionFilterWrong');
+      const partial = el('sessionFilterPartial');
+      if (!all || !correct || !wrong || !partial) return;
+      all.checked = config.all;
+      correct.checked = config.correct;
+      wrong.checked = config.wrong;
+      partial.checked = config.partial;
+      syncSessionFilterDialogControls();
+    }
+
+    function pullSessionFiltersFromDialog() {
+      const all = el('sessionFilterAll');
+      const correct = el('sessionFilterCorrect');
+      const wrong = el('sessionFilterWrong');
+      const partial = el('sessionFilterPartial');
+      if (!all || !correct || !wrong || !partial) return normalizeSessionFilters(sessionFilterState);
+      return normalizeSessionFilters({
+        all: all.checked,
+        correct: correct.checked,
+        wrong: wrong.checked,
+        partial: partial.checked
+      });
+    }
+
+    function formatDurationLabel(ms) {
+      const totalSeconds = Math.max(0, Math.round(ms / 1000));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }
+      return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateSessionRepeatCounter() {
+      const valueEl = el('sessionRepeatSizeValue');
+      const minusBtn = el('sessionRepeatMinus');
+      const plusBtn = el('sessionRepeatPlus');
+      const startBtn = el('startAnotherSessionBtn');
+      if (valueEl) {
+        const current = sessionRepeatState.remaining > 0 ? sessionRepeatState.size : 0;
+        valueEl.textContent = `${current} / ${sessionRepeatState.remaining}`;
+      }
+      if (minusBtn) minusBtn.disabled = sessionRepeatState.remaining <= 0 || sessionRepeatState.size <= 1;
+      if (plusBtn) plusBtn.disabled = sessionRepeatState.remaining <= 0 || sessionRepeatState.size >= sessionRepeatState.remaining;
+      if (startBtn) startBtn.disabled = sessionRepeatState.remaining <= 0;
+    }
+
+    async function openSessionCompleteDialog() {
+      const topicIds = sessionRunState.topicIds.length
+        ? [...sessionRunState.topicIds]
+        : Array.from(selectedTopicIds);
+      const remainingCards = await getEligibleSessionCardsByTopicIds(topicIds, sessionRunState.filters);
+      const durationMs = sessionRunState.startedAt > 0 ? Date.now() - sessionRunState.startedAt : 0;
+      sessionRepeatState.topicIds = topicIds;
+      sessionRepeatState.filters = normalizeSessionFilters(sessionRunState.filters);
+      sessionRepeatState.remaining = remainingCards.length;
+      sessionRepeatState.size = remainingCards.length > 0
+        ? Math.min(Math.max(sessionSize, 1), remainingCards.length)
+        : 0;
+
+      const durationEl = el('sessionCompleteDuration');
+      if (durationEl) durationEl.textContent = formatDurationLabel(durationMs);
+      const remainingEl = el('sessionCompleteRemaining');
+      if (remainingEl) remainingEl.textContent = String(sessionRepeatState.remaining);
+      const messageEl = el('sessionCompleteMessage');
+      if (messageEl) {
+        if (sessionRepeatState.remaining > 0) {
+          messageEl.textContent = 'Great work! You can continue with the remaining cards.';
+        } else {
+          messageEl.textContent = 'Great work! No remaining cards match the current filter.';
+        }
+      }
+      updateSessionRepeatCounter();
+      showDialog(el('sessionCompleteDialog'));
+    }
+
+    async function apiRequest(path, options = {}) {
+      const init = { ...options };
+      if (init.body && !init.headers) init.headers = { 'Content-Type': 'application/json' };
+      if (init.body && init.headers && !init.headers['Content-Type']) {
+        init.headers['Content-Type'] = 'application/json';
+      }
+      const res = await fetch(path, init);
+      const text = await res.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (_) {
+          data = { error: text };
+        }
+      }
+      if (!res.ok) {
+        throw new Error(data?.error || `Request failed (${res.status})`);
+      }
+      return data;
+    }
+
+    async function openDB() {
+      try {
+        await apiRequest(`${API_BASE}/health`, { cache: 'no-store' });
+        dbReady = true;
+        return true;
+      } catch (_) {
+        dbReady = false;
+        throw new Error('Could not connect to the local server. Start it with: python3 server.py --host 0.0.0.0 --port 8000');
+      }
     }
 
     function openCardBankDB() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open(CARD_BANK_DB, CARD_BANK_VERSION);
-        req.onupgradeneeded = e => {
-          const d = e.target.result;
-          if (!d.objectStoreNames.contains('cards')) {
-            d.createObjectStore('cards', { keyPath: 'id' });
-          }
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+      return Promise.resolve(true);
+    }
+
+    function getStoreKeyField(store) {
+      return STORE_KEYS[store];
+    }
+
+    async function put(store, value) {
+      const keyField = getStoreKeyField(store);
+      if (!keyField) throw new Error(`Unknown store: ${store}`);
+      const key = value?.[keyField];
+      if (key === undefined || key === null || key === '') {
+        throw new Error(`Missing key "${keyField}" for store "${store}"`);
+      }
+      await apiRequest(`${API_BASE}/${encodeURIComponent(store)}`, {
+        method: 'PUT',
+        body: JSON.stringify(value)
+      });
+      return value;
+    }
+
+    async function putCardBank(value) {
+      if (!dbReady) return Promise.resolve();
+      return put('cardbank', value);
+    }
+
+    async function del(store, key) {
+      const keyField = getStoreKeyField(store);
+      if (!keyField) throw new Error(`Unknown store: ${store}`);
+      await apiRequest(`${API_BASE}/${encodeURIComponent(store)}/${encodeURIComponent(String(key))}`, {
+        method: 'DELETE'
       });
     }
 
-    function tx(store, mode = 'readonly') {
-      return db.transaction(store, mode).objectStore(store);
+    async function getAll(store) {
+      const keyField = getStoreKeyField(store);
+      if (!keyField) throw new Error(`Unknown store: ${store}`);
+      const data = await apiRequest(`${API_BASE}/${encodeURIComponent(store)}`);
+      return Array.isArray(data) ? data : [];
     }
 
-    function put(store, value) {
-      return new Promise((res, rej) => {
-        const r = tx(store, 'readwrite').put(value);
-        r.onsuccess = () => res(value);
-        r.onerror = () => rej(r.error);
+    function triggerHaptic(kind = 'light') {
+      const style = kind === 'heavy' ? 'HEAVY' : kind === 'medium' ? 'MEDIUM' : 'LIGHT';
+
+      // Telegram WebApp haptics (if embedded)
+      try {
+        const tg = window.Telegram?.WebApp?.HapticFeedback;
+        if (tg?.impactOccurred) {
+          const m = kind === 'heavy' ? 'heavy' : kind === 'medium' ? 'medium' : 'light';
+          tg.impactOccurred(m);
+          return;
+        }
+      } catch (_) { }
+
+      // Capacitor haptics (if embedded in native shell)
+      try {
+        const haptics = window.Capacitor?.Plugins?.Haptics;
+        if (haptics?.impact) {
+          haptics.impact({ style });
+          return;
+        }
+      } catch (_) { }
+
+      // Cordova TapticEngine (if available)
+      try {
+        const taptic = window.TapticEngine;
+        if (taptic?.impact) {
+          const m = kind === 'heavy' ? 'heavy' : kind === 'medium' ? 'medium' : 'light';
+          taptic.impact(m);
+          return;
+        }
+      } catch (_) { }
+
+      // Browser vibration fallback (Android browsers)
+      try {
+        if (!navigator.vibrate) return;
+        const duration = kind === 'medium' ? 14 : kind === 'heavy' ? 20 : 8;
+        navigator.vibrate(duration);
+      } catch (_) { }
+    }
+
+    function wireHapticFeedback() {
+      const supportsTouch = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+      if (!supportsTouch) return;
+
+      let lastPulse = 0;
+      const pulse = target => {
+        if (!target) return;
+        if (target.matches(':disabled') || target.getAttribute('aria-disabled') === 'true') return;
+        const now = Date.now();
+        if (now - lastPulse < 60) return;
+        lastPulse = now;
+        const kind = target.dataset.grade ? 'medium' : 'light';
+        triggerHaptic(kind);
+      };
+
+      document.addEventListener('touchstart', e => {
+        const target = e.target.closest('button, .btn');
+        pulse(target);
+      }, { passive: true });
+
+      document.addEventListener('click', e => {
+        const target = e.target.closest('button, .btn');
+        pulse(target);
+      }, true);
+    }
+
+    function wireNoZoomGuards() {
+      ['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
+        document.addEventListener(evt, e => e.preventDefault(), { passive: false });
+      });
+
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', e => {
+        if (e.target.closest('input, textarea, select, [contenteditable=\"true\"]')) return;
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+
+      document.addEventListener('wheel', e => {
+        if (e.ctrlKey) e.preventDefault();
+      }, { passive: false });
+
+      document.addEventListener('keydown', e => {
+        const zoomKeys = ['+', '-', '=', '0'];
+        if ((e.ctrlKey || e.metaKey) && zoomKeys.includes(e.key)) e.preventDefault();
       });
     }
 
-    function putCardBank(value) {
-      if (!cardBankDb) return Promise.resolve();
-      return new Promise((res, rej) => {
-        const r = cardBankDb.transaction('cards', 'readwrite').objectStore('cards').put(value);
-        r.onsuccess = () => res(value);
-        r.onerror = () => rej(r.error);
-      });
+    const uid = () => {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+      if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0'));
+        return `${hex[0]}${hex[1]}${hex[2]}${hex[3]}-${hex[4]}${hex[5]}-${hex[6]}${hex[7]}-${hex[8]}${hex[9]}-${hex[10]}${hex[11]}${hex[12]}${hex[13]}${hex[14]}${hex[15]}`;
+      }
+      return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
+    };
+
+    function showDialog(dialog) {
+      if (!dialog) return;
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
     }
 
-    function del(store, key) {
-      return new Promise((res, rej) => {
-        const r = tx(store, 'readwrite').delete(key);
-        r.onsuccess = () => res();
-        r.onerror = () => rej(r.error);
-      });
+    function closeDialog(dialog) {
+      if (!dialog) return;
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
     }
 
-    function getAll(store) {
-      return new Promise((res, rej) => {
-        const r = tx(store).getAll();
-        r.onsuccess = () => res(r.result);
-        r.onerror = () => rej(r.error);
-      });
-    }
-
-    const uid = () => crypto.randomUUID();
-
+    let currentView = 0;
     function setView(step = 0) {
+      currentView = step;
       el('track').style.transform = `translateX(${-100 * step / 4}%)`;
+      if (step !== 3) {
+        document.querySelector('#editorPanel .editor-shell')?.classList.remove('sidebar-open');
+      }
+      document.body.classList.toggle('sidebar-hidden', step === 3);
+      if (step === 3) document.body.classList.remove('sidebar-open');
     }
 
     function escapeHTML(str = '') {
       return str.replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
     }
 
-    function markdownToHtml(raw = '') {
+    function isEscaped(str, idx) {
+      let count = 0;
+      for (let i = idx - 1; i >= 0 && str[i] === '\\'; i--) count++;
+      return count % 2 === 1;
+    }
+
+    function normalizeTextAlign(value = '') {
+      const v = String(value || '').toLowerCase();
+      if (v === 'center' || v === 'justify') return v;
+      return 'left';
+    }
+
+    function hasActiveTextSelection() {
+      const selection = window.getSelection ? window.getSelection() : null;
+      if (!selection || selection.rangeCount < 1 || selection.isCollapsed) return false;
+      return true;
+    }
+
+    function tokenizeMathSegments(raw = '') {
+      const tokens = [];
+      let out = '';
+      let i = 0;
+      while (i < raw.length) {
+        if (raw.startsWith('$$', i) && !isEscaped(raw, i)) {
+          let j = i + 2;
+          while (j < raw.length) {
+            if (raw[j] === '$' && raw[j + 1] === '$' && !isEscaped(raw, j)) break;
+            j++;
+          }
+          if (j < raw.length) {
+            const tokenId = tokens.length;
+            tokens.push(raw.slice(i, j + 2));
+            out += `@@MATH${tokenId}@@`;
+            i = j + 2;
+            continue;
+          }
+        }
+        if (raw[i] === '$' && !isEscaped(raw, i)) {
+          let j = i + 1;
+          while (j < raw.length) {
+            if (raw[j] === '$' && !isEscaped(raw, j)) break;
+            j++;
+          }
+          if (j < raw.length) {
+            const tokenId = tokens.length;
+            tokens.push(raw.slice(i, j + 1));
+            out += `@@MATH${tokenId}@@`;
+            i = j + 1;
+            continue;
+          }
+        }
+        if (raw.startsWith('\\[', i)) {
+          const j = raw.indexOf('\\]', i + 2);
+          if (j !== -1) {
+            const tokenId = tokens.length;
+            tokens.push(raw.slice(i, j + 2));
+            out += `@@MATH${tokenId}@@`;
+            i = j + 2;
+            continue;
+          }
+        }
+        if (raw.startsWith('\\(', i)) {
+          const j = raw.indexOf('\\)', i + 2);
+          if (j !== -1) {
+            const tokenId = tokens.length;
+            tokens.push(raw.slice(i, j + 2));
+            out += `@@MATH${tokenId}@@`;
+            i = j + 2;
+            continue;
+          }
+        }
+        out += raw[i];
+        i += 1;
+      }
+      return { text: out, tokens };
+    }
+
+    function applyInlineMarkdown(raw = '') {
       let t = escapeHTML(raw);
-      t = t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      t = t.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      t = t.replace(/`(.*?)`/g, '<code>$1</code>');
       t = t.replace(/\[(.*?)\]\{(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)\}/g, '<span style="color:$2">$1</span>');
-      t = t.replace(/\n/g, '<br>');
+      t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      t = t.replace(/__(.+?)__/g, '<u>$1</u>');
+      t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
       return t;
     }
 
-    function renderRich(container, content) {
+    function restoreMathTokens(html = '', tokens = []) {
+      return html.replace(/@@MATH(\d+)@@/g, (_, idx) => {
+        const token = tokens[Number(idx)];
+        return token ? escapeHTML(token) : `@@MATH${idx}@@`;
+      });
+    }
+
+    function markdownToHtml(raw = '') {
+      const { text, tokens } = tokenizeMathSegments(raw || '');
+      const lines = text.split('\n');
+      const out = [];
+      let listType = null;
+
+      const closeList = () => {
+        if (!listType) return;
+        out.push(`</${listType}>`);
+        listType = null;
+      };
+
+      const openList = (type, start = 1) => {
+        if (listType === type) return;
+        closeList();
+        if (type === 'ol' && Number.isFinite(start) && start > 1) {
+          out.push(`<ol start="${start}">`);
+        } else {
+          out.push(`<${type}>`);
+        }
+        listType = type;
+      };
+
+      lines.forEach(line => {
+        const unordered = line.match(/^\s*[-*]\s+(.+)$/);
+        if (unordered) {
+          openList('ul');
+          out.push(`<li>${applyInlineMarkdown(unordered[1])}</li>`);
+          return;
+        }
+
+        const ordered = line.match(/^\s*(\d+)\.\s+(.+)$/);
+        if (ordered) {
+          const start = Number(ordered[1]) || 1;
+          openList('ol', start);
+          out.push(`<li>${applyInlineMarkdown(ordered[2])}</li>`);
+          return;
+        }
+
+        closeList();
+        if (!line.trim()) {
+          out.push('<div class="md-line"><br></div>');
+        } else {
+          out.push(`<div class="md-line">${applyInlineMarkdown(line)}</div>`);
+        }
+      });
+      closeList();
+      return restoreMathTokens(out.join(''), tokens);
+    }
+
+    function renderRich(container, content, options = {}) {
+      if (!container) return;
+      const textAlign = normalizeTextAlign(options.textAlign);
+      container.classList.add('rich-content');
+      container.classList.remove('rich-align-left', 'rich-align-center', 'rich-align-justify');
+      container.classList.add(`rich-align-${textAlign}`);
       container.innerHTML = markdownToHtml(content || '');
       if (window.renderMathInElement) {
         renderMathInElement(container, {
@@ -307,7 +959,8 @@
             { left: '$', right: '$', display: false },
             { left: '\\(', right: '\\)', display: false },
             { left: '\\[', right: '\\]', display: true }
-          ]
+          ],
+          throwOnError: false
         });
       }
     }
@@ -385,33 +1038,104 @@
     }
 
     function applySubjectTheme(accent) {
-      const hex = (accent || '#2dd4bf').replace('#', '');
-      const norm = hex.length === 3
-        ? hex.split('').map(c => c + c).join('')
-        : hex.padEnd(6, '0').slice(0, 6);
-      const r = parseInt(norm.slice(0, 2), 16);
-      const g = parseInt(norm.slice(2, 4), 16);
-      const b = parseInt(norm.slice(4, 6), 16);
-      const rgba = a => `rgba(${r}, ${g}, ${b}, ${a})`;
-      document.documentElement.style.setProperty('--accent', `#${norm}`);
+      const normHex = normalizeHexColor(accent || '#2dd4bf');
+      const rgba = a => hexToRgba(normHex, a);
+      document.documentElement.style.setProperty('--accent', normHex);
       document.documentElement.style.setProperty('--accent-glow', rgba(0.35));
+      document.documentElement.style.setProperty('--accent-ring', rgba(0.9));
+      document.documentElement.style.setProperty('--accent-glow-strong', rgba(0.6));
+      document.documentElement.style.setProperty('--accent-glow-soft', rgba(0.35));
       document.documentElement.style.setProperty('--panel-accent', rgba(0.12));
       document.documentElement.style.setProperty('--tile-accent-bg', rgba(0.18));
       document.documentElement.style.setProperty('--face-accent', rgba(0.14));
     }
 
+    function normalizeHexColor(accent = '#2dd4bf') {
+      const hex = String(accent || '#2dd4bf').replace('#', '');
+      const norm = hex.length === 3
+        ? hex.split('').map(c => c + c).join('')
+        : hex.padEnd(6, '0').slice(0, 6);
+      return `#${norm}`;
+    }
+
+    function hexToRgba(accent = '#2dd4bf', alpha = 1) {
+      const safeHex = normalizeHexColor(accent).slice(1);
+      const r = parseInt(safeHex.slice(0, 2), 16);
+      const g = parseInt(safeHex.slice(2, 4), 16);
+      const b = parseInt(safeHex.slice(4, 6), 16);
+      const a = Math.max(0, Math.min(1, Number(alpha)));
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    function getSubjectLastEditedAt(subject) {
+      const raw = subject?.meta?.updatedAt
+        ?? subject?.updatedAt
+        ?? subject?.meta?.createdAt
+        ?? subject?.createdAt
+        ?? 0;
+      if (!raw) return 0;
+      if (typeof raw === 'number') return raw;
+      const parsed = Date.parse(raw);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function sortSubjectsByLastEdited(subjects = []) {
+      return [...subjects].sort((a, b) => {
+        const tsDiff = getSubjectLastEditedAt(b) - getSubjectLastEditedAt(a);
+        if (tsDiff !== 0) return tsDiff;
+        return String(a?.name || '').localeCompare(String(b?.name || ''));
+      });
+    }
+
+    function buildSubjectRecord(subject = {}, overrides = {}, nowIso = new Date().toISOString()) {
+      const createdAt = subject?.meta?.createdAt || subject?.createdAt || nowIso;
+      const updatedAt = overrides.updatedAt || nowIso;
+      return {
+        ...subject,
+        ...overrides,
+        createdAt,
+        updatedAt,
+        meta: {
+          ...(subject.meta || {}),
+          createdAt,
+          updatedAt
+        }
+      };
+    }
+
+    async function touchSubject(subjectId, whenIso = new Date().toISOString()) {
+      if (!subjectId) return;
+      const subject = (await getAll('subjects')).find(s => s.id === subjectId);
+      if (!subject) return;
+      const updatedSubject = buildSubjectRecord(subject, {}, whenIso);
+      await put('subjects', updatedSubject);
+      if (selectedSubject?.id === subjectId) {
+        selectedSubject = { ...selectedSubject, ...updatedSubject };
+      }
+    }
+
+    async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString()) {
+      if (!topicId) return;
+      const topic = (await getAll('topics')).find(t => t.id === topicId);
+      if (!topic?.subjectId) return;
+      await touchSubject(topic.subjectId, whenIso);
+    }
+
     async function refreshSidebar() {
-      const subjects = await getAll('subjects');
+      const subjects = sortSubjectsByLastEdited(await getAll('subjects'));
       const list = el('subjectList');
       list.innerHTML = '';
       subjects.forEach(s => {
         const chip = document.createElement('div');
         chip.className = 'tile subject-tile';
-        chip.style.setProperty('--tile-accent', s.accent || '#2dd4bf');
+        const accent = normalizeHexColor(s.accent || '#2dd4bf');
+        chip.style.setProperty('--tile-accent', accent);
+        chip.style.setProperty('--subject-accent', accent);
+        chip.style.setProperty('--subject-accent-bg', hexToRgba(accent, 0.18));
+        chip.style.setProperty('--subject-accent-glow', hexToRgba(accent, 0.34));
         chip.innerHTML = `
           <div class="tile-row">
             <div style="display:flex;align-items:center;gap:10px;">
-              <span class="dot" style="background:${s.accent || '#2dd4bf'}"></span>
               <div>${escapeHTML(s.name)}</div>
             </div>
             <div class="tile-menu">
@@ -422,6 +1146,7 @@
         chip.onclick = () => {
           selectedSubject = s;
           selectedTopic = null;
+          setTopicSelectionMode(false);
           applySubjectTheme(s.accent || '#2dd4bf');
           loadTopics();
           setView(1);
@@ -477,92 +1202,676 @@
       });
     }
 
+    function renderSessionSizeCounter() {
+      const valueEl = el('sessionSizeValue');
+      if (!valueEl) return;
+      const current = availableSessionCards > 0 ? sessionSize : 0;
+      valueEl.textContent = `${current} / ${availableSessionCards}`;
+    }
+
+    function openStudyImageLightbox(src) {
+      const lightbox = el('sessionImageLightbox');
+      const lightboxImg = el('sessionImageLightboxImg');
+      if (!lightbox || !lightboxImg || !src) return;
+      lightboxImg.src = src;
+      lightbox.classList.remove('hidden');
+      document.body.classList.add('session-image-open');
+    }
+
+    function closeStudyImageLightbox() {
+      const lightbox = el('sessionImageLightbox');
+      const lightboxImg = el('sessionImageLightboxImg');
+      if (!lightbox || !lightboxImg) return;
+      lightbox.classList.add('hidden');
+      lightboxImg.src = '';
+      document.body.classList.remove('session-image-open');
+    }
+
+    function buildSessionCardImage(src, alt = 'Flashcard image') {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = alt;
+      img.className = 'session-card-image';
+      img.addEventListener('click', e => {
+        e.stopPropagation();
+        openStudyImageLightbox(src);
+      });
+      return img;
+    }
+
+    async function refreshTopicSessionMeta(topicsForSubject = null) {
+      if (!selectedSubject) {
+        availableSessionCards = 0;
+        sessionSize = 0;
+        renderSessionSizeCounter();
+        renderSessionFilterSummary();
+        return;
+      }
+
+      const topics = topicsForSubject || (await getAll('topics')).filter(t => t.subjectId === selectedSubject.id);
+      const selectedTopics = topics.filter(t => selectedTopicIds.has(t.id));
+      const selectedTopicLabel = el('selectedTopicsSummary');
+      if (selectedTopicLabel) {
+        if (!selectedTopics.length) {
+          selectedTopicLabel.textContent = 'Choose at least one topic below.';
+        } else {
+          const word = selectedTopics.length === 1 ? 'topic' : 'topics';
+          selectedTopicLabel.textContent = `Selected ${selectedTopics.length} ${word}.`;
+        }
+      }
+
+      const selectedIds = selectedTopics.map(t => t.id);
+      const cards = await getEligibleSessionCardsByTopicIds(selectedIds, sessionFilterState);
+      availableSessionCards = cards.length;
+      if (availableSessionCards <= 0) sessionSize = 0;
+      else if (sessionSize <= 0) sessionSize = Math.min(15, availableSessionCards);
+      else sessionSize = Math.min(sessionSize, availableSessionCards);
+      renderSessionSizeCounter();
+      renderSessionFilterSummary();
+
+      const startBtn = el('startSessionBtn');
+      if (startBtn) startBtn.disabled = !selectedTopics.length || availableSessionCards <= 0;
+    }
+
     async function loadTopics() {
       if (!selectedSubject) return;
-      el('topicTitle').textContent = `Topics • ${selectedSubject.name}`;
+      el('topicTitle').textContent = selectedSubject.name;
       applySubjectTheme(selectedSubject.accent || '#2dd4bf');
       const topics = (await getAll('topics')).filter(t => t.subjectId === selectedSubject.id);
-      selectedTopicIds = new Set(topics.map(t => t.id));
+      const topicListTitle = el('topicListTitle');
+      if (topicListTitle) topicListTitle.textContent = topics.length === 1 ? 'Topic' : 'Topics';
+      const validTopicIds = new Set(topics.map(t => t.id));
+      const previousSelection = selectedTopicIds;
+      selectedTopicIds = new Set(
+        [...previousSelection].filter(topicId => validTopicIds.has(topicId))
+      );
+      const previousTopicSelection = topicSelectedIds;
+      topicSelectedIds = new Set(
+        [...previousTopicSelection].filter(topicId => validTopicIds.has(topicId))
+      );
+      if (!topics.length) setTopicSelectionMode(false);
       const list = el('topicList');
       list.innerHTML = '';
       topics.forEach(t => {
         const row = document.createElement('div');
         row.className = 'tile topic-tile';
-        row.innerHTML = `
-          <div class="tile-check">
-            <div>${escapeHTML(t.name)}</div>
-            <input type="checkbox" data-topic-id="${t.id}" checked />
-          </div>
-        `;
-        row.classList.toggle('selected', selectedTopicIds.has(t.id));
-        row.onclick = () => {
-          selectedTopic = t;
-          session.active = false;
-          el('cardsOverviewSection').classList.remove('hidden');
-          el('studySessionSection')?.classList.add('hidden');
-          renderSessionPills();
-          loadDeck();
-          setView(2);
-        };
-        const checkbox = row.querySelector('input[type="checkbox"]');
-        checkbox.addEventListener('click', e => {
-          e.stopPropagation();
-          if (checkbox.checked) selectedTopicIds.add(t.id);
-          else selectedTopicIds.delete(t.id);
-          row.classList.toggle('selected', checkbox.checked);
-        });
+        if (topicSelectionMode) {
+          row.classList.add('selection-mode');
+          row.innerHTML = `
+            <div class="tile-check">
+              <div>${escapeHTML(t.name)}</div>
+            </div>
+          `;
+          const selectWrap = document.createElement('label');
+          selectWrap.className = 'card-select-control';
+          selectWrap.innerHTML = `<input type="checkbox" aria-label="Select topic" />`;
+          const checkbox = selectWrap.querySelector('input');
+          checkbox.checked = topicSelectedIds.has(t.id);
+          row.classList.toggle('selected-for-bulk', checkbox.checked);
+          checkbox.addEventListener('click', e => e.stopPropagation());
+          checkbox.addEventListener('change', () => {
+            toggleTopicSelection(t.id, checkbox.checked);
+            row.classList.toggle('selected-for-bulk', checkbox.checked);
+          });
+          row.addEventListener('click', e => {
+            if (e.target.closest('.card-select-control')) return;
+            const nextChecked = !checkbox.checked;
+            checkbox.checked = nextChecked;
+            toggleTopicSelection(t.id, nextChecked);
+            row.classList.toggle('selected-for-bulk', nextChecked);
+          });
+          row.appendChild(selectWrap);
+        } else {
+          row.innerHTML = `
+            <div class="tile-check">
+              <div>${escapeHTML(t.name)}</div>
+              <input type="checkbox" data-topic-id="${t.id}" />
+            </div>
+          `;
+          const checkbox = row.querySelector('input[type="checkbox"]');
+          checkbox.checked = selectedTopicIds.has(t.id);
+          row.classList.toggle('selected', selectedTopicIds.has(t.id));
+          row.onclick = () => {
+            selectedTopic = t;
+            session.active = false;
+            el('cardsOverviewSection').classList.remove('hidden');
+            el('studySessionSection')?.classList.add('hidden');
+            renderSessionPills();
+            loadDeck();
+            setView(2);
+          };
+          checkbox.addEventListener('click', async e => {
+            e.stopPropagation();
+            if (checkbox.checked) selectedTopicIds.add(t.id);
+            else selectedTopicIds.delete(t.id);
+            row.classList.toggle('selected', checkbox.checked);
+            await refreshTopicSessionMeta(topics);
+          });
+        }
         list.appendChild(row);
       });
       if (!topics.length) list.innerHTML = '<div class="tiny">No topics yet.</div>';
+      updateTopicSelectionUi();
+      await refreshTopicSessionMeta(topics);
+    }
+
+    function syncPrimaryMcqUi(edit = false) {
+      const field = el(edit ? 'editPrimaryAnswerRow' : 'primaryAnswerRow');
+      const badge = el(edit ? 'editPrimaryAnswerBadge' : 'primaryAnswerBadge');
+      const toggle = el(edit ? 'editPrimaryAnswerToggle' : 'primaryAnswerToggle');
+      if (!field || !badge || !toggle) return;
+      const isCorrect = !!toggle.checked;
+      field.classList.toggle('correct', isCorrect);
+      field.classList.toggle('wrong', !isCorrect);
+      badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
+      badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
+    }
+
+    function setMcqModeState(edit = false, enabled = false) {
+      const field = el(edit ? 'editPrimaryAnswerRow' : 'primaryAnswerRow');
+      const header = el(edit ? 'editPrimaryAnswerHeader' : 'primaryAnswerHeader');
+      const toggle = el(edit ? 'editPrimaryAnswerToggle' : 'primaryAnswerToggle');
+      const optionsEl = el(edit ? 'editMcqOptions' : 'mcqOptions');
+      if (!field || !header || !toggle || !optionsEl) return;
+      if (edit) editMcqMode = enabled;
+      else mcqMode = enabled;
+      optionsEl.classList.toggle('hidden', !enabled);
+      header.classList.toggle('hidden', !enabled);
+      field.classList.toggle('mcq-primary', enabled);
+      if (!enabled) {
+        field.classList.remove('correct', 'wrong');
+        return;
+      }
+      toggle.onchange = () => syncPrimaryMcqUi(edit);
+      syncPrimaryMcqUi(edit);
+      if (!edit) updateCreateValidation();
+    }
+
+    let createTouched = false;
+    function updateCreateValidation(showErrors = false) {
+      const question = el('cardPrompt');
+      const answer = el('cardAnswer');
+      const hasQuestionImage = Boolean((question?.dataset?.imageDataQ || '').trim());
+      const hasAnswerImage = Boolean((answer?.dataset?.imageDataA || '').trim());
+      const qValid = question.value.trim().length > 0 || hasQuestionImage;
+      const aValid = mcqMode
+        ? getCreateOptionCount() > 0
+        : answer.value.trim().length > 0 || hasAnswerImage;
+      const isValid = qValid && aValid;
+
+      const addBtn = el('addCardBtn');
+      if (addBtn) addBtn.disabled = !isValid;
+
+      const shouldShow = showErrors || createTouched;
+      question.classList.toggle('field-invalid', shouldShow && !qValid);
+      answer.classList.toggle('field-invalid', shouldShow && !aValid);
+      el('questionError').classList.toggle('hidden', !(shouldShow && !qValid));
+      el('answerError').classList.toggle('hidden', !(shouldShow && !aValid));
+      return isValid;
+    }
+
+    function debounce(fn, wait = 300) {
+      let t = null;
+      return (...args) => {
+        if (t) clearTimeout(t);
+        t = setTimeout(() => fn(...args), wait);
+      };
+    }
+
+    function setPreview(previewId, value, textAlign = 'left') {
+      const preview = el(previewId);
+      if (!preview) return;
+      const align = normalizeTextAlign(textAlign);
+      preview.classList.add('rich-content');
+      preview.classList.remove('rich-align-left', 'rich-align-center', 'rich-align-justify');
+      preview.classList.add(`rich-align-${align}`);
+      if (!value || !value.trim()) {
+        preview.innerHTML = '<span class="tiny">Live preview</span>';
+        return;
+      }
+      renderRich(preview, value, { textAlign: align });
+    }
+
+    function wireLivePreview(inputId, previewId, getAlign = () => 'left') {
+      const input = el(inputId);
+      const preview = el(previewId);
+      if (!input || !preview) return;
+      const render = () => setPreview(previewId, input.value, getAlign());
+      const debounced = debounce(render, 300);
+      input.addEventListener('input', debounced);
+      render();
+    }
+
+    function syncToolbarAlignmentButtons(group, align) {
+      const normalized = normalizeTextAlign(align);
+      document.querySelectorAll(`.text-toolbar [data-action="align"][data-group="${group}"]`).forEach(btn => {
+        const active = btn.dataset.align === normalized;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function applyCreateQuestionTextAlign(align) {
+      createQuestionTextAlign = normalizeTextAlign(align);
+      syncToolbarAlignmentButtons('create-question', createQuestionTextAlign);
+      setPreview('questionPreview', el('cardPrompt')?.value || '', createQuestionTextAlign);
+    }
+
+    function applyCreateAnswerTextAlign(align) {
+      createAnswerTextAlign = normalizeTextAlign(align);
+      syncToolbarAlignmentButtons('create-answer', createAnswerTextAlign);
+      setPreview('answerPreview', el('cardAnswer')?.value || '', createAnswerTextAlign);
+    }
+
+    function applyEditQuestionTextAlign(align) {
+      editQuestionTextAlign = normalizeTextAlign(align);
+      syncToolbarAlignmentButtons('edit-question', editQuestionTextAlign);
+      setPreview('editQuestionPreview', el('editCardPrompt')?.value || '', editQuestionTextAlign);
+    }
+
+    function applyEditAnswerTextAlign(align) {
+      editAnswerTextAlign = normalizeTextAlign(align);
+      syncToolbarAlignmentButtons('edit-answer', editAnswerTextAlign);
+      setPreview('editAnswerPreview', el('editCardAnswer')?.value || '', editAnswerTextAlign);
+    }
+
+    function applyCreateOptionsTextAlign(align) {
+      createOptionsTextAlign = normalizeTextAlign(align);
+      syncToolbarAlignmentButtons('create-options', createOptionsTextAlign);
+    }
+
+    function applyEditOptionsTextAlign(align) {
+      editOptionsTextAlign = normalizeTextAlign(align);
+      syncToolbarAlignmentButtons('edit-options', editOptionsTextAlign);
+    }
+
+    function emitTextareaInput(textarea) {
+      if (!textarea) return;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function toggleInlineFormat(textarea, format = 'bold') {
+      if (!textarea) return;
+      const markers = { bold: '**', italic: '*', underline: '__' };
+      const marker = markers[format];
+      if (!marker) return;
+
+      const value = textarea.value || '';
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? start;
+      const selected = value.slice(start, end);
+
+      if (start === end) {
+        const insert = `${marker}${marker}`;
+        textarea.setRangeText(insert, start, end, 'end');
+        const caret = start + marker.length;
+        textarea.setSelectionRange(caret, caret);
+        textarea.focus();
+        emitTextareaInput(textarea);
+        return;
+      }
+
+      const wrappedSelection = selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= marker.length * 2;
+      const wrappedAroundSelection = start >= marker.length
+        && value.slice(start - marker.length, start) === marker
+        && value.slice(end, end + marker.length) === marker;
+
+      if (wrappedSelection) {
+        const unwrapped = selected.slice(marker.length, selected.length - marker.length);
+        textarea.setRangeText(unwrapped, start, end, 'end');
+        textarea.setSelectionRange(start, start + unwrapped.length);
+      } else if (wrappedAroundSelection) {
+        textarea.setRangeText(selected, start - marker.length, end + marker.length, 'end');
+        const nextStart = start - marker.length;
+        textarea.setSelectionRange(nextStart, nextStart + selected.length);
+      } else {
+        const wrapped = `${marker}${selected}${marker}`;
+        textarea.setRangeText(wrapped, start, end, 'end');
+        textarea.setSelectionRange(start + marker.length, start + marker.length + selected.length);
+      }
+
+      textarea.focus();
+      emitTextareaInput(textarea);
+    }
+
+    function toggleListPrefix(textarea, listType = 'ul') {
+      if (!textarea) return;
+      const value = textarea.value || '';
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? start;
+      const lineStart = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+      const lineEndIdx = value.indexOf('\n', end);
+      const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+      const line = value.slice(lineStart, lineEnd);
+      const indent = (line.match(/^\s*/) || [''])[0];
+      const content = line.slice(indent.length);
+
+      let nextLine = line;
+      if (listType === 'ol') {
+        if (/^\d+\.\s+/.test(content)) nextLine = indent + content.replace(/^\d+\.\s+/, '');
+        else if (/^[-*]\s+/.test(content)) nextLine = indent + '1. ' + content.replace(/^[-*]\s+/, '');
+        else nextLine = indent + '1. ' + content;
+      } else {
+        if (/^[-*]\s+/.test(content)) nextLine = indent + content.replace(/^[-*]\s+/, '');
+        else if (/^\d+\.\s+/.test(content)) nextLine = indent + '- ' + content.replace(/^\d+\.\s+/, '');
+        else nextLine = indent + '- ' + content;
+      }
+
+      textarea.setRangeText(nextLine, lineStart, lineEnd, 'end');
+      textarea.focus();
+      emitTextareaInput(textarea);
+    }
+
+    function handleListAutoIndent(e) {
+      if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+      const textarea = e.target;
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? start;
+      if (start !== end) return;
+
+      const value = textarea.value || '';
+      const lineStart = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+      const lineEndIdx = value.indexOf('\n', start);
+      const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+      const line = value.slice(lineStart, lineEnd);
+
+      const unordered = line.match(/^(\s*)([-*])\s+(.+)$/);
+      const ordered = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+      if (!unordered && !ordered) return;
+
+      e.preventDefault();
+      let insert = '\n';
+      if (unordered) {
+        insert = `\n${unordered[1]}${unordered[2]} `;
+      } else if (ordered) {
+        insert = `\n${ordered[1]}${Number(ordered[2]) + 1}. `;
+      }
+      textarea.setRangeText(insert, start, end, 'end');
+      emitTextareaInput(textarea);
+    }
+
+    function handleInlineFormatShortcut(e) {
+      if (e.shiftKey || e.altKey || !(e.metaKey || e.ctrlKey)) return;
+      const textarea = e.target;
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      const key = String(e.key || '').toLowerCase();
+      if (key === 'b') {
+        e.preventDefault();
+        toggleInlineFormat(textarea, 'bold');
+      } else if (key === 'i') {
+        e.preventDefault();
+        toggleInlineFormat(textarea, 'italic');
+      } else if (key === 'u') {
+        e.preventDefault();
+        toggleInlineFormat(textarea, 'underline');
+      }
+    }
+
+    function applyTextareaAlignmentShortcut(textarea, align = 'left') {
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      const targetAlign = normalizeTextAlign(align);
+      if (textarea.id === 'cardPrompt') applyCreateQuestionTextAlign(targetAlign);
+      else if (textarea.id === 'cardAnswer') applyCreateAnswerTextAlign(targetAlign);
+      else if (textarea.id === 'editCardPrompt') applyEditQuestionTextAlign(targetAlign);
+      else if (textarea.id === 'editCardAnswer') applyEditAnswerTextAlign(targetAlign);
+    }
+
+    function handleTextAlignShortcut(e) {
+      if (e.shiftKey || e.altKey || !(e.metaKey || e.ctrlKey)) return;
+      const textarea = e.target;
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      const key = String(e.key || '').toLowerCase();
+      if (key === 'l') {
+        e.preventDefault();
+        applyTextareaAlignmentShortcut(textarea, 'left');
+      } else if (key === 'c') {
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? start;
+        if (end > start) return; // keep native Cmd/Ctrl+C copy when text is selected
+        e.preventDefault();
+        applyTextareaAlignmentShortcut(textarea, 'center');
+      } else if (key === 'j') {
+        e.preventDefault();
+        applyTextareaAlignmentShortcut(textarea, 'justify');
+      }
+    }
+
+    function wireTextFormattingToolbar() {
+      document.querySelectorAll('.text-toolbar .toolbar-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const action = btn.dataset.action || '';
+          if (action === 'align') {
+            const group = btn.dataset.group || 'create-question';
+            const align = normalizeTextAlign(btn.dataset.align || 'left');
+            if (group === 'create-question') applyCreateQuestionTextAlign(align);
+            else if (group === 'create-answer') applyCreateAnswerTextAlign(align);
+            else if (group === 'edit-question') applyEditQuestionTextAlign(align);
+            else if (group === 'edit-answer') applyEditAnswerTextAlign(align);
+            else if (group === 'create-options') applyCreateOptionsTextAlign(align);
+            else if (group === 'edit-options') applyEditOptionsTextAlign(align);
+            else applyCreateQuestionTextAlign(align);
+            return;
+          }
+          if (action === 'format') {
+            const targetId = btn.dataset.target || '';
+            const textarea = el(targetId);
+            const format = btn.dataset.format || 'bold';
+            toggleInlineFormat(textarea, format);
+            return;
+          }
+          if (action === 'list') {
+            const targetId = btn.dataset.target || '';
+            const textarea = el(targetId);
+            const listType = btn.dataset.list || 'ul';
+            toggleListPrefix(textarea, listType);
+          }
+        });
+      });
+
+      ['cardPrompt', 'cardAnswer', 'editCardPrompt', 'editCardAnswer'].forEach(id => {
+        const textarea = el(id);
+        if (!textarea) return;
+        textarea.addEventListener('keydown', handleListAutoIndent);
+        textarea.addEventListener('keydown', handleInlineFormatShortcut);
+        textarea.addEventListener('keydown', handleTextAlignShortcut);
+      });
+
+      syncToolbarAlignmentButtons('create-question', createQuestionTextAlign);
+      syncToolbarAlignmentButtons('create-answer', createAnswerTextAlign);
+      syncToolbarAlignmentButtons('edit-question', editQuestionTextAlign);
+      syncToolbarAlignmentButtons('edit-answer', editAnswerTextAlign);
+      syncToolbarAlignmentButtons('create-options', createOptionsTextAlign);
+      syncToolbarAlignmentButtons('edit-options', editOptionsTextAlign);
+    }
+
+    const HTML2CANVAS_URL = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    let html2canvasLoading = null;
+    let katexCssCache = null;
+    function ensureHtml2Canvas() {
+      if (window.html2canvas) return Promise.resolve();
+      if (html2canvasLoading) return html2canvasLoading;
+      html2canvasLoading = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = HTML2CANVAS_URL;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load html2canvas'));
+        document.head.appendChild(script);
+      });
+      return html2canvasLoading;
+    }
+
+    async function getKatexCssText() {
+      if (katexCssCache !== null) return katexCssCache;
+      const link = document.querySelector('link[href*="katex.min.css"]');
+      if (!link) {
+        katexCssCache = '';
+        return katexCssCache;
+      }
+      try {
+        const res = await fetch(link.href);
+        katexCssCache = await res.text();
+      } catch (err) {
+        katexCssCache = '';
+      }
+      return katexCssCache;
+    }
+
+    async function renderFormulaToSvgDataUrl(renderEl) {
+      const css = await getKatexCssText();
+      const rect = renderEl.getBoundingClientRect();
+      const width = Math.max(10, Math.ceil(rect.width || 0));
+      const height = Math.max(10, Math.ceil(rect.height || 0));
+      const safeCss = (css || '').replace(/<\/style>/g, '<\\/style>');
+      const html = renderEl.outerHTML;
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="display:inline-block;">
+              <style>${safeCss}</style>
+              ${html}
+            </div>
+          </foreignObject>
+        </svg>
+      `;
+      const encoded = btoa(unescape(encodeURIComponent(svg)));
+      return `data:image/svg+xml;base64,${encoded}`;
+    }
+
+    const formulaTargets = {
+      cardPrompt: { previewId: 'questionImagePreview', dataKey: 'imageDataQ', label: 'Question' },
+      cardAnswer: { previewId: 'answerImagePreview', dataKey: 'imageDataA', label: 'Answer' },
+      editCardPrompt: { previewId: 'editQuestionImagePreview', dataKey: 'imageDataQ', label: 'Edit Question' },
+      editCardAnswer: { previewId: 'editAnswerImagePreview', dataKey: 'imageDataA', label: 'Edit Answer' }
+    };
+
+    function normalizeFormulaInput(raw, displayToggle) {
+      const t = (raw || '').trim();
+      if (!t) return { text: '', display: !!displayToggle?.checked, detected: null };
+      if (t.startsWith('$$') && t.endsWith('$$') && t.length > 4) {
+        return { text: t.slice(2, -2).trim(), display: true, detected: true };
+      }
+      if (t.startsWith('\\[') && t.endsWith('\\]') && t.length > 4) {
+        return { text: t.slice(2, -2).trim(), display: true, detected: true };
+      }
+      if (t.startsWith('$') && t.endsWith('$') && t.length > 2) {
+        return { text: t.slice(1, -1).trim(), display: false, detected: false };
+      }
+      if (t.startsWith('\\(') && t.endsWith('\\)') && t.length > 4) {
+        return { text: t.slice(2, -2).trim(), display: false, detected: false };
+      }
+      return { text: t, display: !!displayToggle?.checked, detected: null };
+    }
+
+    function renderFormulaPreview() {
+      const input = el('formulaInput');
+      const renderEl = el('formulaRender');
+      const errorEl = el('formulaError');
+      const displayToggle = el('formulaDisplayToggle');
+      const insertBtn = el('insertFormulaBtn');
+      if (!input || !renderEl || !displayToggle || !errorEl || !insertBtn) return;
+
+      const { text, display, detected } = normalizeFormulaInput(input.value, displayToggle);
+      if (detected !== null) displayToggle.checked = display;
+      renderEl.innerHTML = '';
+      errorEl.classList.add('hidden');
+      insertBtn.disabled = !text;
+      if (!text) return;
+
+      if (!window.katex) {
+        errorEl.textContent = 'Formula renderer not loaded.';
+        errorEl.classList.remove('hidden');
+        insertBtn.disabled = true;
+        return;
+      }
+      try {
+        window.katex.render(text, renderEl, { displayMode: display, throwOnError: true });
+      } catch (err) {
+        errorEl.textContent = 'Invalid formula. Please check your LaTeX.';
+        errorEl.classList.remove('hidden');
+        insertBtn.disabled = true;
+      }
+    }
+
+    async function insertFormulaImage() {
+      const target = formulaTargets[formulaTarget];
+      const input = el('formulaInput');
+      const renderEl = el('formulaRender');
+      const dialog = el('formulaDialog');
+      if (!target || !input || !renderEl || !dialog) return;
+      if (!input.value.trim()) return;
+      renderFormulaPreview();
+      let dataUrl = '';
+      try {
+        await ensureHtml2Canvas();
+        if (window.html2canvas) {
+          const canvas = await window.html2canvas(renderEl, { backgroundColor: null, scale: 2, useCORS: true });
+          dataUrl = canvas.toDataURL('image/png');
+        }
+      } catch (err) {
+        dataUrl = '';
+      }
+      if (!dataUrl) {
+        dataUrl = await renderFormulaToSvgDataUrl(renderEl);
+      }
+      const targetField = el(formulaTarget);
+      const previewEl = el(target.previewId);
+      if (!targetField || !previewEl) return;
+
+      if (target.dataKey === 'imageDataQ') targetField.dataset.imageDataQ = dataUrl;
+      if (target.dataKey === 'imageDataA') targetField.dataset.imageDataA = dataUrl;
+      const isCreateField = formulaTarget === 'cardPrompt' || formulaTarget === 'cardAnswer';
+
+      setImagePreview(previewEl, dataUrl, () => {
+        if (target.dataKey === 'imageDataQ') targetField.dataset.imageDataQ = '';
+        if (target.dataKey === 'imageDataA') targetField.dataset.imageDataA = '';
+        if (isCreateField) updateCreateValidation();
+      });
+      if (isCreateField) updateCreateValidation();
+      dialog.close();
+    }
+
+    function openFormulaDialog(targetId) {
+      const dialog = el('formulaDialog');
+      const targetLabel = el('formulaTargetLabel');
+      const input = el('formulaInput');
+      const displayToggle = el('formulaDisplayToggle');
+      if (!dialog || !input || !displayToggle) return;
+      formulaTarget = targetId;
+      const targetMeta = formulaTargets[targetId];
+      if (targetLabel && targetMeta) targetLabel.textContent = `Target: ${targetMeta.label}`;
+      input.value = '';
+      displayToggle.checked = false;
+      renderFormulaPreview();
+      dialog.showModal();
+    }
+
+    function getCreateOptionCount() {
+      const primaryText = el('cardAnswer').value.trim();
+      let count = primaryText ? 1 : 0;
+      Array.from(el('mcqOptions').querySelectorAll('.mcq-row[data-primary="false"] input[type="text"]'))
+        .forEach(input => {
+          if (input.value.trim()) count += 1;
+        });
+      return count;
     }
 
     function parseMcqOptions() {
+      if (!mcqMode) return [];
       const options = [];
       const primaryText = el('cardAnswer').value.trim();
-      const primaryToggle = document.querySelector('.mcq-row[data-primary="true"] .mcq-toggle input[type="checkbox"]');
+      const primaryToggle = el('primaryAnswerToggle');
       if (primaryText) {
         options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true });
       }
-      const rows = Array.from(document.querySelectorAll('.mcq-row[data-primary="false"]'));
+      const rows = Array.from(el('mcqOptions').querySelectorAll('.mcq-row[data-primary="false"]'));
       rows.forEach(row => {
         const text = row.querySelector('input[type="text"]').value.trim();
         const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
         if (text) options.push({ text, correct });
       });
       return options;
-    }
-
-    function ensurePrimaryAnswerRow() {
-      const existing = document.querySelector('.mcq-row[data-primary="true"]');
-      if (existing) {
-        existing.querySelector('.mcq-row-text').textContent = el('cardAnswer').value.trim() || 'Primary answer (empty)';
-        return;
-      }
-      const wrap = document.createElement('div');
-      wrap.className = 'mcq-row correct';
-      wrap.dataset.primary = 'true';
-      wrap.innerHTML = `
-        <div class="mcq-row-header">
-          <span class="mcq-badge correct">Correct Answer ✓</span>
-          <label class="toggle mcq-toggle">
-            <input type="checkbox" checked />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="mcq-row-text">${escapeHTML(el('cardAnswer').value.trim() || 'Primary answer (empty)')}</div>
-      `;
-      const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
-      const update = () => {
-        const isCorrect = toggle.checked;
-        wrap.classList.toggle('correct', isCorrect);
-        wrap.classList.toggle('wrong', !isCorrect);
-        const badge = wrap.querySelector('.mcq-badge');
-        badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
-        badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
-      };
-      toggle.addEventListener('change', update);
-      update();
-      el('mcqOptions').prepend(wrap);
     }
 
     function addMcqRow(text = '', correct = false) {
@@ -593,58 +1902,31 @@
         badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
       };
       toggle.addEventListener('change', update);
-      wrap.querySelector('.mcq-remove').onclick = () => wrap.remove();
+      const input = wrap.querySelector('input[type="text"]');
+      if (input) input.addEventListener('input', () => updateCreateValidation());
+      wrap.querySelector('.mcq-remove').onclick = () => {
+        wrap.remove();
+        updateCreateValidation();
+      };
       update();
       el('mcqOptions').appendChild(wrap);
     }
 
     function parseEditMcqOptions() {
+      if (!editMcqMode) return [];
       const options = [];
       const primaryText = el('editCardAnswer').value.trim();
-      const primaryToggle = document.querySelector('#editMcqOptions .mcq-row[data-primary="true"] .mcq-toggle input[type="checkbox"]');
+      const primaryToggle = el('editPrimaryAnswerToggle');
       if (primaryText) {
         options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true });
       }
-      const rows = Array.from(document.querySelectorAll('#editMcqOptions .mcq-row[data-primary="false"]'));
+      const rows = Array.from(el('editMcqOptions').querySelectorAll('.mcq-row[data-primary="false"]'));
       rows.forEach(row => {
         const text = row.querySelector('input[type="text"]').value.trim();
         const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
         if (text) options.push({ text, correct });
       });
       return options;
-    }
-
-    function ensureEditPrimaryAnswerRow() {
-      const wrap = document.querySelector('#editMcqOptions .mcq-row[data-primary="true"]');
-      if (wrap) {
-        wrap.querySelector('.mcq-row-text').textContent = el('editCardAnswer').value.trim() || 'Primary answer (empty)';
-        return;
-      }
-      const row = document.createElement('div');
-      row.className = 'mcq-row correct';
-      row.dataset.primary = 'true';
-      row.innerHTML = `
-        <div class="mcq-row-header">
-          <span class="mcq-badge correct">Correct Answer ✓</span>
-          <label class="toggle mcq-toggle">
-            <input type="checkbox" checked />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="mcq-row-text">${escapeHTML(el('editCardAnswer').value.trim() || 'Primary answer (empty)')}</div>
-      `;
-      const toggle = row.querySelector('.mcq-toggle input[type="checkbox"]');
-      const update = () => {
-        const isCorrect = toggle.checked;
-        row.classList.toggle('correct', isCorrect);
-        row.classList.toggle('wrong', !isCorrect);
-        const badge = row.querySelector('.mcq-badge');
-        badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
-        badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
-      };
-      toggle.addEventListener('change', update);
-      update();
-      el('editMcqOptions').prepend(row);
     }
 
     function addEditMcqRow(text = '', correct = false) {
@@ -682,6 +1964,11 @@
 
     function openEditDialog(card) {
       editingCardId = card.id;
+      const questionAlign = card.questionTextAlign || card.textAlign || 'center';
+      const answerAlign = card.answerTextAlign || card.textAlign || 'center';
+      applyEditQuestionTextAlign(questionAlign);
+      applyEditAnswerTextAlign(answerAlign);
+      applyEditOptionsTextAlign(card.optionsTextAlign || 'left');
       el('editCardPrompt').value = card.prompt || '';
       el('editCardAnswer').value = card.answer || '';
       el('editCardPrompt').dataset.imageDataQ = card.imageDataQ || card.imageData || '';
@@ -696,24 +1983,37 @@
         card.imageDataA || '',
         () => { el('editCardAnswer').dataset.imageDataA = ''; }
       );
+      setPreview('editQuestionPreview', el('editCardPrompt').value || '', editQuestionTextAlign);
+      setPreview('editAnswerPreview', el('editCardAnswer').value || '', editAnswerTextAlign);
       el('editMcqOptions').innerHTML = '';
-      ensureEditPrimaryAnswerRow();
-      (card.options || []).forEach((opt, i) => {
-        if (i === 0 && opt.text === el('editCardAnswer').value) return;
-        addEditMcqRow(opt.text, opt.correct);
-      });
+      const opts = card.options || [];
+      const hasMcq = card.type === 'mcq' && opts.length > 1;
+      setMcqModeState(true, hasMcq);
+      if (hasMcq) {
+        const primaryText = (el('editCardAnswer').value || '').trim();
+        let primaryIdx = opts.findIndex(opt => (opt.text || '').trim() === primaryText);
+        if (primaryIdx === -1) primaryIdx = 0;
+        const primaryOpt = opts[primaryIdx];
+        const toggle = el('editPrimaryAnswerToggle');
+        if (toggle && primaryOpt) toggle.checked = !!primaryOpt.correct;
+        syncPrimaryMcqUi(true);
+        opts.forEach((opt, i) => {
+          if (i === primaryIdx) return;
+          addEditMcqRow(opt.text, opt.correct);
+        });
+      }
       el('editCardDialog').showModal();
     }
 
-    async function deleteCardById(cardId) {
+    async function deleteCardById(cardId, options = {}) {
+      const { skipSubjectTouch = false } = options;
+      const card = (await getAll('cards')).find(c => c.id === cardId);
       await del('cards', cardId);
       await del('progress', cardId);
-      if (cardBankDb) {
-        await new Promise((res, rej) => {
-          const r = cardBankDb.transaction('cards', 'readwrite').objectStore('cards').delete(cardId);
-          r.onsuccess = () => res();
-          r.onerror = () => rej(r.error);
-        });
+      await del('cardbank', cardId);
+      progressByCardId.delete(cardId);
+      if (!skipSubjectTouch && card?.topicId) {
+        await touchSubjectByTopicId(card.topicId);
       }
       if (session.active) {
         session.activeQueue = session.activeQueue.filter(c => c.id !== cardId);
@@ -725,48 +2025,344 @@
       }
     }
 
+    function getDeckSelectionIds() {
+      return Array.from(deckSelectedCardIds);
+    }
+
+    function updateDeckSelectionUi() {
+      const toggleBtn = el('toggleCardSelectBtn');
+      const bulkBar = el('deckBulkActions');
+      const count = el('deckSelectionCount');
+      const moveBtn = el('moveSelectedCardsBtn');
+      const deleteBtn = el('deleteSelectedCardsBtn');
+      const hasSelection = deckSelectedCardIds.size > 0;
+
+      if (toggleBtn) {
+        toggleBtn.classList.toggle('active', deckSelectionMode);
+        toggleBtn.setAttribute('aria-pressed', deckSelectionMode ? 'true' : 'false');
+      }
+      if (bulkBar) {
+        bulkBar.classList.toggle('hidden', !deckSelectionMode);
+      }
+      if (count) {
+        count.textContent = `${deckSelectedCardIds.size} ausgewaehlt`;
+      }
+      if (moveBtn) moveBtn.disabled = !hasSelection;
+      if (deleteBtn) deleteBtn.disabled = !hasSelection;
+    }
+
+    function setDeckSelectionMode(enabled) {
+      deckSelectionMode = !!enabled;
+      if (!deckSelectionMode) deckSelectedCardIds.clear();
+      updateDeckSelectionUi();
+    }
+
+    function toggleDeckCardSelection(cardId, forceState = null) {
+      const next = forceState === null ? !deckSelectedCardIds.has(cardId) : !!forceState;
+      if (next) deckSelectedCardIds.add(cardId);
+      else deckSelectedCardIds.delete(cardId);
+      updateDeckSelectionUi();
+    }
+
+    function getTopicSelectionIds() {
+      return Array.from(topicSelectedIds);
+    }
+
+    function updateTopicSelectionUi() {
+      const toggleBtn = el('toggleTopicSelectBtn');
+      const bulkBar = el('topicBulkActions');
+      const count = el('topicSelectionCount');
+      const moveBtn = el('moveSelectedTopicsBtn');
+      const deleteBtn = el('deleteSelectedTopicsBtn');
+      const hasSelection = topicSelectedIds.size > 0;
+
+      if (toggleBtn) {
+        toggleBtn.classList.toggle('active', topicSelectionMode);
+        toggleBtn.setAttribute('aria-pressed', topicSelectionMode ? 'true' : 'false');
+      }
+      if (bulkBar) {
+        bulkBar.classList.toggle('hidden', !topicSelectionMode);
+      }
+      if (count) {
+        const word = topicSelectedIds.size === 1 ? 'topic' : 'topics';
+        count.textContent = `${topicSelectedIds.size} ${word} selected`;
+      }
+      if (moveBtn) moveBtn.disabled = !hasSelection;
+      if (deleteBtn) deleteBtn.disabled = !hasSelection;
+    }
+
+    function setTopicSelectionMode(enabled) {
+      topicSelectionMode = !!enabled;
+      if (!topicSelectionMode) topicSelectedIds.clear();
+      updateTopicSelectionUi();
+    }
+
+    function toggleTopicSelection(topicId, forceState = null) {
+      const next = forceState === null ? !topicSelectedIds.has(topicId) : !!forceState;
+      if (next) topicSelectedIds.add(topicId);
+      else topicSelectedIds.delete(topicId);
+      updateTopicSelectionUi();
+    }
+
+    async function openMoveTopicsDialog() {
+      const ids = getTopicSelectionIds();
+      if (!ids.length) {
+        alert('Please select topics first.');
+        return;
+      }
+      const subjectSelect = el('moveTopicsSubjectSelect');
+      const info = el('moveTopicsSelectionInfo');
+      const confirmBtn = el('confirmMoveTopicsBtn');
+      if (!subjectSelect || !confirmBtn) return;
+
+      const subjects = sortSubjectsByLastEdited((await getAll('subjects')).filter(s => s.id !== selectedSubject?.id));
+      subjectSelect.innerHTML = '';
+      subjects.forEach(subject => {
+        const option = document.createElement('option');
+        option.value = subject.id;
+        option.textContent = subject.name;
+        subjectSelect.appendChild(option);
+      });
+      const hasTargets = subjects.length > 0;
+      subjectSelect.disabled = !hasTargets;
+      confirmBtn.disabled = !hasTargets;
+      if (info) {
+        const word = ids.length === 1 ? 'topic' : 'topics';
+        info.textContent = `${ids.length} ${word} selected`;
+      }
+      if (!hasTargets) {
+        alert('No other subject available as target.');
+        return;
+      }
+      showDialog(el('moveTopicsDialog'));
+    }
+
+    async function moveSelectedTopics() {
+      const ids = getTopicSelectionIds();
+      if (!ids.length) return;
+      const targetSubjectId = el('moveTopicsSubjectSelect')?.value || '';
+      const sourceSubjectId = selectedSubject?.id || '';
+      if (!targetSubjectId) {
+        alert('Please select a target subject.');
+        return;
+      }
+      const allTopics = await getAll('topics');
+      for (const topic of allTopics) {
+        if (!topicSelectedIds.has(topic.id)) continue;
+        if (topic.subjectId === targetSubjectId) continue;
+        await put('topics', { ...topic, subjectId: targetSubjectId });
+        selectedTopicIds.delete(topic.id);
+        if (selectedTopic?.id === topic.id) selectedTopic = null;
+      }
+      if (sourceSubjectId) await touchSubject(sourceSubjectId);
+      if (targetSubjectId && targetSubjectId !== sourceSubjectId) await touchSubject(targetSubjectId);
+      closeDialog(el('moveTopicsDialog'));
+      setTopicSelectionMode(false);
+      await refreshSidebar();
+      await loadTopics();
+      if (!selectedTopic && currentView === 2) {
+        setDeckSelectionMode(false);
+        session.active = false;
+        el('cardsOverviewSection').classList.remove('hidden');
+        el('studySessionSection')?.classList.add('hidden');
+        renderSessionPills();
+        setView(1);
+      }
+    }
+
+    async function deleteSelectedTopics() {
+      const ids = getTopicSelectionIds();
+      if (!ids.length) return;
+      const label = ids.length === 1 ? 'this topic' : `these ${ids.length} topics`;
+      if (!confirm(`Delete ${label} and all cards inside?`)) return;
+      for (const topicId of ids) {
+        await deleteTopicById(topicId, { skipSubjectTouch: true });
+      }
+      if (selectedSubject?.id) await touchSubject(selectedSubject.id);
+      setTopicSelectionMode(false);
+      await refreshSidebar();
+      await loadTopics();
+      if (!selectedTopic && currentView === 2) {
+        setDeckSelectionMode(false);
+        session.active = false;
+        el('cardsOverviewSection').classList.remove('hidden');
+        el('studySessionSection')?.classList.add('hidden');
+        renderSessionPills();
+        setView(1);
+      }
+    }
+
+    function syncSessionCard(updated) {
+      if (!session.active || !updated) return;
+      const activeIdx = session.activeQueue.findIndex(c => c.id === updated.id);
+      if (activeIdx !== -1) session.activeQueue[activeIdx] = { ...session.activeQueue[activeIdx], ...updated };
+      const masteredIdx = session.mastered.findIndex(c => c.id === updated.id);
+      if (masteredIdx !== -1) session.mastered[masteredIdx] = { ...session.mastered[masteredIdx], ...updated };
+    }
+
+    async function populateMoveTopics(subjectId) {
+      const topicSelect = el('moveCardsTopicSelect');
+      const confirmBtn = el('confirmMoveCardsBtn');
+      if (!topicSelect || !confirmBtn) return;
+      const topics = (await getAll('topics')).filter(t => t.subjectId === subjectId);
+      topicSelect.innerHTML = '';
+      topics.forEach(topic => {
+        const option = document.createElement('option');
+        option.value = topic.id;
+        option.textContent = topic.name;
+        topicSelect.appendChild(option);
+      });
+      topicSelect.disabled = !topics.length;
+      confirmBtn.disabled = !topics.length;
+    }
+
+    async function openMoveCardsDialog() {
+      const ids = getDeckSelectionIds();
+      if (!ids.length) {
+        alert('Bitte waehle zuerst Karten aus.');
+        return;
+      }
+      const subjects = sortSubjectsByLastEdited(await getAll('subjects'));
+      if (!subjects.length) {
+        alert('Keine Subjects verfuegbar.');
+        return;
+      }
+      const subjectSelect = el('moveCardsSubjectSelect');
+      const info = el('moveCardsSelectionInfo');
+      if (!subjectSelect) return;
+      subjectSelect.innerHTML = '';
+      subjects.forEach(subject => {
+        const option = document.createElement('option');
+        option.value = subject.id;
+        option.textContent = subject.name;
+        subjectSelect.appendChild(option);
+      });
+      const preferredSubjectId = subjects.some(s => s.id === selectedSubject?.id)
+        ? selectedSubject.id
+        : subjects[0].id;
+      subjectSelect.value = preferredSubjectId;
+      await populateMoveTopics(subjectSelect.value);
+      if (info) {
+        const cardWord = ids.length === 1 ? 'Karte' : 'Karten';
+        info.textContent = `${ids.length} ${cardWord} ausgewaehlt`;
+      }
+      showDialog(el('moveCardsDialog'));
+    }
+
+    async function moveSelectedDeckCards() {
+      const ids = getDeckSelectionIds();
+      if (!ids.length) return;
+      const targetTopicId = el('moveCardsTopicSelect')?.value || '';
+      if (!targetTopicId) {
+        alert('Bitte waehle ein Ziel-Topic aus.');
+        return;
+      }
+      const sourceSubjectId = selectedSubject?.id || '';
+      const targetSubjectId = (await getAll('topics')).find(topic => topic.id === targetTopicId)?.subjectId || '';
+      const allCards = await getAll('cards');
+      const selectedCards = allCards.filter(card => deckSelectedCardIds.has(card.id));
+      for (const card of selectedCards) {
+        if (card.topicId === targetTopicId) continue;
+        const updated = { ...card, topicId: targetTopicId };
+        await put('cards', updated);
+        await putCardBank(updated);
+        syncSessionCard(updated);
+      }
+      if (sourceSubjectId) await touchSubject(sourceSubjectId);
+      if (targetSubjectId && targetSubjectId !== sourceSubjectId) await touchSubject(targetSubjectId);
+      closeDialog(el('moveCardsDialog'));
+      setDeckSelectionMode(false);
+      await loadDeck();
+      await loadEditorCards();
+      await refreshSidebar();
+      if (selectedSubject) await refreshTopicSessionMeta();
+    }
+
+    async function deleteSelectedDeckCards() {
+      const ids = getDeckSelectionIds();
+      if (!ids.length) return;
+      const label = ids.length === 1 ? 'diese Karte' : `diese ${ids.length} Karten`;
+      if (!confirm(`Moechtest du ${label} loeschen?`)) return;
+      for (const cardId of ids) {
+        await deleteCardById(cardId, { skipSubjectTouch: true });
+      }
+      if (selectedSubject?.id) await touchSubject(selectedSubject.id);
+      setDeckSelectionMode(false);
+      await loadDeck();
+      await loadEditorCards();
+      await refreshSidebar();
+      if (selectedSubject) await refreshTopicSessionMeta();
+    }
+
     function buildCardTile(card, idx, compact = false) {
       const tile = document.createElement('div');
       tile.className = 'card-tile';
       if (compact) tile.classList.add('card-tile-compact');
+      const selectionEnabled = deckSelectionMode && !compact;
+      if (selectionEnabled) {
+        tile.classList.add('selection-mode');
+        tile.classList.toggle('selected-for-bulk', deckSelectedCardIds.has(card.id));
+      }
 
-      const menu = document.createElement('div');
-      menu.className = 'card-tile-menu';
-      menu.innerHTML = `
-        <button class="btn card-menu-btn" type="button">⋯</button>
-        <div class="card-menu">
-          <button class="btn card-menu-item" style="background-color: var(--accent)" type="button">Edit</button>
-          <button class="btn delete card-menu-item delete-card-btn" type="button">Delete</button>
-        </div>
-      `;
-      menu.querySelector('.card-menu-item').onclick = (e) => {
-        e.stopPropagation();
-        openEditDialog(card);
-      };
-      menu.querySelector('.delete-card-btn').onclick = async (e) => {
-        e.stopPropagation();
-        if (!confirm('Delete this flashcard?')) return;
-        await deleteCardById(card.id);
-        loadDeck();
-        loadEditorCards();
-        refreshSidebar();
-      };
-      menu.querySelector('.card-menu-btn').onclick = (e) => {
-        e.stopPropagation();
-        menu.classList.toggle('open');
-      };
-      document.addEventListener('click', () => menu.classList.remove('open'));
+      if (!selectionEnabled) {
+        const menu = document.createElement('div');
+        menu.className = 'card-tile-menu';
+        menu.innerHTML = `
+          <button class="btn card-menu-btn" type="button">⋯</button>
+          <div class="card-menu">
+            <button class="btn card-menu-item" style="background-color: var(--success)" type="button">Edit</button>
+            <button class="btn delete card-menu-item delete-card-btn" type="button">Delete</button>
+          </div>
+        `;
+        menu.querySelector('.card-menu-item').onclick = (e) => {
+          e.stopPropagation();
+          openEditDialog(card);
+        };
+        menu.querySelector('.delete-card-btn').onclick = async (e) => {
+          e.stopPropagation();
+          if (!confirm('Delete this flashcard?')) return;
+          await deleteCardById(card.id);
+          loadDeck();
+          loadEditorCards();
+          refreshSidebar();
+        };
+        menu.querySelector('.card-menu-btn').onclick = (e) => {
+          e.stopPropagation();
+          menu.classList.toggle('open');
+        };
+        document.addEventListener('click', () => menu.classList.remove('open'));
+        tile.appendChild(menu);
+      } else {
+        const selectWrap = document.createElement('label');
+        selectWrap.className = 'card-select-control';
+        selectWrap.innerHTML = `<input type="checkbox" aria-label="Karte auswaehlen" />`;
+        const checkbox = selectWrap.querySelector('input');
+        checkbox.checked = deckSelectedCardIds.has(card.id);
+        checkbox.addEventListener('click', e => e.stopPropagation());
+        checkbox.addEventListener('change', () => {
+          toggleDeckCardSelection(card.id, checkbox.checked);
+          tile.classList.toggle('selected-for-bulk', checkbox.checked);
+        });
+        tile.addEventListener('click', e => {
+          if (e.target.closest('.card-select-control')) return;
+          const nextChecked = !checkbox.checked;
+          checkbox.checked = nextChecked;
+          toggleDeckCardSelection(card.id, nextChecked);
+          tile.classList.toggle('selected-for-bulk', nextChecked);
+        });
+        tile.appendChild(selectWrap);
+      }
 
       const qTitle = document.createElement('div');
       qTitle.className = 'card-tile-title';
       qTitle.textContent = 'Q';
       const qBody = document.createElement('div');
       qBody.className = 'card-tile-body';
-      renderRich(qBody, card.prompt || '');
-      const thumbSrc = card.imageDataQ || card.imageData || card.imageDataA || '';
-      if (thumbSrc) {
+      renderRich(qBody, card.prompt || '', { textAlign: card.questionTextAlign || card.textAlign || 'center' });
+      const questionThumbSrc = card.imageDataQ || card.imageData || '';
+      if (questionThumbSrc) {
         const thumb = document.createElement('img');
-        thumb.src = thumbSrc;
+        thumb.src = questionThumbSrc;
         thumb.className = 'card-thumb';
         qBody.appendChild(thumb);
       }
@@ -777,18 +2373,152 @@
       aTitle.textContent = 'A';
       const aBody = document.createElement('div');
       aBody.className = 'card-tile-body';
-      renderRich(aBody, card.answer || '');
+      renderRich(aBody, card.answer || '', { textAlign: card.answerTextAlign || card.textAlign || 'center' });
+      const answerThumbSrc = card.imageDataA || '';
+      if (answerThumbSrc) {
+        const thumb = document.createElement('img');
+        thumb.src = answerThumbSrc;
+        thumb.className = 'card-thumb';
+        aBody.appendChild(thumb);
+      }
 
-      tile.append(menu, qTitle, qBody, separator, aTitle, aBody);
+      tile.append(qTitle, qBody, separator, aTitle, aBody);
       return tile;
+    }
+
+    function normalizeTopicSearchQuery(value = '') {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function getCardSearchHaystack(card) {
+      const optionText = Array.isArray(card?.options)
+        ? card.options.map(option => option?.text || '').join('\n')
+        : '';
+      return `${card?.prompt || ''}\n${card?.answer || ''}\n${optionText}`.toLowerCase();
+    }
+
+    function setTopicSearchMetaText(text = '') {
+      const meta = el('topicSearchMeta');
+      if (!meta) return;
+      meta.textContent = text;
+    }
+
+    function buildTopicSearchResultCard(card, topicName = '') {
+      const wrap = document.createElement('article');
+      wrap.className = 'topic-search-result';
+
+      const topicField = document.createElement('div');
+      topicField.className = 'topic-search-result-topic';
+      topicField.textContent = topicName || 'Unknown topic';
+
+      const tile = document.createElement('div');
+      tile.className = 'card-tile card-tile-search';
+
+      const qTitle = document.createElement('div');
+      qTitle.className = 'card-tile-title';
+      qTitle.textContent = 'Q';
+
+      const qBody = document.createElement('div');
+      qBody.className = 'card-tile-body';
+      renderRich(qBody, card.prompt || '', { textAlign: card.questionTextAlign || card.textAlign || 'center' });
+      const questionThumbSrc = card.imageDataQ || card.imageData || '';
+      if (questionThumbSrc) {
+        const thumb = document.createElement('img');
+        thumb.src = questionThumbSrc;
+        thumb.className = 'card-thumb';
+        qBody.appendChild(thumb);
+      }
+
+      const separator = document.createElement('div');
+      separator.className = 'card-tile-separator';
+
+      const aTitle = document.createElement('div');
+      aTitle.className = 'card-tile-title';
+      aTitle.textContent = 'A';
+
+      const aBody = document.createElement('div');
+      aBody.className = 'card-tile-body';
+      renderRich(aBody, card.answer || '', { textAlign: card.answerTextAlign || card.textAlign || 'center' });
+      const answerThumbSrc = card.imageDataA || '';
+      if (answerThumbSrc) {
+        const thumb = document.createElement('img');
+        thumb.src = answerThumbSrc;
+        thumb.className = 'card-thumb';
+        aBody.appendChild(thumb);
+      }
+
+      tile.append(qTitle, qBody, separator, aTitle, aBody);
+      wrap.append(topicField, tile);
+      return wrap;
+    }
+
+    async function runTopicSearch() {
+      if (!selectedSubject) return;
+      const input = el('topicSearchInput');
+      const results = el('topicSearchResults');
+      if (!input || !results) return;
+
+      const query = normalizeTopicSearchQuery(input.value);
+      const topics = (await getAll('topics')).filter(topic => topic.subjectId === selectedSubject.id);
+      const topicNameById = Object.fromEntries(topics.map(topic => [topic.id, topic.name]));
+      const topicIds = new Set(topics.map(topic => topic.id));
+
+      if (!query) {
+        results.innerHTML = '<div class="tiny">Enter text to search cards in this subject.</div>';
+        setTopicSearchMetaText(`Search in ${topics.length} ${topics.length === 1 ? 'topic' : 'topics'}.`);
+        return;
+      }
+
+      const cards = (await getAll('cards')).filter(card => topicIds.has(card.topicId));
+      const matches = cards.filter(card => getCardSearchHaystack(card).includes(query));
+      matches.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
+
+      results.innerHTML = '';
+      if (!matches.length) {
+        results.innerHTML = '<div class="tiny">No matching cards found.</div>';
+        setTopicSearchMetaText('0 cards found.');
+        return;
+      }
+
+      matches.forEach(card => {
+        results.appendChild(buildTopicSearchResultCard(card, topicNameById[card.topicId] || 'Unknown topic'));
+      });
+      const cardWord = matches.length === 1 ? 'card' : 'cards';
+      setTopicSearchMetaText(`${matches.length} ${cardWord} found.`);
+    }
+
+    async function openTopicSearchModal() {
+      if (!selectedSubject) {
+        alert('Pick a subject first.');
+        return;
+      }
+      const dialog = el('topicSearchDialog');
+      const input = el('topicSearchInput');
+      const results = el('topicSearchResults');
+      if (!dialog || !input || !results) return;
+      input.value = '';
+      results.innerHTML = '';
+      setTopicSearchMetaText('Enter text to search in question and answer fields.');
+      showDialog(dialog);
+      setTimeout(() => input.focus(), 0);
+    }
+
+    async function deleteTopicById(topicId, options = {}) {
+      const { skipSubjectTouch = false } = options;
+      const topic = (await getAll('topics')).find(t => t.id === topicId);
+      const subjectId = topic?.subjectId || '';
+      const cards = (await getAll('cards')).filter(c => c.topicId === topicId);
+      for (const c of cards) await deleteCardById(c.id, { skipSubjectTouch: true });
+      await del('topics', topicId);
+      if (subjectId && !skipSubjectTouch) await touchSubject(subjectId);
+      selectedTopicIds.delete(topicId);
+      topicSelectedIds.delete(topicId);
+      if (selectedTopic?.id === topicId) selectedTopic = null;
     }
 
     async function deleteSubjectById(subjectId) {
       const topics = (await getAll('topics')).filter(t => t.subjectId === subjectId);
-      const topicIds = topics.map(t => t.id);
-      const cards = (await getAll('cards')).filter(c => topicIds.includes(c.topicId));
-      for (const c of cards) await deleteCardById(c.id);
-      for (const t of topics) await del('topics', t.id);
+      for (const t of topics) await deleteTopicById(t.id, { skipSubjectTouch: true });
       await del('subjects', subjectId);
       if (selectedSubject?.id === subjectId) {
         selectedSubject = null;
@@ -800,23 +2530,62 @@
     }
 
     async function loadDeck() {
-      if (!selectedTopic) return;
-      el('deckTitle').textContent = `${selectedTopic.name}`;
+      if (!selectedTopic) {
+        setDeckSelectionMode(false);
+        return;
+      }
+      setDeckTitle(selectedTopic.name);
       const cards = (await getAll('cards')).filter(c => c.topicId === selectedTopic.id);
+      cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
+      const cardIds = new Set(cards.map(card => card.id));
+      deckSelectedCardIds.forEach(cardId => {
+        if (!cardIds.has(cardId)) deckSelectedCardIds.delete(cardId);
+      });
       const grid = el('cardsGrid');
       if (!cards.length) {
+        setDeckSelectionMode(false);
         grid.innerHTML = '<div class="tiny">No cards yet.</div>';
         return;
       }
+      updateDeckSelectionUi();
       grid.innerHTML = '';
       cards.forEach((c, idx) => {
         grid.appendChild(buildCardTile(c, idx));
       });
     }
 
+    async function migrateExistingCardsToCenteredQa() {
+      const cards = await getAll('cards');
+      if (!cards.length) return;
+      for (const card of cards) {
+        const needsUpdate =
+          normalizeTextAlign(card.questionTextAlign || '') !== 'center' ||
+          normalizeTextAlign(card.answerTextAlign || '') !== 'center' ||
+          normalizeTextAlign(card.textAlign || '') !== 'center';
+        if (!needsUpdate) continue;
+        const updated = {
+          ...card,
+          textAlign: 'center',
+          questionTextAlign: 'center',
+          answerTextAlign: 'center'
+        };
+        await put('cards', updated);
+        await putCardBank(updated);
+      }
+    }
+
+    function getCardCreatedAt(card) {
+      const raw = card?.meta?.createdAt ?? card?.createdAt ?? 0;
+      if (!raw) return 0;
+      if (typeof raw === 'number') return raw;
+      const parsed = Date.parse(raw);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
     async function loadEditorCards() {
       if (!selectedTopic) return;
       const cards = (await getAll('cards')).filter(c => c.topicId === selectedTopic.id);
+      cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
       const list = el('editorCardsList');
       if (!cards.length) {
         list.innerHTML = '<div class="tiny">No cards yet.</div>';
@@ -828,14 +2597,29 @@
       });
     }
 
-    async function startSession() {
+    async function startSession(options = {}) {
       if (!selectedSubject) return alert('Pick a subject first.');
       const topics = (await getAll('topics')).filter(t => t.subjectId === selectedSubject.id);
-      const topicIds = topics.map(t => t.id).filter(id => selectedTopicIds.has(id));
+      const selectedTopicList = topics.map(t => t.id).filter(id => selectedTopicIds.has(id));
+      const explicitTopicIds = Array.isArray(options.topicIds) && options.topicIds.length
+        ? options.topicIds
+        : null;
+      const topicIds = explicitTopicIds || selectedTopicList;
       if (!topicIds.length) return alert('Select at least one topic.');
-      const cards = (await getAll('cards')).filter(c => topicIds.includes(c.topicId));
-      if (!cards.length) return alert('Add cards first.');
-      const shuffled = cards.sort(() => Math.random() - 0.5).slice(0, sessionSize);
+
+      const filterConfig = normalizeSessionFilters(options.filters || sessionFilterState);
+      const cards = await getEligibleSessionCardsByTopicIds(topicIds, filterConfig);
+      if (!cards.length) {
+        return alert('No cards match the current session filter.');
+      }
+
+      const maxSelectable = cards.length;
+      const rawRequested = Number(options.forcedSize ?? sessionSize);
+      const requestedSize = Number.isFinite(rawRequested) ? rawRequested : sessionSize;
+      sessionSize = Math.min(Math.max(requestedSize, 1), maxSelectable);
+      availableSessionCards = maxSelectable;
+      renderSessionSizeCounter();
+      const shuffled = [...cards].sort(() => Math.random() - 0.5).slice(0, sessionSize);
       const sessionCards = shuffled.map(c => ({ ...c, sessionCorrectCount: 0 }));
       session = {
         active: true,
@@ -844,7 +2628,13 @@
         counts: Object.fromEntries(sessionCards.map(c => [c.id, 0])),
         gradeMap: {}
       };
-      el('deckTitle').textContent = `${selectedSubject.name}`;
+      sessionRunState = {
+        startedAt: Date.now(),
+        topicIds: [...topicIds],
+        filters: { ...filterConfig }
+      };
+      closeDialog(el('sessionCompleteDialog'));
+      setDeckTitle(selectedSubject.name);
       el('cardsOverviewSection').classList.add('hidden');
       el('studySessionSection')?.classList.remove('hidden');
       el('flashcard').classList.remove('hidden');
@@ -867,15 +2657,10 @@
 
       let promptHtml = `<div></div><div class="qtxt"></div>`;
       front.innerHTML = promptHtml;
-      renderRich(front.querySelector('.qtxt'), card.prompt);
+      renderRich(front.querySelector('.qtxt'), card.prompt, { textAlign: card.questionTextAlign || card.textAlign || 'center' });
       const qImgSrc = card.imageDataQ || card.imageData || '';
       if (qImgSrc) {
-        const img = document.createElement('img');
-        img.src = qImgSrc;
-        img.style.maxWidth = '100%';
-        img.style.scale = '0.8';
-        img.style.marginTop = '10px';
-        img.style.borderRadius = '8px';
+        const img = buildSessionCardImage(qImgSrc, 'Question image');
         front.appendChild(img);
       }
       if (isMcq) {
@@ -889,7 +2674,9 @@
           btn.dataset.idx = String(i);
           const textEl = document.createElement('span');
           textEl.className = 'mcq-text';
-          renderRich(textEl, o.text || '');
+          renderRich(textEl, o.text || '', {
+            textAlign: card.optionsTextAlign || 'left'
+          });
           btn.appendChild(textEl);
           btn.addEventListener('click', () => {
             btn.classList.toggle('selected');
@@ -908,7 +2695,8 @@
         front.appendChild(optionsWrap);
         front.appendChild(checkRow);
 
-        checkBtn.onclick = async () => {
+        checkBtn.onclick = async e => {
+          e.stopPropagation();
           const buttons = Array.from(optionsWrap.querySelectorAll('.mcq-option'));
           const selected = buttons
             .filter(b => b.classList.contains('selected'))
@@ -939,7 +2727,8 @@
           }
 
           checkBtn.textContent = 'Next';
-          checkBtn.onclick = () => {
+          checkBtn.onclick = ev => {
+            ev.stopPropagation();
             checkBtn.textContent = 'Check';
             // reset option visuals for next card
             buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'selected'));
@@ -948,32 +2737,38 @@
         };
       } else {
         back.innerHTML = `<div></div><div class="atxt"></div>`;
-        renderRich(back.querySelector('.atxt'), card.answer || '');
+        renderRich(back.querySelector('.atxt'), card.answer || '', { textAlign: card.answerTextAlign || card.textAlign || 'center' });
       }
       const aImgSrc = card.imageDataA || '';
       if (aImgSrc) {
-        const img = document.createElement('img');
-        img.src = aImgSrc;
-        img.style.maxWidth = '100%';
-        img.style.scale = '0.8';
-        img.style.marginTop = '10px';
-        img.style.borderRadius = '8px';
+        const img = buildSessionCardImage(aImgSrc, 'Answer image');
         back.appendChild(img);
       }
     }
 
     async function renderSessionCard() {
       if (!session.active) return;
-      if (!el('flashcard')) return;
+      const flashcard = el('flashcard');
+      if (!flashcard) return;
+      closeStudyImageLightbox();
+      flashcard.classList.remove('flipped', 'swiping', 'swipe-correct', 'swipe-wrong', 'swipe-partial');
+      flashcard.style.removeProperty('--swipe-intensity');
+      flashcard.style.transform = '';
+      flashcard.style.transition = '';
+      flashcard.style.willChange = '';
+      const swipeBadge = el('swipeBadge');
+      if (swipeBadge) swipeBadge.textContent = '';
       if (!session.activeQueue.length) {
         session.active = false;
         el('cardsOverviewSection').classList.remove('hidden');
         el('studySessionSection')?.classList.add('hidden');
         renderSessionPills();
+        if (selectedSubject) await refreshTopicSessionMeta();
+        await openSessionCompleteDialog();
         return;
       }
       const card = session.activeQueue[0];
-      el('flashcard').classList.remove('flipped');
+      flashcard.classList.remove('flipped');
       renderCardContent(card);
     }
 
@@ -988,6 +2783,7 @@
 
       session.counts[card.id] = count;
       card.sessionCorrectCount = count;
+      await recordCardProgress(card.id, result);
 
       if (result === 'correct' && count >= 3) {
         session.mastered.push(card);
@@ -1062,40 +2858,248 @@
     function wireSwipe() {
       const card = el('flashcard');
       if (!card) return;
-      let startX = 0, startY = 0;
-      card.addEventListener('touchstart', e => {
-        if (card.dataset.type === 'mcq') return;
-        if (!e.changedTouches[0]) return;
-        startX = e.changedTouches[0].clientX;
-        startY = e.changedTouches[0].clientY;
-      });
-      card.addEventListener('touchend', e => {
-        if (card.dataset.type === 'mcq') return;
-        if (!e.changedTouches[0]) return;
-        const dx = e.changedTouches[0].clientX - startX;
-        const dy = e.changedTouches[0].clientY - startY;
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-          if (dx < 0) gradeCard('correct');
-          else gradeCard('wrong');
-        } else if (dy > 50) {
-          gradeCard('partial');
+      const rotateLimit = 15;
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let dx = 0;
+      let dy = 0;
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function swipeBaseTransform() {
+        return card.classList.contains('flipped') ? ' rotateX(180deg)' : '';
+      }
+
+      function setSwipeTransform(x = 0, y = 0, rotate = 0) {
+        card.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)${swipeBaseTransform()}`;
+      }
+
+      function clearSwipeFeedback() {
+        card.classList.remove('swiping', 'swipe-correct', 'swipe-wrong', 'swipe-partial');
+        card.style.removeProperty('--swipe-intensity');
+        const badge = el('swipeBadge');
+        if (badge) badge.textContent = '';
+      }
+
+      function applySwipeFeedback(result, intensity) {
+        clearSwipeFeedback();
+        if (!result || intensity <= 0) return;
+        const labels = {
+          correct: 'Korrekt',
+          wrong: 'Falsch',
+          partial: 'Teilweise'
+        };
+        const cls = {
+          correct: 'swipe-correct',
+          wrong: 'swipe-wrong',
+          partial: 'swipe-partial'
+        }[result];
+        card.classList.add('swiping', cls);
+        card.style.setProperty('--swipe-intensity', String(clamp(intensity, 0, 1)));
+        const badge = el('swipeBadge');
+        if (badge) badge.textContent = labels[result] || '';
+      }
+
+      function getSwipeResult() {
+        const xThreshold = Math.max(card.clientWidth * 0.25, 60);
+        const yThreshold = Math.max(card.clientHeight * 0.25, 80);
+        if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > xThreshold) {
+          return dx < 0 ? 'correct' : 'wrong';
         }
-      });
+        if (dy > yThreshold) return 'partial';
+        return null;
+      }
+
+      function snapBack() {
+        card.style.transition = 'transform 380ms cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+        applySwipeFeedback(null, 0);
+        requestAnimationFrame(() => setSwipeTransform(0, 0, 0));
+        setTimeout(() => {
+          card.style.transition = '';
+          card.style.willChange = '';
+          card.style.transform = '';
+          clearSwipeFeedback();
+        }, 390);
+      }
+
+      function flyOut(result) {
+        const width = Math.max(card.clientWidth, 1);
+        let outX = dx;
+        let outY = dy;
+        let outRotate = clamp((dx / width) * rotateLimit, -rotateLimit, rotateLimit);
+
+        if (result === 'correct') {
+          outX = -window.innerWidth * 1.15;
+          outY = dy * 0.15;
+          outRotate = -rotateLimit;
+        } else if (result === 'wrong') {
+          outX = window.innerWidth * 1.15;
+          outY = dy * 0.15;
+          outRotate = rotateLimit;
+        } else {
+          outX = dx * 0.2;
+          outY = window.innerHeight * 1.1;
+          outRotate = clamp((dx / width) * 8, -8, 8);
+        }
+
+        card.style.transition = 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+        applySwipeFeedback(result, 1);
+        requestAnimationFrame(() => setSwipeTransform(outX, outY, outRotate));
+        setTimeout(() => {
+          gradeCard(result);
+        }, 210);
+      }
+
+      card.addEventListener('touchstart', e => {
+        if (card.dataset.type === 'mcq' || !session.active) return;
+        if (!e.touches[0]) return;
+        dragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        dx = 0;
+        dy = 0;
+        card.style.transition = 'none';
+        card.style.willChange = 'transform';
+        clearSwipeFeedback();
+      }, { passive: true });
+
+      card.addEventListener('touchmove', e => {
+        if (!dragging || card.dataset.type === 'mcq') return;
+        if (!e.touches[0]) return;
+        dx = e.touches[0].clientX - startX;
+        dy = e.touches[0].clientY - startY;
+        if (Math.abs(dx) + Math.abs(dy) > 4) e.preventDefault();
+
+        const width = Math.max(card.clientWidth, 1);
+        const xThreshold = Math.max(width * 0.25, 60);
+        const yThreshold = Math.max(card.clientHeight * 0.25, 80);
+        const rotate = clamp((dx / width) * rotateLimit, -rotateLimit, rotateLimit);
+        setSwipeTransform(dx, dy, rotate);
+
+        let result = null;
+        let intensity = 0;
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          result = dx <= 0 ? 'correct' : 'wrong';
+          intensity = Math.min(Math.abs(dx) / xThreshold, 1);
+        } else if (dy > 0) {
+          result = 'partial';
+          intensity = Math.min(dy / yThreshold, 1);
+        }
+        applySwipeFeedback(result, intensity);
+      }, { passive: false });
+
+      const finishSwipe = () => {
+        if (!dragging) return;
+        dragging = false;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+          suppressFlashcardTapUntil = Date.now() + 260;
+        }
+        const result = getSwipeResult();
+        if (result) {
+          flyOut(result);
+          return;
+        }
+        snapBack();
+      };
+
+      card.addEventListener('touchend', finishSwipe);
+      card.addEventListener('touchcancel', finishSwipe);
+    }
+
+    function isStudySessionVisible() {
+      const section = el('studySessionSection');
+      return currentView === 2 && section && !section.classList.contains('hidden');
+    }
+
+    function isCoarsePointerDevice() {
+      return window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    }
+
+    function canOpenSidebarBySwipe(target = null) {
+      if (!isCoarsePointerDevice()) return false;
+      if (document.body.classList.contains('sidebar-open')) return false;
+      if (isStudySessionVisible()) return false;
+      const element = target instanceof Element ? target : target?.parentElement;
+      if (element && element.closest('input, textarea, select, [contenteditable="true"], dialog[open], .flashcard')) {
+        return false;
+      }
+      return true;
+    }
+
+    function wireSidebarSwipeGesture() {
+      const edgeZone = 200;
+      const openThreshold = 68;
+      const verticalCancelThreshold = 28;
+      let tracking = false;
+      let startX = 0;
+      let startY = 0;
+
+      const resetTracking = () => {
+        tracking = false;
+        startX = 0;
+        startY = 0;
+      };
+
+      document.addEventListener('touchstart', e => {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        if (!touch || touch.clientX > edgeZone) return;
+        if (!canOpenSidebarBySwipe(e.target)) return;
+        tracking = true;
+        startX = touch.clientX;
+        startY = touch.clientY;
+      }, { passive: true });
+
+      document.addEventListener('touchmove', e => {
+        if (!tracking) return;
+        const touch = e.touches[0];
+        if (!touch) {
+          resetTracking();
+          return;
+        }
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+
+        if (Math.abs(dy) > verticalCancelThreshold && Math.abs(dy) > Math.abs(dx)) {
+          resetTracking();
+          return;
+        }
+        if (dx > 0 && Math.abs(dx) > Math.abs(dy)) e.preventDefault();
+      }, { passive: false });
+
+      document.addEventListener('touchend', e => {
+        if (!tracking) return;
+        const touch = e.changedTouches?.[0];
+        const dx = touch ? touch.clientX - startX : 0;
+        const dy = touch ? touch.clientY - startY : 0;
+        const horizontalSwipe = dx > 0 && Math.abs(dx) > Math.abs(dy);
+        if (horizontalSwipe && dx >= openThreshold && canOpenSidebarBySwipe()) {
+          document.body.classList.add('sidebar-open');
+          triggerHaptic('light');
+        }
+        resetTracking();
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', resetTracking, { passive: true });
     }
 
     function openSubjectDialog() {
       el('subjectNameInput').value = '';
       el('subjectAccentPicker').value = '#2dd4bf';
       el('subjectAccentText').value = '#2dd4bf';
-      el('subjectDialog').showModal();
+      showDialog(el('subjectDialog'));
     }
 
     async function addSubjectFromDialog() {
       const name = el('subjectNameInput').value.trim();
       if (!name) return;
       const accent = el('subjectAccentText').value.trim() || '#2dd4bf';
-      await put('subjects', { id: uid(), name, accent });
-      el('subjectDialog').close();
+      const subject = buildSubjectRecord({ id: uid(), name, accent });
+      await put('subjects', subject);
+      closeDialog(el('subjectDialog'));
       refreshSidebar();
     }
 
@@ -1166,6 +3170,8 @@
           if (s === 'cards') await putCardBank(row);
         }
       }
+      progressLoaded = false;
+      progressByCardId = new Map();
       alert('Imported successfully.');
       refreshSidebar();
       if (selectedSubject) loadTopics();
@@ -1173,9 +3179,17 @@
     }
 
     async function boot() {
-      db = await openDB();
-      cardBankDb = await openCardBankDB();
+      try {
+        await openDB();
+        await openCardBankDB();
+      } catch (err) {
+        alert(err.message || 'Unable to connect to the local server.');
+        return;
+      }
+      wireNoZoomGuards();
       wireSwipe();
+      wireHapticFeedback();
+      wireSidebarSwipeGesture();
 
       el('homeBtn').onclick = () => {
         setView(0);
@@ -1187,22 +3201,156 @@
       el('quickExport').onclick = exportJSON;
       const startBtn = el('startSessionBtn');
       if (startBtn) startBtn.onclick = startSession;
-      el('backToTopicsBtn').onclick = () => setView(1);
-      el('backToHomeBtn').onclick = () => setView(0);
+      const openSessionFilterBtn = el('openSessionFilterBtn');
+      if (openSessionFilterBtn) {
+        openSessionFilterBtn.onclick = () => {
+          fillSessionFilterDialogFromState();
+          showDialog(el('sessionFilterDialog'));
+        };
+      }
+
+      const sessionFilterDialog = el('sessionFilterDialog');
+      if (sessionFilterDialog) {
+        sessionFilterDialog.addEventListener('click', e => {
+          if (e.target === sessionFilterDialog) closeDialog(sessionFilterDialog);
+        });
+      }
+      const sessionFilterAll = el('sessionFilterAll');
+      const sessionFilterCorrect = el('sessionFilterCorrect');
+      const sessionFilterWrong = el('sessionFilterWrong');
+      const sessionFilterPartial = el('sessionFilterPartial');
+      if (sessionFilterAll) {
+        sessionFilterAll.addEventListener('change', () => {
+          if (sessionFilterAll.checked) {
+            if (sessionFilterCorrect) sessionFilterCorrect.checked = false;
+            if (sessionFilterWrong) sessionFilterWrong.checked = false;
+            if (sessionFilterPartial) sessionFilterPartial.checked = false;
+          }
+          syncSessionFilterDialogControls();
+        });
+      }
+      [sessionFilterCorrect, sessionFilterWrong, sessionFilterPartial].forEach(input => {
+        if (!input) return;
+        input.addEventListener('change', () => {
+          if (input.checked && sessionFilterAll) sessionFilterAll.checked = false;
+          syncSessionFilterDialogControls();
+        });
+      });
+      const cancelSessionFilterBtn = el('cancelSessionFilterBtn');
+      if (cancelSessionFilterBtn) {
+        cancelSessionFilterBtn.onclick = () => closeDialog(el('sessionFilterDialog'));
+      }
+      const saveSessionFilterBtn = el('saveSessionFilterBtn');
+      if (saveSessionFilterBtn) {
+        saveSessionFilterBtn.onclick = async () => {
+          const next = pullSessionFiltersFromDialog();
+          await setSessionFilterState(next, { refresh: true });
+          closeDialog(el('sessionFilterDialog'));
+        };
+      }
+
+      const sessionCompleteDialog = el('sessionCompleteDialog');
+      if (sessionCompleteDialog) {
+        sessionCompleteDialog.addEventListener('click', e => {
+          if (e.target === sessionCompleteDialog) closeDialog(sessionCompleteDialog);
+        });
+      }
+      const closeSessionCompleteBtn = el('closeSessionCompleteBtn');
+      if (closeSessionCompleteBtn) {
+        closeSessionCompleteBtn.onclick = () => closeDialog(el('sessionCompleteDialog'));
+      }
+      const sessionRepeatMinus = el('sessionRepeatMinus');
+      if (sessionRepeatMinus) {
+        sessionRepeatMinus.onclick = () => {
+          if (sessionRepeatState.remaining <= 0) return;
+          sessionRepeatState.size = Math.max(1, sessionRepeatState.size - 1);
+          updateSessionRepeatCounter();
+        };
+      }
+      const sessionRepeatPlus = el('sessionRepeatPlus');
+      if (sessionRepeatPlus) {
+        sessionRepeatPlus.onclick = () => {
+          if (sessionRepeatState.remaining <= 0) return;
+          sessionRepeatState.size = Math.min(sessionRepeatState.remaining, sessionRepeatState.size + 1);
+          updateSessionRepeatCounter();
+        };
+      }
+      const startAnotherSessionBtn = el('startAnotherSessionBtn');
+      if (startAnotherSessionBtn) {
+        startAnotherSessionBtn.onclick = async () => {
+          if (sessionRepeatState.remaining <= 0) {
+            closeDialog(el('sessionCompleteDialog'));
+            return;
+          }
+          const forcedSize = Math.min(Math.max(sessionRepeatState.size, 1), sessionRepeatState.remaining);
+          closeDialog(el('sessionCompleteDialog'));
+          await startSession({
+            topicIds: [...sessionRepeatState.topicIds],
+            filters: { ...sessionRepeatState.filters },
+            forcedSize
+          });
+        };
+      }
+      renderSessionFilterSummary();
+
+      el('backToTopicsBtn').onclick = () => {
+        setDeckSelectionMode(false);
+        if (selectedSubject) refreshTopicSessionMeta();
+        setView(1);
+      };
       el('backToTopicsBtnSession').onclick = () => {
+        closeStudyImageLightbox();
+        setDeckSelectionMode(false);
         session.active = false;
         el('cardsOverviewSection').classList.remove('hidden');
         el('studySessionSection')?.classList.add('hidden');
         renderSessionPills();
+        if (selectedSubject) refreshTopicSessionMeta();
         setView(1);
       };
       el('backToDeckBtn').onclick = () => setView(2);
       const flashcardEl = el('flashcard');
       if (flashcardEl) {
-        flashcardEl.onclick = () => {
-          if (flashcardEl.dataset.type === 'mcq') return;
+        const canFlipSessionFlashcard = (eventTarget = null, opts = {}) => {
+          const options = opts && typeof opts === 'object' ? opts : {};
+          const allowButtonTarget = !!options.allowButtonTarget;
+          if (!session.active || !isStudySessionVisible()) return false;
+          if (document.body.classList.contains('session-image-open')) return false;
+          if (document.querySelector('dialog[open]')) return false;
+          if (Date.now() < suppressFlashcardTapUntil) return false;
+          if (flashcardEl.classList.contains('swiping')) return false;
+          if (flashcardEl.dataset.type === 'mcq') return false;
+          if (hasActiveTextSelection()) return false;
+          const target = eventTarget instanceof Element ? eventTarget : null;
+          if (target && target.closest('.card-edit-btn, input, textarea, select, [contenteditable="true"]')) {
+            return false;
+          }
+          if (!allowButtonTarget && target && target.closest('button')) return false;
+          return true;
+        };
+        const flipSessionFlashcard = () => {
           flashcardEl.classList.toggle('flipped');
         };
+
+        flashcardEl.onclick = e => {
+          if (!canFlipSessionFlashcard(e.target)) return;
+          flipSessionFlashcard();
+        };
+
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape') closeStudyImageLightbox();
+          const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
+          if (!isSpace || e.repeat) return;
+          e.preventDefault();
+          if (!canFlipSessionFlashcard(e.target, { allowButtonTarget: true })) return;
+          flipSessionFlashcard();
+        });
+        document.addEventListener('keyup', e => {
+          const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
+          if (!isSpace) return;
+          if (!isStudySessionVisible()) return;
+          e.preventDefault();
+        });
       }
       const editBtn = el('editSessionCardBtn');
       if (editBtn) {
@@ -1222,12 +3370,121 @@
         });
       }
 
+      const sessionImageLightbox = el('sessionImageLightbox');
+      const sessionImageLightboxImg = el('sessionImageLightboxImg');
+      if (sessionImageLightbox) {
+        sessionImageLightbox.addEventListener('click', () => closeStudyImageLightbox());
+      }
+      if (sessionImageLightboxImg) {
+        sessionImageLightboxImg.addEventListener('click', e => {
+          e.stopPropagation();
+          closeStudyImageLightbox();
+        });
+      }
+
+      const moveCardsDialog = el('moveCardsDialog');
+      if (moveCardsDialog) {
+        moveCardsDialog.addEventListener('click', e => {
+          if (e.target === moveCardsDialog) closeDialog(moveCardsDialog);
+        });
+      }
+
+      const toggleCardSelectBtn = el('toggleCardSelectBtn');
+      if (toggleCardSelectBtn) {
+        toggleCardSelectBtn.onclick = () => {
+          setDeckSelectionMode(!deckSelectionMode);
+          loadDeck();
+        };
+      }
+      const cancelCardSelectionBtn = el('cancelCardSelectionBtn');
+      if (cancelCardSelectionBtn) {
+        cancelCardSelectionBtn.onclick = () => {
+          setDeckSelectionMode(false);
+          loadDeck();
+        };
+      }
+      const deleteSelectedCardsBtn = el('deleteSelectedCardsBtn');
+      if (deleteSelectedCardsBtn) deleteSelectedCardsBtn.onclick = deleteSelectedDeckCards;
+      const moveSelectedCardsBtn = el('moveSelectedCardsBtn');
+      if (moveSelectedCardsBtn) moveSelectedCardsBtn.onclick = openMoveCardsDialog;
+
+      const moveCardsSubjectSelect = el('moveCardsSubjectSelect');
+      if (moveCardsSubjectSelect) {
+        moveCardsSubjectSelect.addEventListener('change', () => populateMoveTopics(moveCardsSubjectSelect.value));
+      }
+      const confirmMoveCardsBtn = el('confirmMoveCardsBtn');
+      if (confirmMoveCardsBtn) confirmMoveCardsBtn.onclick = moveSelectedDeckCards;
+      const cancelMoveCardsBtn = el('cancelMoveCardsBtn');
+      if (cancelMoveCardsBtn) cancelMoveCardsBtn.onclick = () => closeDialog(el('moveCardsDialog'));
+      updateDeckSelectionUi();
+
+      const moveTopicsDialog = el('moveTopicsDialog');
+      if (moveTopicsDialog) {
+        moveTopicsDialog.addEventListener('click', e => {
+          if (e.target === moveTopicsDialog) closeDialog(moveTopicsDialog);
+        });
+      }
+      const topicSearchDialog = el('topicSearchDialog');
+      if (topicSearchDialog) {
+        topicSearchDialog.addEventListener('click', e => {
+          if (e.target === topicSearchDialog) closeDialog(topicSearchDialog);
+        });
+      }
+      const toggleTopicSelectBtn = el('toggleTopicSelectBtn');
+      if (toggleTopicSelectBtn) {
+        toggleTopicSelectBtn.onclick = () => {
+          setTopicSelectionMode(!topicSelectionMode);
+          loadTopics();
+        };
+      }
+      const openTopicSearchBtn = el('openTopicSearchBtn');
+      if (openTopicSearchBtn) openTopicSearchBtn.onclick = openTopicSearchModal;
+      const closeTopicSearchBtn = el('closeTopicSearchBtn');
+      if (closeTopicSearchBtn) closeTopicSearchBtn.onclick = () => closeDialog(el('topicSearchDialog'));
+      const runTopicSearchBtn = el('runTopicSearchBtn');
+      if (runTopicSearchBtn) runTopicSearchBtn.onclick = runTopicSearch;
+      const topicSearchInput = el('topicSearchInput');
+      if (topicSearchInput) {
+        topicSearchInput.addEventListener('keydown', e => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          runTopicSearch();
+        });
+      }
+      const cancelTopicSelectionBtn = el('cancelTopicSelectionBtn');
+      if (cancelTopicSelectionBtn) {
+        cancelTopicSelectionBtn.onclick = () => {
+          setTopicSelectionMode(false);
+          loadTopics();
+        };
+      }
+      const deleteSelectedTopicsBtn = el('deleteSelectedTopicsBtn');
+      if (deleteSelectedTopicsBtn) deleteSelectedTopicsBtn.onclick = deleteSelectedTopics;
+      const moveSelectedTopicsBtn = el('moveSelectedTopicsBtn');
+      if (moveSelectedTopicsBtn) moveSelectedTopicsBtn.onclick = openMoveTopicsDialog;
+      const confirmMoveTopicsBtn = el('confirmMoveTopicsBtn');
+      if (confirmMoveTopicsBtn) confirmMoveTopicsBtn.onclick = moveSelectedTopics;
+      const cancelMoveTopicsBtn = el('cancelMoveTopicsBtn');
+      if (cancelMoveTopicsBtn) cancelMoveTopicsBtn.onclick = () => closeDialog(el('moveTopicsDialog'));
+      updateTopicSelectionUi();
+
+      const sidebar = document.querySelector('.sidebar');
       const sidebarToggle = el('sidebarToggle');
       const sidebarOverlay = el('sidebarOverlay');
-      if (sidebarToggle && sidebarOverlay) {
+      if (sidebarToggle) {
         sidebarToggle.onclick = () => document.body.classList.toggle('sidebar-open');
+      }
+      if (sidebarOverlay) {
         sidebarOverlay.onclick = () => document.body.classList.remove('sidebar-open');
       }
+      document.addEventListener('click', e => {
+        if (!document.body.classList.contains('sidebar-open')) return;
+        const target = e.target;
+        if (!(target instanceof Element)) return;
+        if (sidebarToggle && sidebarToggle.contains(target)) return;
+        if (sidebar && sidebar.contains(target)) return;
+        document.body.classList.remove('sidebar-open');
+      });
       window.addEventListener('resize', () => {
         if (window.innerWidth > 768) document.body.classList.remove('sidebar-open');
       });
@@ -1243,15 +3500,16 @@
       }
       window.addEventListener('resize', () => {
         if (window.innerWidth > 980 && editorShell) editorShell.classList.remove('sidebar-open');
+        if (currentView !== 3 && editorShell) editorShell.classList.remove('sidebar-open');
       });
       el('closeEditCardBtn').onclick = () => el('editCardDialog').close();
       el('editAddMcqOptionBtn').onclick = () => {
-        ensureEditPrimaryAnswerRow();
+        setMcqModeState(true, true);
         addEditMcqRow();
       };
-      el('editCardAnswer').addEventListener('input', ensureEditPrimaryAnswerRow);
       el('openCreateCardBtn').onclick = () => {
         if (!selectedTopic) return alert('Pick a topic first.');
+        setDeckSelectionMode(false);
         el('editorTitle').textContent = `Create Flashcards • ${selectedTopic.name}`;
         el('cardPrompt').value = '';
         el('cardAnswer').value = '';
@@ -1259,16 +3517,25 @@
         el('cardAnswer').dataset.imageDataA = '';
         setImagePreview(el('questionImagePreview'), '', () => { el('cardPrompt').dataset.imageDataQ = ''; });
         setImagePreview(el('answerImagePreview'), '', () => { el('cardAnswer').dataset.imageDataA = ''; });
+        const primaryToggle = el('primaryAnswerToggle');
+        if (primaryToggle) primaryToggle.checked = true;
         el('mcqOptions').innerHTML = '';
-        ensurePrimaryAnswerRow();
+        setMcqModeState(false, false);
+        applyCreateQuestionTextAlign('center');
+        applyCreateAnswerTextAlign('center');
+        applyCreateOptionsTextAlign('left');
+        createTouched = false;
+        updateCreateValidation();
+        setPreview('questionPreview', '', createQuestionTextAlign);
+        setPreview('answerPreview', '', createAnswerTextAlign);
         loadEditorCards();
         setView(3);
       };
       el('addMcqOptionBtn').onclick = () => {
-        ensurePrimaryAnswerRow();
+        setMcqModeState(false, true);
         addMcqRow();
+        updateCreateValidation();
       };
-      el('cardAnswer').addEventListener('input', ensurePrimaryAnswerRow);
       attachAutoClose(el('cardPrompt'));
       attachAutoClose(el('cardAnswer'));
       attachAutoClose(el('editCardPrompt'));
@@ -1286,21 +3553,72 @@
       };
       el('cardPrompt').addEventListener('keydown', createShortcut);
       el('cardAnswer').addEventListener('keydown', createShortcut);
+      el('cardPrompt').addEventListener('input', () => updateCreateValidation());
+      el('cardAnswer').addEventListener('input', () => updateCreateValidation());
+      wireLivePreview('cardPrompt', 'questionPreview', () => createQuestionTextAlign);
+      wireLivePreview('cardAnswer', 'answerPreview', () => createAnswerTextAlign);
+      const saveShortcut = e => {
+        if (e.key === 'Enter' && e.shiftKey) {
+          e.preventDefault();
+          el('saveEditCardBtn').click();
+        }
+      };
+      el('editCardPrompt').addEventListener('keydown', saveShortcut);
+      el('editCardAnswer').addEventListener('keydown', saveShortcut);
+      wireLivePreview('editCardPrompt', 'editQuestionPreview', () => editQuestionTextAlign);
+      wireLivePreview('editCardAnswer', 'editAnswerPreview', () => editAnswerTextAlign);
+      wireTextFormattingToolbar();
+      document.querySelectorAll('.formula-btn').forEach(btn => {
+        btn.onclick = () => openFormulaDialog(btn.dataset.formulaTarget);
+      });
+      const formulaDialog = el('formulaDialog');
+      if (formulaDialog) {
+        formulaDialog.addEventListener('click', e => {
+          if (e.target === formulaDialog) formulaDialog.close();
+        });
+      }
+      const closeFormulaBtn = el('closeFormulaBtn');
+      const cancelFormulaBtn = el('cancelFormulaBtn');
+      if (closeFormulaBtn) closeFormulaBtn.onclick = () => formulaDialog?.close();
+      if (cancelFormulaBtn) cancelFormulaBtn.onclick = () => formulaDialog?.close();
+      const formulaInput = el('formulaInput');
+      const formulaDisplayToggle = el('formulaDisplayToggle');
+      const insertFormulaBtn = el('insertFormulaBtn');
+      const debouncedFormulaPreview = debounce(renderFormulaPreview, 300);
+      if (formulaInput) formulaInput.addEventListener('input', debouncedFormulaPreview);
+      if (formulaDisplayToggle) formulaDisplayToggle.addEventListener('change', renderFormulaPreview);
+      if (insertFormulaBtn) insertFormulaBtn.onclick = insertFormulaImage;
       attachImageDrop(el('cardPrompt'), dataUrl => {
         el('cardPrompt').dataset.imageDataQ = dataUrl;
-        setImagePreview(el('questionImagePreview'), dataUrl, () => { el('cardPrompt').dataset.imageDataQ = ''; });
+        setImagePreview(el('questionImagePreview'), dataUrl, () => {
+          el('cardPrompt').dataset.imageDataQ = '';
+          updateCreateValidation();
+        });
+        updateCreateValidation();
       });
       attachImageDrop(el('questionImagePreview'), dataUrl => {
         el('cardPrompt').dataset.imageDataQ = dataUrl;
-        setImagePreview(el('questionImagePreview'), dataUrl, () => { el('cardPrompt').dataset.imageDataQ = ''; });
+        setImagePreview(el('questionImagePreview'), dataUrl, () => {
+          el('cardPrompt').dataset.imageDataQ = '';
+          updateCreateValidation();
+        });
+        updateCreateValidation();
       });
       attachImageDrop(el('cardAnswer'), dataUrl => {
         el('cardAnswer').dataset.imageDataA = dataUrl;
-        setImagePreview(el('answerImagePreview'), dataUrl, () => { el('cardAnswer').dataset.imageDataA = ''; });
+        setImagePreview(el('answerImagePreview'), dataUrl, () => {
+          el('cardAnswer').dataset.imageDataA = '';
+          updateCreateValidation();
+        });
+        updateCreateValidation();
       });
       attachImageDrop(el('answerImagePreview'), dataUrl => {
         el('cardAnswer').dataset.imageDataA = dataUrl;
-        setImagePreview(el('answerImagePreview'), dataUrl, () => { el('cardAnswer').dataset.imageDataA = ''; });
+        setImagePreview(el('answerImagePreview'), dataUrl, () => {
+          el('cardAnswer').dataset.imageDataA = '';
+          updateCreateValidation();
+        });
+        updateCreateValidation();
       });
       attachImageDrop(el('editCardPrompt'), dataUrl => {
         el('editCardPrompt').dataset.imageDataQ = dataUrl;
@@ -1319,7 +3637,7 @@
         setImagePreview(el('editAnswerImagePreview'), dataUrl, () => { el('editCardAnswer').dataset.imageDataA = ''; });
       });
 
-      el('cancelSubjectBtn').onclick = () => el('subjectDialog').close();
+      el('cancelSubjectBtn').onclick = () => closeDialog(el('subjectDialog'));
       el('createSubjectBtn').onclick = addSubjectFromDialog;
       el('cancelSubjectEditBtn').onclick = () => el('subjectEditDialog').close();
       el('saveSubjectEditBtn').onclick = async () => {
@@ -1327,9 +3645,12 @@
         const name = el('editSubjectName').value.trim();
         const accent = el('editSubjectColor').value || '#2dd4bf';
         if (!name) return;
-        await put('subjects', { id: editingSubjectId, name, accent });
+        const existingSubject = (await getAll('subjects')).find(subject => subject.id === editingSubjectId);
+        if (!existingSubject) return;
+        const updatedSubject = buildSubjectRecord(existingSubject, { name, accent });
+        await put('subjects', updatedSubject);
         if (selectedSubject?.id === editingSubjectId) {
-          selectedSubject = { ...selectedSubject, name, accent };
+          selectedSubject = { ...selectedSubject, ...updatedSubject };
           applySubjectTheme(accent);
         }
         editingSubjectId = null;
@@ -1368,52 +3689,89 @@
       const sessionSizeValue = el('sessionSizeValue');
       if (sessionMinus && sessionPlus && sessionSizeValue) {
         sessionMinus.onclick = () => {
-          sessionSize = Math.max(5, sessionSize - 1);
-          sessionSizeValue.textContent = sessionSize;
+          if (availableSessionCards <= 0) {
+            sessionSize = 0;
+            renderSessionSizeCounter();
+            return;
+          }
+          sessionSize = Math.max(1, sessionSize - 1);
+          renderSessionSizeCounter();
         };
         sessionPlus.onclick = () => {
-          sessionSize = Math.min(100, sessionSize + 1);
-          sessionSizeValue.textContent = sessionSize;
+          if (availableSessionCards <= 0) {
+            sessionSize = 0;
+            renderSessionSizeCounter();
+            return;
+          }
+          sessionSize = Math.min(availableSessionCards, sessionSize + 1);
+          renderSessionSizeCounter();
         };
-        sessionSizeValue.textContent = sessionSize;
+        renderSessionSizeCounter();
       }
 
-      el('addTopicBtn').onclick = async () => {
+      const addTopicFromInput = async () => {
         if (!selectedSubject) return alert('Pick a subject first.');
         const name = el('topicName').value.trim();
         if (!name) return;
         await put('topics', { id: uid(), subjectId: selectedSubject.id, name });
+        await touchSubject(selectedSubject.id);
         el('topicName').value = '';
         loadTopics();
         refreshSidebar();
       };
+      el('addTopicBtn').onclick = addTopicFromInput;
+      el('topicName').addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        addTopicFromInput();
+      });
 
       el('addCardBtn').onclick = async () => {
         if (!selectedTopic) return alert('Pick a topic first.');
+        if (!updateCreateValidation(true)) {
+          createTouched = true;
+          updateCreateValidation(true);
+          return;
+        }
         const imageDataQ = el('cardPrompt').dataset.imageDataQ || '';
         const imageDataA = el('cardAnswer').dataset.imageDataA || '';
         const options = parseMcqOptions();
         const type = options.length > 1 ? 'mcq' : 'qa';
+        const createdAt = new Date().toISOString();
         const card = {
           id: uid(),
           topicId: selectedTopic.id,
           type,
+          textAlign: normalizeTextAlign(createQuestionTextAlign),
+          questionTextAlign: normalizeTextAlign(createQuestionTextAlign),
+          answerTextAlign: normalizeTextAlign(createAnswerTextAlign),
+          optionsTextAlign: normalizeTextAlign(createOptionsTextAlign),
           prompt: el('cardPrompt').value,
           answer: el('cardAnswer').value,
           options: type === 'mcq' ? options : [],
           imageDataQ,
-          imageDataA
+          imageDataA,
+          createdAt,
+          meta: { createdAt }
         };
         await put('cards', card);
         await putCardBank(card);
+        if (selectedSubject?.id) await touchSubject(selectedSubject.id);
         el('cardPrompt').value = '';
         el('cardAnswer').value = '';
         el('cardPrompt').dataset.imageDataQ = '';
         el('cardAnswer').dataset.imageDataA = '';
         setImagePreview(el('questionImagePreview'), '', () => { el('cardPrompt').dataset.imageDataQ = ''; });
         setImagePreview(el('answerImagePreview'), '', () => { el('cardAnswer').dataset.imageDataA = ''; });
+        const primaryToggle = el('primaryAnswerToggle');
+        if (primaryToggle) primaryToggle.checked = true;
         el('mcqOptions').innerHTML = '';
-        ensurePrimaryAnswerRow();
+        setMcqModeState(false, false);
+        createTouched = false;
+        updateCreateValidation();
+        applyCreateQuestionTextAlign('center');
+        applyCreateAnswerTextAlign('center');
+        applyCreateOptionsTextAlign('left');
         loadEditorCards();
         loadDeck();
         refreshSidebar();
@@ -1423,12 +3781,24 @@
         if (!editingCardId) return;
         const card = (await getAll('cards')).find(c => c.id === editingCardId);
         if (!card) return;
+        const createdAt = card?.meta?.createdAt || card?.createdAt || new Date().toISOString();
+        const updatedAt = new Date().toISOString();
         const imageDataQ = el('editCardPrompt').dataset.imageDataQ || card.imageDataQ || card.imageData || '';
         const imageDataA = el('editCardAnswer').dataset.imageDataA || card.imageDataA || '';
         const options = parseEditMcqOptions();
         const type = options.length > 1 ? 'mcq' : 'qa';
         const updated = {
           ...card,
+          createdAt,
+          meta: {
+            ...(card.meta || {}),
+            createdAt,
+            updatedAt
+          },
+          textAlign: normalizeTextAlign(editQuestionTextAlign),
+          questionTextAlign: normalizeTextAlign(editQuestionTextAlign),
+          answerTextAlign: normalizeTextAlign(editAnswerTextAlign),
+          optionsTextAlign: normalizeTextAlign(editOptionsTextAlign),
           prompt: el('editCardPrompt').value,
           answer: el('editCardAnswer').value,
           options: type === 'mcq' ? options : [],
@@ -1438,6 +3808,7 @@
         };
         await put('cards', updated);
         await putCardBank(updated);
+        await touchSubjectByTopicId(updated.topicId);
         if (session.active) {
           const idx = session.activeQueue.findIndex(c => c.id === updated.id);
           if (idx !== -1) session.activeQueue[idx] = { ...session.activeQueue[idx], ...updated };
@@ -1452,12 +3823,15 @@
         loadEditorCards();
         refreshSidebar();
         renderSessionCard();
+        setPreview('editQuestionPreview', '', editQuestionTextAlign);
+        setPreview('editAnswerPreview', '', editAnswerTextAlign);
       };
 
       document.querySelectorAll('[data-grade]').forEach(btn => {
         btn.addEventListener('click', () => gradeCard(btn.dataset.grade));
       });
 
+      await migrateExistingCardsToCenteredQa();
       refreshSidebar();
     }
 
@@ -1506,16 +3880,117 @@
         <input type="color" id="editSubjectColor" value="#2dd4bf" />
       </div>
     </div>
-    <div class="controls" style="margin-top:12px;">
+    <div class="controls" style="margin-top:12px; margin-inline: 0">
       <button class="btn save-primary" id="saveSubjectEditBtn">Save</button>
-      <button class="btn delete" id="deleteSubjectBtn">Delete</button>
-      <button class="btn" id="cancelSubjectEditBtn">Cancel</button>
+      <button class="btn delete" id="deleteSubjectBtn" style="width: 48%">Delete</button>
+      <button class="btn" id="cancelSubjectEditBtn" style="width: 46%">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="moveCardsDialog" class="modal">
+    <h3>Karten verschieben</h3>
+    <div class="tiny" id="moveCardsSelectionInfo" style="margin-bottom:10px;">0 Karten ausgewählt</div>
+    <div class="grid two">
+      <div>
+        <label>Subject</label>
+        <select id="moveCardsSubjectSelect"></select>
+      </div>
+      <div>
+        <label>Topic</label>
+        <select id="moveCardsTopicSelect"></select>
+      </div>
+    </div>
+    <div class="controls" style="margin-top:12px; margin-inline: 0">
+      <button class="btn" id="confirmMoveCardsBtn" type="button">Verschieben</button>
+      <button class="btn" id="cancelMoveCardsBtn" type="button">Abbrechen</button>
+    </div>
+  </dialog>
+
+  <dialog id="moveTopicsDialog" class="modal">
+    <h3>Move Topics</h3>
+    <div class="tiny" id="moveTopicsSelectionInfo" style="margin-bottom:10px;">0 topics selected</div>
+    <div>
+      <label>Target Subject</label>
+      <select id="moveTopicsSubjectSelect"></select>
+    </div>
+    <div class="controls" style="margin-top:12px; margin-inline: 0">
+      <button class="btn" id="confirmMoveTopicsBtn" type="button">Move</button>
+      <button class="btn" id="cancelMoveTopicsBtn" type="button">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="topicSearchDialog" class="modal modal-wide" style="padding-bottom: 0;">
+    <div class="topic-search-sticky-head">
+      <div class="editor-header">
+        <h3>Search Cards</h3>
+        <button class="btn" id="closeTopicSearchBtn" type="button">Close</button>
+      </div>
+      <div class="topic-search-controls">
+        <input id="topicSearchInput" type="text" placeholder="Search in question and answer text..." />
+        <button class="btn" id="runTopicSearchBtn" type="button">Search</button>
+      </div>
+      <div class="tiny" id="topicSearchMeta">Enter a search term.</div>
+    </div>
+    <div id="topicSearchResults" class="card-grid topic-search-results"></div>
+  </dialog>
+
+  <dialog id="sessionFilterDialog" class="modal">
+    <h3>Session Filter</h3>
+    <div class="session-filter-list">
+      <label class="session-filter-option">
+        <input id="sessionFilterAll" type="checkbox" checked />
+        <span>All (remaining today)</span>
+      </label>
+      <label class="session-filter-option">
+        <input id="sessionFilterCorrect" type="checkbox" />
+        <span>Correctly answered</span>
+      </label>
+      <label class="session-filter-option">
+        <input id="sessionFilterWrong" type="checkbox" />
+        <span>Wrong</span>
+      </label>
+      <label class="session-filter-option">
+        <input id="sessionFilterPartial" type="checkbox" />
+        <span>Not quite</span>
+      </label>
+    </div>
+    <div class="tiny" style="margin-top:10px;">All mode excludes cards that were already answered correctly today.</div>
+    <div class="controls" style="margin-top:12px; margin-inline: 0">
+      <button class="btn" id="saveSessionFilterBtn" type="button">Apply</button>
+      <button class="btn" id="cancelSessionFilterBtn" type="button">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="sessionCompleteDialog" class="modal">
+    <h3>Session Complete</h3>
+    <div class="session-complete-message" id="sessionCompleteMessage">Great work!</div>
+    <div class="session-complete-stats">
+      <div class="session-complete-stat">
+        <div class="tiny">Time</div>
+        <strong id="sessionCompleteDuration">0:00</strong>
+      </div>
+      <div class="session-complete-stat">
+        <div class="tiny">Remaining Cards</div>
+        <strong id="sessionCompleteRemaining">0</strong>
+      </div>
+    </div>
+    <div class="session-repeat-controls">
+      <div class="tiny">Next Session Size</div>
+      <div class="counter">
+        <button class="btn counter-btn" id="sessionRepeatMinus" type="button">-</button>
+        <div class="counter-value" id="sessionRepeatSizeValue">0 / 0</div>
+        <button class="btn counter-btn" id="sessionRepeatPlus" type="button">+</button>
+      </div>
+    </div>
+    <div class="controls" style="margin-top:14px; margin-inline: 0">
+      <button class="btn" id="startAnotherSessionBtn" type="button">Start Another Session</button>
+      <button class="btn" id="closeSessionCompleteBtn" type="button">Close</button>
     </div>
   </dialog>
 
   <dialog id="settingsDialog" class="modal">
     <h3>Settings & Data</h3>
-    <p class="tiny">Export and import your IndexedDB dataset.</p>
+    <p class="tiny">Export and import your shared server dataset.</p>
     <div class="controls">
       <button class="btn" onclick="exportJSON()">Export JSON</button>
       <button class="btn" onclick="exportCSV()">Export CSV</button>
@@ -1538,27 +4013,140 @@
     </div>
     <div class="editor-grid editor-grid-single">
       <div class="editor-panel editor-main">
-        <div class="editor-field">
-          <label>Question</label>
-          <textarea id="editCardPrompt" placeholder="Type your question..."></textarea>
-          <div id="editQuestionImagePreview" class="image-preview">Drop image here</div>
-        </div>
-        <div class="editor-field">
-          <label>Answer</label>
-          <textarea id="editCardAnswer" placeholder="Type the answer..."></textarea>
-          <div id="editAnswerImagePreview" class="image-preview">Drop image here</div>
-          <div class="editor-options">
-            <div class="tiny">Multi-select answers (optional)</div>
-            <div id="editMcqOptions"></div>
-            <button class="btn" id="editAddMcqOptionBtn">Add Answer</button>
+        <div class="editor-main-scroll">
+          <div class="editor-field">
+            <div class="field-head">
+              <label>Question</label>
+              <button class="btn btn-small formula-btn" data-formula-target="editCardPrompt" type="button">Formula</button>
+            </div>
+            <textarea id="editCardPrompt" placeholder="Type your question..."></textarea>
+            <div class="text-toolbar" data-group="edit-question">
+              <div class="toolbar-segment">
+                <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="edit-question"
+                  data-align="left">Left</button>
+                <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="edit-question"
+                  data-align="center">Center</button>
+                <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="edit-question"
+                  data-align="justify">Justify</button>
+              </div>
+              <div class="toolbar-segment">
+                <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="editCardPrompt"
+                  data-format="bold" title="Bold (Cmd/Ctrl+B)"><strong>B</strong></button>
+                <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="editCardPrompt"
+                  data-format="italic" title="Italic (Cmd/Ctrl+I)"><em>I</em></button>
+                <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="editCardPrompt"
+                  data-format="underline" title="Underline (Cmd/Ctrl+U)"><u>U</u></button>
+              </div>
+              <div class="toolbar-segment">
+                <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="editCardPrompt"
+                  data-list="ul">• List</button>
+                <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="editCardPrompt"
+                  data-list="ol">1. List</button>
+              </div>
+            </div>
+            <div id="editQuestionImagePreview" class="image-preview">Drop image here</div>
+          </div>
+          <div class="editor-field" id="editAnswerField">
+            <div class="mcq-primary-row" id="editPrimaryAnswerRow">
+              <div class="mcq-primary-header hidden" id="editPrimaryAnswerHeader">
+                <span class="mcq-badge correct" id="editPrimaryAnswerBadge">Correct Answer ✓</span>
+                <label class="toggle mcq-toggle">
+                  <input type="checkbox" id="editPrimaryAnswerToggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="field-head">
+                <label>Answer</label>
+                <button class="btn btn-small formula-btn" data-formula-target="editCardAnswer" type="button">Formula</button>
+              </div>
+              <textarea id="editCardAnswer" placeholder="Type the answer..."></textarea>
+              <div class="text-toolbar" data-group="edit-answer">
+                <div class="toolbar-segment">
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="edit-answer"
+                    data-align="left">Left</button>
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="edit-answer"
+                    data-align="center">Center</button>
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="align" data-group="edit-answer"
+                    data-align="justify">Justify</button>
+                </div>
+                <div class="toolbar-segment">
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="editCardAnswer"
+                    data-format="bold" title="Bold (Cmd/Ctrl+B)"><strong>B</strong></button>
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="editCardAnswer"
+                    data-format="italic" title="Italic (Cmd/Ctrl+I)"><em>I</em></button>
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="format" data-target="editCardAnswer"
+                    data-format="underline" title="Underline (Cmd/Ctrl+U)"><u>U</u></button>
+                </div>
+                <div class="toolbar-segment">
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="editCardAnswer"
+                    data-list="ul">• List</button>
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="editCardAnswer"
+                    data-list="ol">1. List</button>
+                </div>
+              </div>
+              <div id="editAnswerImagePreview" class="image-preview">Drop image here</div>
+            </div>
+            <div class="editor-options">
+              <div class="tiny">Multi-select answers (optional)</div>
+              <div class="text-toolbar" data-group="edit-options">
+                <div class="toolbar-segment">
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="align"
+                    data-group="edit-options" data-align="left">Options Left</button>
+                  <button class="btn btn-small toolbar-btn" type="button" data-action="align"
+                    data-group="edit-options" data-align="center">Options Center</button>
+                </div>
+              </div>
+              <div id="editMcqOptions" class="hidden"></div>
+              <button class="btn" id="editAddMcqOptionBtn">Add Answer</button>
+            </div>
           </div>
         </div>
         <div class="editor-footer">
-          <button class="btn save-primary" id="saveEditCardBtn">Save Changes</button>
+          <button class="btn save-primary" id="saveEditCardBtn" style="position: sticky; bottom: 0;">Save
+            Changes</button>
         </div>
       </div>
     </div>
   </dialog>
+
+  <dialog id="formulaDialog" class="modal modal-wide">
+    <div class="editor-header">
+      <h3>Formula Editor</h3>
+      <button class="btn" id="closeFormulaBtn">Close</button>
+    </div>
+    <div class="editor-grid editor-grid-single">
+      <div class="editor-panel editor-main">
+        <div class="editor-field">
+          <div class="field-head">
+            <label>LaTeX Formula</label>
+            <div class="toggle-row">
+              <label class="toggle">
+                <input type="checkbox" id="formulaDisplayToggle" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="tiny">Display mode</span>
+            </div>
+          </div>
+          <textarea id="formulaInput" placeholder="e.g. \\frac{a}{b}"></textarea>
+          <div class="formula-preview">
+            <div id="formulaRender" class="formula-render"></div>
+          </div>
+          <div class="field-error hidden" id="formulaError"></div>
+        </div>
+        <div class="controls" style="justify-content: space-between;">
+          <div class="tiny" id="formulaTargetLabel">Target: Question</div>
+          <div class="formula-actions">
+            <button class="btn" id="cancelFormulaBtn" type="button">Cancel</button>
+            <button class="btn save-primary formula-insert" id="insertFormulaBtn" type="button">Insert Formula</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="sessionImageLightbox" class="session-image-lightbox hidden" aria-hidden="true">
+    <img id="sessionImageLightboxImg" src="" alt="Expanded flashcard image" />
+  </div>
 
 </body>
 

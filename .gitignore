@@ -1,0 +1,4 @@
+flashcards.sqlite3
+flashcards.sqlite3-shm
+flashcards.sqlite3-wal
+__pycache__/

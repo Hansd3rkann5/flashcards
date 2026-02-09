@@ -1,14 +1,17 @@
 # Flashcards
 
-Local-first flashcard web app for engineering students. Single-file `index.html` with IndexedDB storage, Markdown/LaTeX rendering, and import/export.
+Self-hosted flashcard web app for engineering students. The app serves from your laptop and uses a shared SQLite database so phone/iPad/laptop all use the same data.
 
 **Quick Start**
 
-1. Serve the app locally:
+1. Start the server:
    ```bash
-   python3 -m http.server 8000
+   python3 server.py --host 0.0.0.0 --port 8000
    ```
-2. Open `http://127.0.0.1:8000/index.html` in your browser.
+2. Open `http://127.0.0.1:8000` on your laptop.
+3. On phone/iPad, connect to the same Wi-Fi and open:
+   - `http://<your-laptop-lan-ip>:8000`
+4. Keep the server process running while you study.
 
 **How To Use**
 
@@ -20,7 +23,7 @@ Local-first flashcard web app for engineering students. Single-file `index.html`
    - In a Topic, add cards as either:
      - **Q&A** (front/back)
      - **Multi-select MCQ** (prefix correct options with `*`)
-   - Optionally attach an image (stored locally via IndexedDB).
+   - Optionally attach an image (stored in SQLite).
 
 3. **Study Session**
    - Start a session from the Topic view.
@@ -39,9 +42,9 @@ Local-first flashcard web app for engineering students. Single-file `index.html`
 5. **Export / Import**
    - **Export JSON** for full backup of subjects, topics, cards, and progress.
    - **Export CSV** for cards only.
-   - **Import JSON** to restore data into IndexedDB.
+   - **Import JSON** to restore data into the shared database.
 
 **Notes**
 
-- All data is stored locally in your browser (IndexedDB).
-- Use a local server (not file://) so IndexedDB and module scripts work reliably.
+- Data is stored in `flashcards.sqlite3` next to the app files.
+- If phone/iPad cannot connect, check laptop firewall settings for inbound connections on port `8000`.
