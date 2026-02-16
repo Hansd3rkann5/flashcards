@@ -547,6 +547,17 @@ class FlashcardsHandler(SimpleHTTPRequestHandler):
         elif store == "cards":
             card_ids = [value.strip() for value in query.get("cardId", []) if value.strip()]
             topic_ids = [value.strip() for value in query.get("topicId", []) if value.strip()]
+            requested_fields: list[str] = []
+            for raw_group in query.get("fields", []):
+                for token in str(raw_group).split(","):
+                    field = token.strip()
+                    if not field:
+                        continue
+                    if not all(char.isalnum() or char == "_" for char in field):
+                        continue
+                    if field in requested_fields:
+                        continue
+                    requested_fields.append(field)
             if card_ids:
                 rows = list_records_by_json_field("cards", "id", card_ids)
                 trace_extra += f" cards={len(set(card_ids))}"
@@ -556,6 +567,18 @@ class FlashcardsHandler(SimpleHTTPRequestHandler):
                 trace_extra += f" topics={len(unique_topic_ids)}"
             else:
                 rows = list_records("cards")
+            if requested_fields:
+                projected_rows: list[dict] = []
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    projected = {field: row.get(field) for field in requested_fields if field in row}
+                    projected_rows.append(projected)
+                rows = projected_rows
+                fields_label = ",".join(requested_fields)
+                if len(fields_label) > 80:
+                    fields_label = fields_label[:80]
+                trace_extra += f" fields={fields_label}"
         elif store == "progress":
             card_ids = [value.strip() for value in query.get("cardId", []) if value.strip()]
             if card_ids:
