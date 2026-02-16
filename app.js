@@ -21,6 +21,7 @@ let sessionSize = 15;
 let availableSessionCards = 0;
 let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeMap: {}, mode: 'default' };
 let editingCardId = null;
+let editingCardSnapshot = null;
 let editingSubjectId = null;
 let mcqMode = false;
 let editMcqMode = false;
@@ -216,6 +217,7 @@ let topicDirectoryById = new Map();
 let subjectDirectoryById = new Map();
 let topicDirectoryReady = false;
 let topicPrefetchRunId = 0;
+let sessionMetaRefreshRunId = 0;
 let supabaseInitPromise = null;
 let supabaseClient = null;
 const progressPersistInFlightByCardId = new Map();
@@ -969,6 +971,23 @@ async function ensureSessionProgressForCards(cards = [], payloadLabel = 'session
     { force: shouldForceProgressRefresh, payloadLabel }
   );
   if (shouldForceProgressRefresh) lastProgressForceRefreshAt = now;
+}
+
+/**
+ * @function getEligibleSessionCardIdsByTopicIds
+ * @description Returns eligible card IDs (stats-only path) for selected topics without loading full card payloads.
+ */
+
+async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFilterState) {
+  if (!Array.isArray(topicIds) || !topicIds.length) return [];
+  const refs = await getCardRefsByTopicIds(topicIds, { payloadLabel: 'session-refs' });
+  if (!refs.length) return [];
+  const ids = Array.from(new Set(
+    refs.map(ref => String(ref?.id || '').trim()).filter(Boolean)
+  ));
+  if (!ids.length) return [];
+  await ensureProgressForCardIds(ids, { payloadLabel: 'session-progress' });
+  return ids.filter(cardId => cardMatchesSessionFilter(cardId, filters));
 }
 
 /**
@@ -3886,6 +3905,39 @@ async function getCardsByTopicIds(topicIds, options = {}) {
 }
 
 /**
+ * @function getCardRefsByTopicIds
+ * @description Loads lightweight card references (id and topicId) for the given topic IDs.
+ */
+
+async function getCardRefsByTopicIds(topicIds, options = {}) {
+  const ids = Array.isArray(topicIds)
+    ? Array.from(new Set(topicIds.map(topicId => String(topicId || '').trim()).filter(Boolean)))
+    : [];
+  if (!ids.length) return [];
+
+  ids.sort();
+  const opts = options && typeof options === 'object' ? options : {};
+
+  const baseParams = new URLSearchParams();
+  ids.forEach(topicId => baseParams.append('topicId', topicId));
+  baseParams.set('fields', 'id,topicId');
+  const baseQueryPath = `${API_BASE}/cards?${baseParams.toString()}`;
+  const requestParams = new URLSearchParams(baseParams.toString());
+  let payloadLabel = String(opts.payloadLabel || '').trim();
+  if (!payloadLabel && ids.length === 1) {
+    const topic = topicDirectoryById.get(ids[0]) || null;
+    payloadLabel = `${topicTraceLabel(topic)}-refs`;
+  }
+  if (!payloadLabel && ids.length > 1) {
+    payloadLabel = `topics-${ids.length}-refs`;
+  }
+  if (payloadLabel) requestParams.set('payload', payloadLabel);
+  const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
+  const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
+  return Array.isArray(data) ? data : [];
+}
+
+/**
  * @function getCardsByCardIds
  * @description Loads full card payloads for the given card IDs.
  */
@@ -3948,6 +4000,31 @@ function buildTopicCardsCacheKey(topicId = '') {
   const params = new URLSearchParams();
   params.append('topicId', id);
   return `${API_BASE}/cards?${params.toString()}`;
+}
+
+/**
+ * @function prefetchSessionTopicCardsInBackground
+ * @description Prefetches full card payloads for selected topics without blocking session-size meta updates.
+ */
+
+function prefetchSessionTopicCardsInBackground(topicIds = [], subjectId = '') {
+  const wantedSubjectId = String(subjectId || selectedSubject?.id || '').trim();
+  if (!wantedSubjectId) return;
+  const ids = Array.isArray(topicIds)
+    ? Array.from(new Set(topicIds.map(topicId => String(topicId || '').trim()).filter(Boolean)))
+    : [];
+  if (!ids.length) return;
+
+  ids.forEach(topicId => {
+    if (!selectedSubject || String(selectedSubject.id || '').trim() !== wantedSubjectId) return;
+    const cacheKey = buildTopicCardsCacheKey(topicId);
+    if (cacheKey && apiQueryCache.has(cacheKey)) return;
+    const topic = topicDirectoryById.get(topicId) || null;
+    const payloadLabel = `${topicTraceLabel(topic)}-session-prefetch`;
+    void getCardsByTopicIds([topicId], { payloadLabel }).catch(() => {
+      // Keep prefetch best-effort; session start can still fetch on demand.
+    });
+  });
 }
 
 /**
@@ -5547,6 +5624,8 @@ async function refreshTopicSessionMeta(topicsForSubject = null) {
     return;
   }
 
+  const refreshRunId = ++sessionMetaRefreshRunId;
+  const refreshSubjectId = String(selectedSubject.id || '').trim();
   const topics = topicsForSubject || (await getTopicsBySubject(selectedSubject.id));
   const selectedTopics = topics.filter(t => selectedTopicIds.has(t.id));
   const selectedTopicLabel = el('selectedTopicsSummary');
@@ -5569,8 +5648,15 @@ async function refreshTopicSessionMeta(topicsForSubject = null) {
   }
 
   const selectedIds = selectedTopics.map(t => t.id);
-  const cards = await getEligibleSessionCardsByTopicIds(selectedIds, sessionFilterState);
-  availableSessionCards = cards.length;
+  // Load only refs/progress for the count and prefetch full card payloads in background.
+  prefetchSessionTopicCardsInBackground(selectedIds, refreshSubjectId);
+  const eligibleCardIds = await getEligibleSessionCardIdsByTopicIds(selectedIds, sessionFilterState);
+
+  // Ignore stale async results if user switched subject/topics meanwhile.
+  if (refreshRunId !== sessionMetaRefreshRunId) return;
+  if (!selectedSubject || String(selectedSubject.id || '').trim() !== refreshSubjectId) return;
+
+  availableSessionCards = eligibleCardIds.length;
   if (availableSessionCards <= 0) sessionSize = 0;
   else if (sessionSize <= 0) sessionSize = Math.min(15, availableSessionCards);
   else sessionSize = Math.min(sessionSize, availableSessionCards);
@@ -8009,6 +8095,7 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
 
 function openEditDialog(card) {
   editingCardId = card.id;
+  editingCardSnapshot = cloneData(card);
   const questionAlign = card.questionTextAlign || card.textAlign || 'center';
   const answerAlign = card.answerTextAlign || card.textAlign || 'center';
   applyEditQuestionTextAlign(questionAlign);
@@ -8645,6 +8732,37 @@ function applyOptimisticCardCreate(card) {
   if (selectedTopic?.id === card.topicId) {
     prependCardTileToContainer(el('cardsGrid'), card, false);
     bumpDeckTopicCardCount(1);
+  }
+}
+
+/**
+ * @function replaceCardTileInContainer
+ * @description Replaces one existing card tile in-place to keep list order stable after edits.
+ */
+
+function replaceCardTileInContainer(container, card, compact = false) {
+  if (!container || !card?.id) return false;
+  const cardIdAttr = String(card.id).replace(/"/g, '\\"');
+  const existing = container.querySelector(`.card-tile[data-card-id="${cardIdAttr}"]`);
+  if (!existing) return false;
+  existing.replaceWith(buildCardTile(card, 0, compact));
+  return true;
+}
+
+/**
+ * @function applyOptimisticCardUpdate
+ * @description Updates visible card tiles immediately after edit without waiting for a full reload.
+ */
+
+function applyOptimisticCardUpdate(card) {
+  if (!card?.id) return;
+  const inEditor = replaceCardTileInContainer(el('editorCardsList'), card, true);
+  const inDeck = replaceCardTileInContainer(el('cardsGrid'), card, false);
+  if (!inEditor && selectedTopic?.id === card.topicId) {
+    prependCardTileToContainer(el('editorCardsList'), card, true);
+  }
+  if (!inDeck && selectedTopic?.id === card.topicId) {
+    prependCardTileToContainer(el('cardsGrid'), card, false);
   }
 }
 
@@ -10600,6 +10718,10 @@ async function boot() {
     editDialog.addEventListener('click', e => {
       if (e.target === editDialog) editDialog.close();
     });
+    editDialog.addEventListener('close', () => {
+      editingCardId = null;
+      editingCardSnapshot = null;
+    });
   }
   const cardPreviewDialog = el('cardPreviewDialog');
   const closeCardPreviewBtn = el('closeCardPreviewBtn');
@@ -10791,7 +10913,11 @@ async function boot() {
   });
   window.addEventListener('resize', queueSessionFaceOverflowSync);
   window.addEventListener('resize', scheduleOverviewTableFit);
-  el('closeEditCardBtn').onclick = () => el('editCardDialog').close();
+  el('closeEditCardBtn').onclick = () => {
+    editingCardId = null;
+    editingCardSnapshot = null;
+    el('editCardDialog').close();
+  };
   el('editAddMcqOptionBtn').onclick = () => {
     setMcqModeState(true, true);
     addEditMcqRow();
@@ -11216,9 +11342,23 @@ async function boot() {
   };
 
   el('saveEditCardBtn').onclick = async () => {
-    if (!editingCardId) return;
-    const card = await getById('cards', editingCardId);
-    if (!card) return;
+    const saveBtn = el('saveEditCardBtn');
+    if (!saveBtn || !editingCardId) return;
+    if (saveBtn.dataset.busy === '1') return;
+    saveBtn.dataset.busy = '1';
+    saveBtn.disabled = true;
+
+    const editingId = String(editingCardId || '').trim();
+    const snapshot = (editingCardSnapshot && String(editingCardSnapshot?.id || '').trim() === editingId)
+      ? cloneData(editingCardSnapshot)
+      : null;
+    const card = snapshot || await getById('cards', editingId);
+    if (!card) {
+      saveBtn.dataset.busy = '0';
+      saveBtn.disabled = false;
+      return;
+    }
+
     const createdAt = card?.meta?.createdAt || card?.createdAt || new Date().toISOString();
     const updatedAt = new Date().toISOString();
     const imagesQ = getFieldImageList(el('editCardPrompt'), 'imageDataQ');
@@ -11229,8 +11369,11 @@ async function boot() {
     } catch (err) {
       alert('Image upload failed. Please check your connection and try again.');
       console.warn('Card image upload failed:', err);
+      saveBtn.dataset.busy = '0';
+      saveBtn.disabled = false;
       return;
     }
+
     const options = parseEditMcqOptions();
     const type = options.length > 1 ? 'mcq' : 'qa';
     const updated = {
@@ -11251,25 +11394,47 @@ async function boot() {
       type,
       ...imagePayload
     };
-    await put('cards', updated);
-    await putCardBank(updated);
-    await touchSubjectByTopicId(updated.topicId);
-    if (session.active) {
-      const idx = session.activeQueue.findIndex(c => c.id === updated.id);
-      if (idx !== -1) session.activeQueue[idx] = { ...session.activeQueue[idx], ...updated };
-      const mIdx = session.mastered.findIndex(c => c.id === updated.id);
-      if (mIdx !== -1) session.mastered[mIdx] = { ...session.mastered[mIdx], ...updated };
-    }
-    el('editCardDialog').close();
+
+    // Immediate UI update first (fast close and optimistic rendering).
+    syncSessionCard(updated);
+    applyOptimisticCardUpdate(updated);
+    if (session.active) void renderSessionCard();
+
+    const editDialog = el('editCardDialog');
+    if (editDialog?.open) editDialog.close();
     replaceFieldImages(el('editCardPrompt'), el('editQuestionImagePreview'), [], 'imageDataQ');
     replaceFieldImages(el('editCardAnswer'), el('editAnswerImagePreview'), [], 'imageDataA');
-    editingCardId = null;
-    loadDeck();
-    loadEditorCards();
-    refreshSidebar();
-    renderSessionCard();
     setPreview('editQuestionPreview', '', editQuestionTextAlign);
     setPreview('editAnswerPreview', '', editAnswerTextAlign);
+
+    void (async () => {
+      try {
+        await put('cards', updated);
+        await putCardBank(updated);
+        await touchSubjectByTopicId(updated.topicId);
+      } catch (err) {
+        console.warn('Deferred card edit sync failed:', err);
+      } finally {
+        try {
+          await refreshSidebar();
+          const cardsOverviewSection = el('cardsOverviewSection');
+          const cardsOverviewVisible = cardsOverviewSection
+            ? !cardsOverviewSection.classList.contains('hidden')
+            : false;
+          if (cardsOverviewVisible && selectedTopic?.id === updated.topicId) {
+            void loadDeck();
+          }
+          if (currentView === 3 && selectedTopic?.id === updated.topicId) {
+            void loadEditorCards();
+          }
+        } catch (err) {
+          console.warn('Deferred post-edit refresh failed:', err);
+        } finally {
+          saveBtn.dataset.busy = '0';
+          saveBtn.disabled = false;
+        }
+      }
+    })();
   };
 
   document.querySelectorAll('[data-grade]').forEach(btn => {
