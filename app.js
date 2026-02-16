@@ -218,6 +218,7 @@ let topicDirectoryReady = false;
 let topicPrefetchRunId = 0;
 let supabaseInitPromise = null;
 let supabaseClient = null;
+const progressPersistInFlightByCardId = new Map();
 
 const el = id => document.getElementById(id);
 
@@ -515,25 +516,52 @@ function setOfflineModeUi(active = false) {
  */
 
 function invalidateApiStoreCache(store = null) {
-  if (store) {
-    apiStoreCache.delete(store);
-    apiStoreInFlight.delete(store);
+  const scopedStore = String(store || '').trim();
+  if (!scopedStore) {
+    apiStoreCache.clear();
+    apiStoreInFlight.clear();
     apiQueryCache.clear();
     apiQueryInFlight.clear();
     topicDirectory = [];
     topicDirectoryBySubject = new Map();
     topicDirectoryById = new Map();
+    subjectDirectoryById = new Map();
     topicDirectoryReady = false;
     return;
   }
-  apiStoreCache.clear();
-  apiStoreInFlight.clear();
-  apiQueryCache.clear();
-  apiQueryInFlight.clear();
-  topicDirectory = [];
-  topicDirectoryBySubject = new Map();
-  topicDirectoryById = new Map();
-  topicDirectoryReady = false;
+
+  apiStoreCache.delete(scopedStore);
+  apiStoreInFlight.delete(scopedStore);
+
+  const shouldDropQueryCache = cacheKey => {
+    const route = getApiRouteFromPath(cacheKey);
+    if (!route) return false;
+    if (route === `${API_BASE}/${scopedStore}`) return true;
+    if (route === `${API_BASE}/stats`) {
+      return scopedStore === 'subjects' || scopedStore === 'topics' || scopedStore === 'cards';
+    }
+    if (route === `${API_BASE}/topics`) {
+      return scopedStore === 'topics' || scopedStore === 'cards';
+    }
+    return false;
+  };
+
+  Array.from(apiQueryCache.keys()).forEach(cacheKey => {
+    if (shouldDropQueryCache(cacheKey)) apiQueryCache.delete(cacheKey);
+  });
+  Array.from(apiQueryInFlight.keys()).forEach(cacheKey => {
+    if (shouldDropQueryCache(cacheKey)) apiQueryInFlight.delete(cacheKey);
+  });
+
+  if (scopedStore === 'topics' || scopedStore === 'cards') {
+    topicDirectory = [];
+    topicDirectoryBySubject = new Map();
+    topicDirectoryById = new Map();
+    topicDirectoryReady = false;
+  }
+  if (scopedStore === 'subjects') {
+    subjectDirectoryById = new Map();
+  }
 }
 
 /**
@@ -812,6 +840,37 @@ function getCardDayProgress(cardId, dayKey = getTodayKey()) {
 }
 
 /**
+ * @function queueProgressRecordPersist
+ * @description Persists one progress record in the background and serializes writes per card to avoid out-of-order updates.
+ */
+
+function queueProgressRecordPersist(record = null) {
+  const payload = (record && typeof record === 'object') ? cloneData(record) : null;
+  const cardId = String(payload?.cardId || '').trim();
+  if (!cardId) return Promise.resolve();
+  const previous = progressPersistInFlightByCardId.get(cardId) || Promise.resolve();
+  const next = previous
+    .catch(() => { })
+    .then(async () => {
+      try {
+        await put('progress', payload, {
+          skipFlushPending: true,
+          invalidate: 'progress'
+        });
+      } catch (err) {
+        console.warn('Failed to persist progress update:', err);
+      }
+    });
+  progressPersistInFlightByCardId.set(cardId, next);
+  next.finally(() => {
+    if (progressPersistInFlightByCardId.get(cardId) === next) {
+      progressPersistInFlightByCardId.delete(cardId);
+    }
+  });
+  return next;
+}
+
+/**
  * @function recordCardProgress
  * @description Handles record card progress logic.
  */
@@ -843,8 +902,8 @@ async function recordCardProgress(cardId, grade, options = {}) {
   record.totals[grade] += 1;
   record.lastGrade = grade;
   record.lastAnsweredAt = nowIso;
-  await put('progress', record);
   progressByCardId.set(cardId, record);
+  void queueProgressRecordPersist(record);
 }
 
 /**
@@ -2843,30 +2902,35 @@ async function openSessionCompleteDialog() {
       .filter(Boolean)
   );
   const candidateCardIds = scopedCardIds.filter(cardId => !masteredIds.has(cardId));
-  let remainingCards = [];
+  let remainingCardIds = [];
   if (candidateCardIds.length) {
-    remainingCards = await getEligibleSessionCardsByCardIds(candidateCardIds, sessionRunState.filters, {
-      payloadLabel: 'session-repeat'
-    });
+    // Fast path: for already scoped cards, remaining-session eligibility depends on progress state only.
+    await ensureProgressForCardIds(candidateCardIds, { payloadLabel: 'session-repeat-progress' });
+    remainingCardIds = candidateCardIds.filter(cardId => cardMatchesSessionFilter(cardId, sessionRunState.filters));
   } else if (scopedCardIds.length) {
-    remainingCards = [];
+    remainingCardIds = [];
   } else {
-    remainingCards = await getEligibleSessionCardsByTopicIds(topicIds, sessionRunState.filters);
+    const remainingCards = await getEligibleSessionCardsByTopicIds(topicIds, sessionRunState.filters);
     if (masteredIds.size) {
-      remainingCards = remainingCards.filter(card => !masteredIds.has(String(card?.id || '').trim()));
+      remainingCardIds = remainingCards
+        .map(card => String(card?.id || '').trim())
+        .filter(cardId => cardId && !masteredIds.has(cardId));
+    } else {
+      remainingCardIds = remainingCards
+        .map(card => String(card?.id || '').trim())
+        .filter(Boolean);
     }
   }
-  const remainingCardIds = Array.from(new Set(
-    remainingCards.map(card => String(card?.id || '').trim()).filter(Boolean)
-  ));
+  remainingCardIds = Array.from(new Set(remainingCardIds));
   const durationMs = sessionRunState.startedAt > 0 ? Date.now() - sessionRunState.startedAt : 0;
+  const remainingCount = remainingCardIds.length;
   sessionRepeatState.topicIds = topicIds;
   sessionRepeatState.cardIds = remainingCardIds;
   sessionRepeatState.filters = normalizeSessionFilters(sessionRunState.filters);
   sessionRepeatState.mode = sessionRunState.mode || 'default';
-  sessionRepeatState.remaining = remainingCards.length;
-  sessionRepeatState.size = remainingCards.length > 0
-    ? Math.min(Math.max(sessionSize, 1), remainingCards.length)
+  sessionRepeatState.remaining = remainingCount;
+  sessionRepeatState.size = remainingCount > 0
+    ? Math.min(Math.max(sessionSize, 1), remainingCount)
     : 0;
 
   const durationEl = el('sessionCompleteDuration');
@@ -3476,7 +3540,10 @@ function getStoreKeyField(store) {
  * @description Handles put logic.
  */
 
-async function put(store, value) {
+async function put(store, value, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const skipFlushPending = !!opts.skipFlushPending;
+  const invalidateScope = opts.invalidate === undefined ? store : opts.invalidate;
   const keyField = getStoreKeyField(store);
   if (!keyField) throw new Error(`Unknown store: ${store}`);
   const key = value?.[keyField];
@@ -3490,14 +3557,18 @@ async function put(store, value) {
     });
     dbReady = true;
     setOfflineModeUi(false);
-    await flushPendingMutations();
-    invalidateApiStoreCache();
+    if (!skipFlushPending) await flushPendingMutations();
+    if (invalidateScope !== false) {
+      invalidateApiStoreCache(invalidateScope === true ? store : invalidateScope);
+    }
   } catch (err) {
     if (!isNetworkError(err)) throw err;
     dbReady = false;
     setOfflineModeUi(true);
     await queuePendingMutation('put', store, value);
-    invalidateApiStoreCache();
+    if (invalidateScope !== false) {
+      invalidateApiStoreCache(invalidateScope === true ? store : invalidateScope);
+    }
     await applyMutationToOfflineSnapshots(store, 'put', value);
   }
   return value;
@@ -3517,7 +3588,10 @@ async function putCardBank(value) {
  * @description Handles del logic.
  */
 
-async function del(store, key) {
+async function del(store, key, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const skipFlushPending = !!opts.skipFlushPending;
+  const invalidateScope = opts.invalidate === undefined ? store : opts.invalidate;
   const keyField = getStoreKeyField(store);
   if (!keyField) throw new Error(`Unknown store: ${store}`);
   const safeKey = String(key ?? '').trim();
@@ -3528,14 +3602,18 @@ async function del(store, key) {
     });
     dbReady = true;
     setOfflineModeUi(false);
-    await flushPendingMutations();
-    invalidateApiStoreCache();
+    if (!skipFlushPending) await flushPendingMutations();
+    if (invalidateScope !== false) {
+      invalidateApiStoreCache(invalidateScope === true ? store : invalidateScope);
+    }
   } catch (err) {
     if (!isNetworkError(err)) throw err;
     dbReady = false;
     setOfflineModeUi(true);
     await queuePendingMutation('delete', store, safeKey);
-    invalidateApiStoreCache();
+    if (invalidateScope !== false) {
+      invalidateApiStoreCache(invalidateScope === true ? store : invalidateScope);
+    }
     await applyMutationToOfflineSnapshots(store, 'delete', safeKey);
   }
 }
@@ -9500,8 +9578,11 @@ async function renderSessionCard() {
     session.active = false;
     syncSidebarHiddenState();
     renderSessionPills();
-    if (selectedSubject) await refreshTopicSessionMeta();
     await openSessionCompleteDialog();
+    if (selectedSubject) {
+      // Refresh meta in background so the completion dialog appears immediately.
+      void refreshTopicSessionMeta();
+    }
     return;
   }
   const card = session.activeQueue[0];
@@ -9573,7 +9654,11 @@ async function gradeCard(result) {
 
   renderSessionPills();
   await renderSessionCard();
-  loadDeck();
+  const cardsOverviewSection = el('cardsOverviewSection');
+  const overviewVisible = cardsOverviewSection
+    ? !cardsOverviewSection.classList.contains('hidden')
+    : false;
+  if (overviewVisible) void loadDeck();
 }
 
 /**
@@ -10493,7 +10578,7 @@ async function boot() {
       flipSessionFlashcard();
     });
     document.addEventListener('keyup', e => {
-      const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
+      const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar' || e.code === 'Numpad0';
       if (!isSpace) return;
       if (!canFlipSessionFlashcard(e.target, { allowButtonTarget: true })) return;
       e.preventDefault();
