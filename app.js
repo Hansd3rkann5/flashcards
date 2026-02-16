@@ -44,6 +44,23 @@ let tableBuilderSelection = null;
 let tableBuilderHasUserSelection = false;
 let suppressTableBuilderFocusSelection = false;
 let suppressTableBuilderProgrammaticFocusSelection = false;
+const INLINE_TEXT_COLOR_SWATCHES = Object.freeze([
+  { name: 'Red', value: '#ff6b6b' },
+  { name: 'Orange', value: '#f59e0b' },
+  { name: 'Yellow', value: '#facc15' },
+  { name: 'Green', value: '#4ade80' },
+  { name: 'Cyan', value: '#22d3ee' },
+  { name: 'Blue', value: '#60a5fa' },
+  { name: 'Violet', value: '#a78bfa' },
+  { name: 'Pink', value: '#f472b6' }
+]);
+const INLINE_TEXT_COLOR_TOOLBAR_TARGETS = Object.freeze({
+  'create-question': 'cardPrompt',
+  'create-answer': 'cardAnswer',
+  'edit-question': 'editCardPrompt',
+  'edit-answer': 'editCardAnswer'
+});
+let inlineColorMenuListenersWired = false;
 let suppressFlashcardTapUntil = 0;
 let deckSelectionMode = false;
 let deckSelectedCardIds = new Set();
@@ -5472,6 +5489,171 @@ function toggleInlineFormat(textarea, format = 'bold') {
 }
 
 /**
+ * @function normalizeInlineTextColor
+ * @description Validates and normalizes inline text color values.
+ */
+
+function normalizeInlineTextColor(color = '') {
+  const raw = String(color || '').trim();
+  if (/^#[0-9a-fA-F]{3,8}$/.test(raw)) return raw.toLowerCase();
+  if (/^[a-zA-Z]+$/.test(raw)) return raw.toLowerCase();
+  return '';
+}
+
+/**
+ * @function applyInlineColor
+ * @description Wraps selected text with markdown color syntax: [text]{color}.
+ */
+
+function applyInlineColor(inputEl, color = '') {
+  const isSupportedInput =
+    inputEl instanceof HTMLTextAreaElement
+    || (inputEl instanceof HTMLInputElement && inputEl.type === 'text');
+  if (!isSupportedInput) return;
+  const safeColor = normalizeInlineTextColor(color);
+  if (!safeColor) return;
+
+  const value = String(inputEl.value || '');
+  const start = inputEl.selectionStart ?? 0;
+  const end = inputEl.selectionEnd ?? start;
+  const selected = value.slice(start, end);
+
+  if (start === end) {
+    const placeholder = 'text';
+    const insert = `[${placeholder}]{${safeColor}}`;
+    inputEl.setRangeText(insert, start, end, 'end');
+    const nextStart = start + 1;
+    inputEl.setSelectionRange(nextStart, nextStart + placeholder.length);
+    inputEl.focus();
+    emitTextareaInput(inputEl);
+    return;
+  }
+
+  const wrapped = `[${selected}]{${safeColor}}`;
+  inputEl.setRangeText(wrapped, start, end, 'end');
+  inputEl.setSelectionRange(start + 1, start + 1 + selected.length);
+  inputEl.focus();
+  emitTextareaInput(inputEl);
+}
+
+/**
+ * @function closeInlineColorMenus
+ * @description Closes all inline color menus, except an optional control node.
+ */
+
+function closeInlineColorMenus(exceptControl = null) {
+  document.querySelectorAll('.inline-color-control').forEach(control => {
+    if (exceptControl && control === exceptControl) return;
+    control.classList.remove('open');
+    const toggle = control.querySelector('.inline-color-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  });
+}
+
+/**
+ * @function wireInlineColorMenuGlobalListeners
+ * @description Wires global listeners for closing inline color menus.
+ */
+
+function wireInlineColorMenuGlobalListeners() {
+  if (inlineColorMenuListenersWired) return;
+  inlineColorMenuListenersWired = true;
+
+  document.addEventListener('click', e => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    const inControl = target.closest('.inline-color-control');
+    if (inControl) return;
+    closeInlineColorMenus();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    closeInlineColorMenus();
+  });
+}
+
+/**
+ * @function buildInlineColorToolbarControl
+ * @description Builds one inline color toolbar control with an expandable 4x2 swatch menu.
+ */
+
+function buildInlineColorToolbarControl(group = '', targetId = '') {
+  const control = document.createElement('div');
+  control.className = 'inline-color-control';
+  control.dataset.group = group;
+  control.dataset.target = targetId;
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'btn btn-small toolbar-btn inline-color-toggle';
+  toggle.textContent = 'Color';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-haspopup', 'true');
+  toggle.setAttribute('aria-label', 'Choose text color');
+
+  const menu = document.createElement('div');
+  menu.className = 'inline-color-menu';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', 'Text colors');
+
+  INLINE_TEXT_COLOR_SWATCHES.forEach(swatch => {
+    const swatchBtn = document.createElement('button');
+    swatchBtn.type = 'button';
+    swatchBtn.className = 'inline-color-swatch';
+    swatchBtn.title = swatch.name;
+    swatchBtn.setAttribute('aria-label', swatch.name);
+    swatchBtn.style.setProperty('--inline-swatch-color', swatch.value);
+    swatchBtn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetInput = el(targetId);
+      if (targetInput) applyInlineColor(targetInput, swatch.value);
+      closeInlineColorMenus();
+    });
+    menu.appendChild(swatchBtn);
+  });
+
+  toggle.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const isOpen = control.classList.contains('open');
+    closeInlineColorMenus();
+    if (isOpen) return;
+    control.classList.add('open');
+    toggle.setAttribute('aria-expanded', 'true');
+  });
+
+  control.appendChild(toggle);
+  control.appendChild(menu);
+  return control;
+}
+
+/**
+ * @function ensureInlineColorToolbarControls
+ * @description Injects inline color controls into relevant editor toolbars.
+ */
+
+function ensureInlineColorToolbarControls() {
+  Object.entries(INLINE_TEXT_COLOR_TOOLBAR_TARGETS).forEach(([group, targetId]) => {
+    const toolbar = document.querySelector(`.text-toolbar[data-group="${group}"]`);
+    if (!toolbar) return;
+    if (toolbar.querySelector('.inline-color-control')) return;
+    const control = buildInlineColorToolbarControl(group, targetId);
+    const tableBtn = toolbar.querySelector(`.toolbar-btn[data-action="table"][data-target="${targetId}"]`);
+    const tableSegment = tableBtn?.closest('.toolbar-segment');
+    if (tableBtn && tableSegment) {
+      tableBtn.insertAdjacentElement('afterend', control);
+    } else {
+      const fallbackSegment = toolbar.querySelector('.toolbar-segment:last-child');
+      if (fallbackSegment) fallbackSegment.appendChild(control);
+      else toolbar.appendChild(control);
+    }
+  });
+  wireInlineColorMenuGlobalListeners();
+}
+
+/**
  * @function toggleListPrefix
  * @description Toggles list prefix.
  */
@@ -5962,6 +6144,9 @@ function createTableBuilderInput(zone = 'body', row = 0, col = 0, value = '', al
   input.placeholder = zone === 'header' ? `Header ${col + 1}` : `R${row + 1}C${col + 1}`;
   input.value = value;
   applyTableBuilderInputAlign(input, align);
+  attachAutoClose(input);
+  input.addEventListener('keydown', handleInlineFormatShortcut);
+  input.addEventListener('keydown', handleTextAlignShortcut);
   return input;
 }
 
@@ -6698,6 +6883,22 @@ function applyInputAlignmentShortcut(inputEl, align = 'left') {
   else if (inputEl.id === 'cardAnswer') applyCreateAnswerTextAlign(targetAlign);
   else if (inputEl.id === 'editCardPrompt') applyEditQuestionTextAlign(targetAlign);
   else if (inputEl.id === 'editCardAnswer') applyEditAnswerTextAlign(targetAlign);
+  else if (inputEl.classList.contains('table-builder-cell-input')) {
+    const zone = inputEl.dataset.zone === 'header' ? 'header' : 'body';
+    const row = Math.max(0, Number(inputEl.dataset.row || 0));
+    const col = Math.max(0, Number(inputEl.dataset.col || 0));
+    const currentSelection = getTableBuilderSelection();
+    const isInsideCurrentSelection = !!currentSelection
+      && currentSelection.zone === zone
+      && row >= currentSelection.startRow
+      && row <= currentSelection.endRow
+      && col >= currentSelection.startCol
+      && col <= currentSelection.endCol;
+    if (!isInsideCurrentSelection) {
+      setTableBuilderSelection(zone, row, col, { userInitiated: true });
+    }
+    applyTableBuilderSelectedAlignment(targetAlign);
+  }
   else if (inputEl.closest('#mcqOptions')) applyCreateOptionsTextAlign(targetAlign);
   else if (inputEl.closest('#editMcqOptions')) applyEditOptionsTextAlign(targetAlign);
 }
@@ -6736,6 +6937,7 @@ function handleTextAlignShortcut(e) {
  */
 
 function wireTextFormattingToolbar() {
+  ensureInlineColorToolbarControls();
   document.querySelectorAll('.text-toolbar .toolbar-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
@@ -10025,7 +10227,9 @@ async function boot() {
     tableDialog.addEventListener('focusin', handleTableBuilderSelection);
     tableDialog.addEventListener('click', handleTableBuilderSelection);
     tableDialog.addEventListener('keydown', e => {
-      if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      const isShiftEnter = e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey;
+      const isMetaEnter = e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey;
+      if (!isShiftEnter && !isMetaEnter) return;
       e.preventDefault();
       insertTableFromDialog();
     });
