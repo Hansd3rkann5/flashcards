@@ -23,6 +23,7 @@ let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeM
 let editingCardId = null;
 let editingCardSnapshot = null;
 let editingSubjectId = null;
+let sessionStartInFlight = false;
 let mcqMode = false;
 let editMcqMode = false;
 let createQuestionTextAlign = 'center';
@@ -221,8 +222,34 @@ let sessionMetaRefreshRunId = 0;
 let supabaseInitPromise = null;
 let supabaseClient = null;
 const progressPersistInFlightByCardId = new Map();
+let appLoadingOverlayCount = 0;
 
 const el = id => document.getElementById(id);
+
+/**
+ * @function setAppLoadingState
+ * @description Toggles the global loading overlay with reference counting so overlapping async flows do not flicker.
+ */
+
+function setAppLoadingState(active = false, label = 'Loading...') {
+  const overlay = el('appLoadingOverlay');
+  if (!overlay) return;
+  const nextLabel = String(label || '').trim();
+  const labelEl = el('appLoadingLabel');
+  if (active) {
+    appLoadingOverlayCount += 1;
+    if (labelEl && nextLabel) labelEl.textContent = nextLabel;
+    overlay.classList.add('is-visible');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('app-loading');
+    return;
+  }
+  appLoadingOverlayCount = Math.max(0, appLoadingOverlayCount - 1);
+  if (appLoadingOverlayCount > 0) return;
+  overlay.classList.remove('is-visible');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('app-loading');
+}
 
 // ============================================================================
 // Core Utilities + Shared State
@@ -974,6 +1001,16 @@ async function ensureSessionProgressForCards(cards = [], payloadLabel = 'session
 }
 
 /**
+ * @function requiresProgressForSessionFilter
+ * @description Returns true when evaluating the filter requires persisted progress records.
+ */
+
+function requiresProgressForSessionFilter(filters = sessionFilterState) {
+  const config = normalizeSessionFilters(filters);
+  return !!(config.all || config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet);
+}
+
+/**
  * @function getEligibleSessionCardIdsByTopicIds
  * @description Returns eligible card IDs (stats-only path) for selected topics without loading full card payloads.
  */
@@ -986,8 +1023,35 @@ async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFi
     refs.map(ref => String(ref?.id || '').trim()).filter(Boolean)
   ));
   if (!ids.length) return [];
+  if (!requiresProgressForSessionFilter(filters)) {
+    return ids;
+  }
   await ensureProgressForCardIds(ids, { payloadLabel: 'session-progress' });
   return ids.filter(cardId => cardMatchesSessionFilter(cardId, filters));
+}
+
+/**
+ * @function getEligibleSessionCardIdsByCardIds
+ * @description Returns eligible card IDs for an explicit card list without loading full card payloads.
+ */
+
+async function getEligibleSessionCardIdsByCardIds(cardIds, filters = sessionFilterState, options = {}) {
+  const ids = Array.isArray(cardIds)
+    ? Array.from(new Set(cardIds.map(cardId => String(cardId || '').trim()).filter(Boolean)))
+    : [];
+  if (!ids.length) return [];
+  const opts = options && typeof options === 'object' ? options : {};
+  const refs = await getCardRefsByCardIds(ids, opts);
+  if (!refs.length) return [];
+  const refIds = Array.from(new Set(
+    refs.map(ref => String(ref?.id || '').trim()).filter(Boolean)
+  ));
+  if (!refIds.length) return [];
+  if (!requiresProgressForSessionFilter(filters)) {
+    return refIds;
+  }
+  await ensureProgressForCardIds(refIds, { payloadLabel: 'session-progress' });
+  return refIds.filter(cardId => cardMatchesSessionFilter(cardId, filters));
 }
 
 /**
@@ -9077,96 +9141,138 @@ async function loadEditorCards() {
  */
 
 async function startSession(options = {}) {
-  const opts = (options && typeof options === 'object') ? options : {};
-  const explicitTopicIds = Array.isArray(opts.topicIds) && opts.topicIds.length
-    ? Array.from(new Set(opts.topicIds.map(topicId => String(topicId || '').trim()).filter(Boolean)))
-    : [];
-  const explicitCardIds = Array.isArray(opts.cardIds) && opts.cardIds.length
-    ? Array.from(new Set(opts.cardIds.map(cardId => String(cardId || '').trim()).filter(Boolean)))
-    : [];
-  let topicIds = [...explicitTopicIds];
-  if (!topicIds.length && !selectedSubject && !explicitCardIds.length) {
-    return alert('Pick a subject first.');
-  }
-  if (!topicIds.length && selectedSubject) {
-    const topics = await getTopicsBySubject(selectedSubject.id);
-    topicIds = topics.map(t => t.id).filter(id => selectedTopicIds.has(id));
-  }
-  if (!topicIds.length && !explicitCardIds.length) {
-    return alert('Select at least one topic.');
-  }
+  if (sessionStartInFlight) return;
+  sessionStartInFlight = true;
+  setAppLoadingState(true, 'Preparing session...');
+  try {
+    const opts = (options && typeof options === 'object') ? options : {};
+    const explicitTopicIds = Array.isArray(opts.topicIds) && opts.topicIds.length
+      ? Array.from(new Set(opts.topicIds.map(topicId => String(topicId || '').trim()).filter(Boolean)))
+      : [];
+    const explicitCardIds = Array.isArray(opts.cardIds) && opts.cardIds.length
+      ? Array.from(new Set(opts.cardIds.map(cardId => String(cardId || '').trim()).filter(Boolean)))
+      : [];
+    let topicIds = [...explicitTopicIds];
+    if (!topicIds.length && !selectedSubject && !explicitCardIds.length) {
+      alert('Pick a subject first.');
+      return;
+    }
+    if (!topicIds.length && selectedSubject) {
+      const topics = await getTopicsBySubject(selectedSubject.id);
+      topicIds = topics.map(t => t.id).filter(id => selectedTopicIds.has(id));
+    }
+    if (!topicIds.length && !explicitCardIds.length) {
+      alert('Select at least one topic.');
+      return;
+    }
 
-  const reviewMode = opts.reviewMode === true;
-  const filterConfig = normalizeSessionFilters(opts.filters || sessionFilterState);
-  let cards = [];
-  if (explicitCardIds.length) {
-    cards = await getEligibleSessionCardsByCardIds(explicitCardIds, filterConfig, {
+    const reviewMode = opts.reviewMode === true;
+    const filterConfig = normalizeSessionFilters(opts.filters || sessionFilterState);
+    let eligibleCardIds = [];
+    let cardRefs = [];
+    if (explicitCardIds.length) {
+      eligibleCardIds = await getEligibleSessionCardIdsByCardIds(explicitCardIds, filterConfig, {
+        payloadLabel: reviewMode ? 'daily-review-session-refs' : 'session-card-refs'
+      });
+      if (eligibleCardIds.length) {
+        cardRefs = await getCardRefsByCardIds(eligibleCardIds, {
+          payloadLabel: reviewMode ? 'daily-review-session-refs' : 'session-card-refs'
+        });
+      }
+    } else {
+      eligibleCardIds = await getEligibleSessionCardIdsByTopicIds(topicIds, filterConfig);
+    }
+    if (!eligibleCardIds.length) {
+      alert(reviewMode
+        ? 'No review cards match the current selection.'
+        : 'No cards match the current session filter.'
+      );
+      return;
+    }
+    if (!topicIds.length) {
+      if (!cardRefs.length) {
+        cardRefs = await getCardRefsByCardIds(eligibleCardIds, {
+          payloadLabel: reviewMode ? 'daily-review-session-refs' : 'session-card-refs'
+        });
+      }
+      topicIds = Array.from(new Set(
+        cardRefs.map(ref => String(ref?.topicId || '').trim()).filter(Boolean)
+      ));
+    }
+
+    const maxSelectable = eligibleCardIds.length;
+    const rawRequested = Number(opts.forcedSize ?? sessionSize);
+    const requestedSize = Number.isFinite(rawRequested) ? rawRequested : sessionSize;
+    sessionSize = Math.min(Math.max(requestedSize, 1), maxSelectable);
+    availableSessionCards = maxSelectable;
+    renderSessionSizeCounter();
+    await preloadTopicDirectory();
+
+    const shuffledCardIds = [...eligibleCardIds].sort(() => Math.random() - 0.5).slice(0, sessionSize);
+    const fetchedCards = await getCardsByCardIds(shuffledCardIds, {
       payloadLabel: reviewMode ? 'daily-review-session' : 'session-cards'
     });
-  } else {
-    cards = await getEligibleSessionCardsByTopicIds(topicIds, filterConfig);
-  }
-  if (!cards.length) {
-    return alert(reviewMode
-      ? 'No review cards match the current selection.'
-      : 'No cards match the current session filter.'
+    const cardsById = new Map(
+      fetchedCards.map(card => [String(card?.id || '').trim(), card])
     );
-  }
-  if (!topicIds.length) {
-    topicIds = Array.from(new Set(cards.map(card => String(card?.topicId || '').trim()).filter(Boolean)));
-  }
+    const selectedCards = shuffledCardIds
+      .map(cardId => cardsById.get(cardId))
+      .filter(Boolean);
+    if (!selectedCards.length) {
+      alert(reviewMode
+        ? 'No review cards match the current selection.'
+        : 'No cards match the current session filter.'
+      );
+      return;
+    }
 
-  const maxSelectable = cards.length;
-  const rawRequested = Number(opts.forcedSize ?? sessionSize);
-  const requestedSize = Number.isFinite(rawRequested) ? rawRequested : sessionSize;
-  sessionSize = Math.min(Math.max(requestedSize, 1), maxSelectable);
-  availableSessionCards = maxSelectable;
-  renderSessionSizeCounter();
-  await preloadTopicDirectory();
-  const shuffled = [...cards].sort(() => Math.random() - 0.5).slice(0, sessionSize);
-  const reviewCardIdSet = new Set(explicitCardIds);
-  const sessionCards = shuffled.map(card => ({
-    ...card,
-    topicName: resolveCardTopicName(card),
-    sessionCorrectCount: 0,
-    // In daily review, only cards whose latest persisted status is green
-    // should start as one-step carry-over candidates.
-    reviewCarryOver: reviewMode
-      && reviewCardIdSet.has(card.id)
-      && getDailyReviewCardStatus(card.id) === 'green',
-    reviewDowngraded: false
-  }));
-  const initialGradeMap = {};
-  if (reviewMode) {
-    sessionCards.forEach(card => {
-      const status = getDailyReviewCardStatus(card.id);
-      if (status === 'yellow') initialGradeMap[card.id] = 'partial';
-      else if (status === 'red') initialGradeMap[card.id] = 'wrong';
-    });
+    const reviewCardIdSet = new Set(explicitCardIds);
+    const sessionCards = selectedCards.map(card => ({
+      ...card,
+      topicName: resolveCardTopicName(card),
+      sessionCorrectCount: 0,
+      // In daily review, only cards whose latest persisted status is green
+      // should start as one-step carry-over candidates.
+      reviewCarryOver: reviewMode
+        && reviewCardIdSet.has(card.id)
+        && getDailyReviewCardStatus(card.id) === 'green',
+      reviewDowngraded: false
+    }));
+    const initialGradeMap = {};
+    if (reviewMode) {
+      sessionCards.forEach(card => {
+        const status = getDailyReviewCardStatus(card.id);
+        if (status === 'yellow') initialGradeMap[card.id] = 'partial';
+        else if (status === 'red') initialGradeMap[card.id] = 'wrong';
+      });
+    }
+    session = {
+      active: true,
+      activeQueue: sessionCards,
+      mastered: [],
+      counts: Object.fromEntries(sessionCards.map(c => [c.id, 0])),
+      gradeMap: initialGradeMap,
+      mode: reviewMode ? 'daily-review' : 'default'
+    };
+    sessionRunState = {
+      startedAt: Date.now(),
+      topicIds: [...topicIds],
+      cardIds: [...eligibleCardIds],
+      filters: { ...filterConfig },
+      mode: reviewMode ? 'daily-review' : 'default'
+    };
+    closeDialog(el('sessionCompleteDialog'));
+    setDeckTitle(reviewMode ? 'Daily Review' : (selectedSubject?.name || 'Study Session'));
+    el('cardsOverviewSection').classList.add('hidden');
+    el('studySessionSection')?.classList.remove('hidden');
+    el('flashcard').classList.remove('hidden');
+    setView(2);
+    renderSessionPills();
+    renderSessionCard();
+  } finally {
+    sessionStartInFlight = false;
+    setAppLoadingState(false);
   }
-  session = {
-    active: true,
-    activeQueue: sessionCards,
-    mastered: [],
-    counts: Object.fromEntries(sessionCards.map(c => [c.id, 0])),
-    gradeMap: initialGradeMap,
-    mode: reviewMode ? 'daily-review' : 'default'
-  };
-  sessionRunState = {
-    startedAt: Date.now(),
-    topicIds: [...topicIds],
-    cardIds: Array.from(new Set(cards.map(card => String(card?.id || '').trim()).filter(Boolean))),
-    filters: { ...filterConfig },
-    mode: reviewMode ? 'daily-review' : 'default'
-  };
-  closeDialog(el('sessionCompleteDialog'));
-  setDeckTitle(reviewMode ? 'Daily Review' : (selectedSubject?.name || 'Study Session'));
-  el('cardsOverviewSection').classList.add('hidden');
-  el('studySessionSection')?.classList.remove('hidden');
-  el('flashcard').classList.remove('hidden');
-  setView(2);
-  renderSessionPills();
-  renderSessionCard();
 }
 
 /**

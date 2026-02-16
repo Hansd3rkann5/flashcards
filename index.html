@@ -28,6 +28,16 @@
 
 <body>
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
+  <div id="appLoadingOverlay" class="app-loading-overlay" aria-hidden="true">
+    <div class="app-loading-inner" role="status" aria-live="polite" aria-atomic="true">
+      <div class="app-loader-stack" aria-hidden="true">
+        <span class="app-loader-card card-one"></span>
+        <span class="app-loader-card card-two"></span>
+        <span class="app-loader-card card-three"></span>
+      </div>
+      <div class="tiny app-loading-label" id="appLoadingLabel">Preparing session...</div>
+    </div>
+  </div>
   <aside class="sidebar">
     <div>
       <div class="app-title">⚙️ Engineering Flashcards</div>
