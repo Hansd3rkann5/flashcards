@@ -16,7 +16,7 @@
   --danger: #ef4444;
   --warn: #f59e0b;
   --success: #22c55e;
-  --button: #6f2bd4;
+  --button: linear-gradient(90deg, #f45f82 0%, #e255a9 50%, #17b0f7 100%);
 
   /* Layout sizing (edit these to scale the UI) */
   --sidebar-width: 260px;
@@ -217,6 +217,7 @@ body.app-loading {
   position: relative;
   width: 124px;
   height: 132px;
+  transform: translateY(-30px);
 }
 
 .app-loader-card {
@@ -224,8 +225,8 @@ body.app-loading {
   --ty: 0px;
   --rot: 0deg;
   position: absolute;
-  left: 50%;
-  top: 50%;
+  left: 25%;
+  top: 25%;
   width: 76px;
   height: 104px;
   border-radius: 16px;
@@ -830,6 +831,7 @@ body.app-loading {
 #startSessionBtn {
   min-width: 220px;
   padding: 14px 24px;
+  background: var(--button);
 }
 
 .study-session-actions {
@@ -845,7 +847,6 @@ body.app-loading {
 .study-session-actions .btn {
   min-width: 170px;
   flex: 1 1 220px;
-  max-width: 320px;
 }
 
 .session-filter-summary {
@@ -1445,6 +1446,7 @@ textarea:focus-visible {
   flex: 0 0 auto;
   justify-content: flex-start;
   align-self: center;
+  padding: var(--space-3);
 }
 
 .mcq-options.two-row-grid {
@@ -1496,7 +1498,7 @@ textarea:focus-visible {
 }
 
 .mcq-mode .qtxt {
-  flex: 2 1 0;
+  flex: 1 1 0;
   min-height: 0;
   overflow: auto;
   display: flex;
@@ -1622,6 +1624,46 @@ textarea:focus-visible {
   border: 1px solid #2a3f66;
   border-radius: 14px;
   padding: 14px 10px;
+}
+
+#sessionSizeValue {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+#sessionSizeValue .session-size-value-text {
+  position: relative;
+  z-index: 1;
+}
+
+#sessionSizeValue .session-size-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(12, 20, 36, 0.82);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+#sessionSizeValue .session-size-loader .app-loader-stack {
+  width: 124px;
+  height: 132px;
+  transform: translateY(-5px) scale(0.25);
+  transform-origin: center;
+}
+
+#sessionSizeValue.is-loading .session-size-loader {
+  opacity: 1;
+}
+
+#sessionSizeValue.is-loading .session-size-value-text {
+  opacity: 0.2;
 }
 
 .tile-check {
@@ -2277,7 +2319,7 @@ body.session-image-open {
 }
 
 .rich-content.rich-align-left {
-  text-align: left;
+  text-align: center;
 }
 
 .card-tile-body.rich-content.rich-align-left {
@@ -4013,8 +4055,7 @@ dialog::backdrop {
 
 .start-daily-review-btn {
   width: 100%;
-  background: linear-gradient(180deg, #2bcf6d 0%, #1da757 100%);
-  border: 1px solid rgba(34, 197, 94, 0.92);
+  background: linear-gradient(90deg, #f45f82 0%, #e255a9 50%, #17b0f7 100%);
   box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.28), 0 0 18px rgba(34, 197, 94, 0.34);
   color: #f4fff8;
 }
@@ -4024,7 +4065,13 @@ dialog::backdrop {
 }
 
 .start-daily-review-btn:hover {
-  background: linear-gradient(180deg, #34d67a 0%, #23b45f 100%);
+  /* background: linear-gradient(180deg, #34d67a 0%, #23b45f 100%); */
+  transform: scale(1.02);
+}
+
+.start-daily-review-btn:active {
+  /* background: linear-gradient(180deg, #34d67a 0%, #23b45f 100%); */
+  transform: scale(0.98);
 }
 
 .start-daily-review-btn:disabled {
@@ -4032,6 +4079,18 @@ dialog::backdrop {
   border-color: #3a4f7c;
   box-shadow: none;
   color: #9eb0d6;
+}
+
+#dailyReviewHomePanel .controls .debug-loader-btn {
+  width: 100%;
+  margin-top: var(--space-2);
+  background: linear-gradient(180deg, #354c78 0%, #2a3d63 100%);
+  border: 1px solid #4b6698;
+  color: #e4edff;
+}
+
+#dailyReviewHomePanel .controls .debug-loader-btn:hover {
+  background: linear-gradient(180deg, #3c5688 0%, #2e4570 100%);
 }
 
 .session-complete-stats {
@@ -4142,7 +4201,7 @@ dialog::backdrop {
   }
 
   .section {
-    margin-top: var(--space-2);
+    margin-top: var(--space-3);
   }
 
   .flashcard {
@@ -4217,7 +4276,7 @@ dialog::backdrop {
   #startSessionBtn {
     width: 100%;
     min-width: 0;
-  }
+    background: var(--button);
 
   .study-session-actions {
     max-width: none;
@@ -4229,6 +4288,7 @@ dialog::backdrop {
     min-width: 0;
     max-width: none;
     width: 100%;
+    height: 100%;
   }
 
   .session-complete-stats {
@@ -4507,6 +4567,7 @@ dialog::backdrop {
   #startSessionBtn {
     min-width: 0;
     width: min(100%, 320px);
+    background: var(--button);
   }
 }
 
@@ -4528,4 +4589,5 @@ dialog::backdrop {
       padding-bottom: var(--space-4);
     }
   }
+}
 }
