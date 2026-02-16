@@ -73,6 +73,9 @@ let deckSelectionMode = false;
 let deckSelectedCardIds = new Set();
 let topicSelectionMode = false;
 let topicSelectedIds = new Set();
+let currentSubjectTopicIds = [];
+let currentSubjectTopics = [];
+let topicSearchRunId = 0;
 const SESSION_FILTER_DEFAULT = Object.freeze({
   all: false,
   correct: false,
@@ -3477,6 +3480,34 @@ function parseApiFilterValues(searchParams, key) {
 }
 
 /**
+ * @function sanitizeCardSearchInput
+ * @description Sanitizes a search term for PostgREST `ilike` filter expressions.
+ */
+
+function sanitizeCardSearchInput(value = '') {
+  return String(value || '')
+    .replace(/[,*%_()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * @function buildCardSearchOrFilter
+ * @description Builds one PostgREST `or` filter expression for card question/answer lookup.
+ */
+
+function buildCardSearchOrFilter(searchValue = '') {
+  const safe = sanitizeCardSearchInput(searchValue);
+  if (!safe) return '';
+  const pattern = `*${safe}*`;
+  return [
+    `payload->>prompt.ilike.${pattern}`,
+    `payload->>question.ilike.${pattern}`,
+    `payload->>answer.ilike.${pattern}`
+  ].join(',');
+}
+
+/**
  * @function normalizeStorePayloadRow
  * @description Normalizes one Supabase records row into plain payload shape with key fallback.
  */
@@ -3514,31 +3545,50 @@ async function queryStoreCountSupabase(store = '') {
 async function queryCardsSupabase(searchParams) {
   const topicIds = parseApiFilterValues(searchParams, 'topicId');
   const cardIds = parseApiFilterValues(searchParams, 'cardId');
+  const searchRaw = String(searchParams.get('search') || '').trim();
+  const searchFilter = buildCardSearchOrFilter(searchRaw);
+  const hasSearch = !!searchFilter;
   const fieldsRaw = String(searchParams.get('fields') || '').trim();
   const fields = fieldsRaw
     .split(',')
     .map(field => field.trim())
     .filter(Boolean);
   const lightweightFields = new Set(['id', 'topicId']);
-  const useLightweightProjection = fields.length > 0 && fields.every(field => lightweightFields.has(field));
+  const useLightweightProjection = fields.length > 0 && fields.every(field => lightweightFields.has(field)) && !hasSearch;
 
   let query = supabaseClient
     .from(SUPABASE_TABLE)
-    .select(useLightweightProjection ? 'record_key,topic_id' : 'record_key,payload')
+    .select(useLightweightProjection ? 'record_key,topic_id' : 'record_key,payload,topic_id')
     .eq('store', 'cards');
 
   if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
   else if (cardIds.length > 1) query = query.in('record_key', cardIds);
 
-  if (topicIds.length === 1) query = query.eq('topic_id', topicIds[0]);
-  else if (topicIds.length > 1) query = query.in('topic_id', topicIds);
+  // For plain topic/card lookups we use indexed `topic_id`.
+  // For search lookups we filter by topic on mapped payload to stay robust if topic_id is not backfilled yet.
+  if (!hasSearch) {
+    if (topicIds.length === 1) query = query.eq('topic_id', topicIds[0]);
+    else if (topicIds.length > 1) query = query.in('topic_id', topicIds);
+  }
+
+  if (hasSearch) {
+    query = query.or(searchFilter);
+  }
 
   const { data, error } = await query.order('updated_at', { ascending: true });
   assertSupabaseSuccess(error, 'Failed to query cards.');
   const rows = Array.isArray(data) ? data : [];
 
+  const scopedRows = (hasSearch && topicIds.length)
+    ? rows.filter(row => {
+      const payloadTopicId = String(row?.payload?.topicId || '').trim();
+      const indexedTopicId = String(row?.topic_id || '').trim();
+      return topicIds.includes(payloadTopicId || indexedTopicId);
+    })
+    : rows;
+
   if (useLightweightProjection) {
-    return rows.map(row => {
+    return scopedRows.map(row => {
       const next = {};
       if (fields.includes('id')) next.id = String(row?.record_key || '').trim();
       if (fields.includes('topicId')) next.topicId = String(row?.topic_id || '').trim();
@@ -3546,7 +3596,7 @@ async function queryCardsSupabase(searchParams) {
     });
   }
 
-  const cards = rows.map(row => normalizeStorePayloadRow(row, 'id'));
+  const cards = scopedRows.map(row => normalizeStorePayloadRow(row, 'id'));
   if (!fields.length) return cards;
   return cards.map(card => {
     const scoped = {};
@@ -4197,6 +4247,33 @@ async function getCardRefsByTopicIds(topicIds, options = {}) {
   if (!payloadLabel && ids.length > 1) {
     payloadLabel = `topics-${ids.length}-refs`;
   }
+  if (payloadLabel) requestParams.set('payload', payloadLabel);
+  const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
+  const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * @function searchCardRefsByTopicIds
+ * @description Runs one DB-side text search in question/answer fields and returns matching card refs.
+ */
+
+async function searchCardRefsByTopicIds(topicIds, searchQuery, options = {}) {
+  const ids = Array.isArray(topicIds)
+    ? Array.from(new Set(topicIds.map(topicId => String(topicId || '').trim()).filter(Boolean)))
+    : [];
+  const query = String(searchQuery || '').trim();
+  if (!ids.length || !query) return [];
+
+  ids.sort();
+  const opts = options && typeof options === 'object' ? options : {};
+  const baseParams = new URLSearchParams();
+  ids.forEach(topicId => baseParams.append('topicId', topicId));
+  baseParams.set('fields', 'id,topicId');
+  baseParams.set('search', query);
+  const baseQueryPath = `${API_BASE}/cards?${baseParams.toString()}`;
+  const requestParams = new URLSearchParams(baseParams.toString());
+  const payloadLabel = String(opts.payloadLabel || '').trim();
   if (payloadLabel) requestParams.set('payload', payloadLabel);
   const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
   const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
@@ -6451,7 +6528,17 @@ async function loadTopics() {
   applySubjectTheme(selectedSubject.accent || '#2dd4bf');
   const topics = await getTopicsBySubject(selectedSubject.id, { includeCounts: true });
   const topicListTitle = el('topicListTitle');
+  const topicListTotalCards = el('topicListTotalCards');
+  currentSubjectTopics = topics;
+  const totalCardsInSubject = topics.reduce((sum, topic) => {
+    const count = Number(topic?.cardCount);
+    return sum + (Number.isFinite(count) ? count : 0);
+  }, 0);
   if (topicListTitle) topicListTitle.textContent = topics.length === 1 ? 'Topic' : 'Topics';
+  if (topicListTotalCards) {
+    topicListTotalCards.textContent = `${totalCardsInSubject} ${totalCardsInSubject === 1 ? 'card' : 'cards'}`;
+  }
+  currentSubjectTopicIds = topics.map(topic => topic.id);
   const validTopicIds = new Set(topics.map(t => t.id));
   const previousSelection = selectedTopicIds;
   selectedTopicIds = new Set(
@@ -6469,6 +6556,7 @@ async function loadTopics() {
     const cardCountLabel = `${cardCount} ${cardCount === 1 ? 'card' : 'cards'}`;
     const row = document.createElement('div');
     row.className = 'tile topic-tile';
+    row.dataset.topicId = String(t.id || '');
     if (topicSelectionMode) {
       row.classList.add('selection-mode');
       row.innerHTML = `
@@ -6529,6 +6617,7 @@ async function loadTopics() {
         if (checkbox.checked) selectedTopicIds.add(t.id);
         else selectedTopicIds.delete(t.id);
         row.classList.toggle('selected', checkbox.checked);
+        updateSelectAllSessionTopicsButton(topics);
         await refreshTopicSessionMeta(topics);
       });
     }
@@ -6536,6 +6625,7 @@ async function loadTopics() {
   });
   if (!topics.length) list.innerHTML = '<div class="tiny">No topics yet.</div>';
   updateTopicSelectionUi();
+  updateSelectAllSessionTopicsButton(topics);
   await refreshTopicSessionMeta(topics);
   if (topics.length) {
     void prefetchSubjectTopicCards(topics, selectedSubject.id);
@@ -8984,9 +9074,12 @@ function updateTopicSelectionUi() {
   const toggleBtn = el('toggleTopicSelectBtn');
   const bulkBar = el('topicBulkActions');
   const count = el('topicSelectionCount');
+  const selectAllBulkBtn = el('selectAllBulkTopicsBtn');
   const moveBtn = el('moveSelectedTopicsBtn');
   const deleteBtn = el('deleteSelectedTopicsBtn');
   const hasSelection = topicSelectedIds.size > 0;
+  const topicIds = Array.isArray(currentSubjectTopicIds) ? currentSubjectTopicIds : [];
+  const allSelected = topicIds.length > 0 && topicIds.every(topicId => topicSelectedIds.has(topicId));
 
   if (toggleBtn) {
     toggleBtn.classList.toggle('active', topicSelectionMode);
@@ -8998,6 +9091,11 @@ function updateTopicSelectionUi() {
   if (count) {
     const word = topicSelectedIds.size === 1 ? 'topic' : 'topics';
     count.textContent = `${topicSelectedIds.size} ${word} selected`;
+  }
+  if (selectAllBulkBtn) {
+    selectAllBulkBtn.disabled = !topicSelectionMode || topicIds.length === 0;
+    selectAllBulkBtn.classList.toggle('active', allSelected);
+    selectAllBulkBtn.setAttribute('aria-pressed', allSelected ? 'true' : 'false');
   }
   if (moveBtn) moveBtn.disabled = !hasSelection;
   if (deleteBtn) deleteBtn.disabled = !hasSelection;
@@ -9024,6 +9122,95 @@ function toggleTopicSelection(topicId, forceState = null) {
   if (next) topicSelectedIds.add(topicId);
   else topicSelectedIds.delete(topicId);
   updateTopicSelectionUi();
+}
+
+/**
+ * @function toggleAllTopicsForBulk
+ * @description Toggles all topics in topic bulk-selection mode.
+ */
+
+function toggleAllTopicsForBulk() {
+  if (!topicSelectionMode) return;
+  const topicIds = Array.isArray(currentSubjectTopicIds) ? currentSubjectTopicIds : [];
+  if (!topicIds.length) {
+    updateTopicSelectionUi();
+    return;
+  }
+
+  const allSelected = topicIds.every(topicId => topicSelectedIds.has(topicId));
+  topicSelectedIds = allSelected ? new Set() : new Set(topicIds);
+
+  const topicList = el('topicList');
+  if (topicList) {
+    const rows = topicList.querySelectorAll('.tile.topic-tile.selection-mode');
+    rows.forEach(row => {
+      const topicId = String(row.dataset.topicId || '').trim();
+      const selected = topicId && topicSelectedIds.has(topicId);
+      row.classList.toggle('selected-for-bulk', !!selected);
+      const checkbox = row.querySelector('.card-select-control input[type=\"checkbox\"]');
+      if (checkbox) checkbox.checked = !!selected;
+    });
+  }
+
+  updateTopicSelectionUi();
+}
+
+/**
+ * @function updateSelectAllSessionTopicsButton
+ * @description Updates state of the "All" topic button in the topic list header.
+ */
+
+function updateSelectAllSessionTopicsButton(topics = null) {
+  const btn = el('selectAllSessionTopicsBtn');
+  if (!btn) return;
+  const topicList = Array.isArray(topics) ? topics : currentSubjectTopics;
+  if (!topicList.length) {
+    btn.disabled = true;
+    btn.classList.remove('active');
+    btn.setAttribute('aria-pressed', 'false');
+    return;
+  }
+  const allSelected = topicList.every(topic => selectedTopicIds.has(topic.id));
+  btn.disabled = false;
+  btn.classList.toggle('active', allSelected);
+  btn.setAttribute('aria-pressed', allSelected ? 'true' : 'false');
+}
+
+/**
+ * @function selectAllTopicsForSession
+ * @description Toggles all topics of the current subject for study-session selection.
+ */
+
+async function selectAllTopicsForSession() {
+  if (!selectedSubject) return;
+  const topics = currentSubjectTopics.length
+    ? currentSubjectTopics
+    : await getTopicsBySubject(selectedSubject.id, { includeCounts: true, uiBlocking: false });
+  if (!topics.length) {
+    updateSelectAllSessionTopicsButton(topics);
+    return;
+  }
+
+  currentSubjectTopics = topics;
+  currentSubjectTopicIds = topics.map(topic => topic.id);
+  const allSelected = topics.every(topic => selectedTopicIds.has(topic.id));
+  selectedTopicIds = allSelected ? new Set() : new Set(currentSubjectTopicIds);
+
+  const topicList = el('topicList');
+  if (topicList) {
+    const rows = topicList.querySelectorAll('.tile.topic-tile');
+    rows.forEach(row => {
+      const checkbox = row.querySelector('input[type=\"checkbox\"][data-topic-id]');
+      if (!checkbox) return;
+      const topicId = String(checkbox.getAttribute('data-topic-id') || '').trim();
+      const isSelected = topicId && selectedTopicIds.has(topicId);
+      checkbox.checked = !!isSelected;
+      row.classList.toggle('selected', !!isSelected);
+    });
+  }
+
+  updateSelectAllSessionTopicsButton(topics);
+  await refreshTopicSessionMeta(topics);
 }
 
 /**
@@ -9513,7 +9700,21 @@ function applyOptimisticCardUpdate(card) {
  */
 
 function normalizeTopicSearchQuery(value = '') {
-  return String(value || '').trim().toLowerCase();
+  return normalizeSearchText(value);
+}
+
+/**
+ * @function normalizeSearchText
+ * @description Normalizes searchable text (lowercase, accent-insensitive, collapsed whitespace).
+ */
+
+function normalizeSearchText(value = '') {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -9525,7 +9726,7 @@ function getCardSearchHaystack(card) {
   const optionText = Array.isArray(card?.options)
     ? card.options.map(option => option?.text || '').join('\n')
     : '';
-  return `${card?.prompt || ''}\n${card?.answer || ''}\n${optionText}`.toLowerCase();
+  return normalizeSearchText(`${card?.prompt || ''}\n${card?.answer || ''}\n${optionText}`);
 }
 
 /**
@@ -9537,6 +9738,35 @@ function setTopicSearchMetaText(text = '') {
   const meta = el('topicSearchMeta');
   if (!meta) return;
   meta.textContent = text;
+}
+
+/**
+ * @function setTopicSearchLoading
+ * @description Renders/removes an inline loader inside the search dialog results area.
+ */
+
+function setTopicSearchLoading(active = false, label = 'Searching cards...') {
+  const results = el('topicSearchResults');
+  if (!results) return;
+  if (!active) {
+    results.classList.remove('is-loading');
+    return;
+  }
+  results.classList.add('is-loading');
+  results.innerHTML = '';
+  const loaderWrap = document.createElement('div');
+  loaderWrap.className = 'topic-search-loader-wrap';
+  loaderWrap.setAttribute('role', 'status');
+  loaderWrap.setAttribute('aria-live', 'polite');
+  loaderWrap.innerHTML = `
+    <div class="app-loader-stack" aria-hidden="true">
+      <span class="app-loader-card card-one"></span>
+      <span class="app-loader-card card-two"></span>
+      <span class="app-loader-card card-three"></span>
+    </div>
+    <div class="tiny">${escapeHTML(String(label || '').trim() || 'Searching cards...')}</div>
+  `;
+  results.appendChild(loaderWrap);
 }
 
 /**
@@ -9617,34 +9847,72 @@ async function runTopicSearch() {
   const input = el('topicSearchInput');
   const results = el('topicSearchResults');
   if (!input || !results) return;
+  const searchRunId = ++topicSearchRunId;
 
-  const query = normalizeTopicSearchQuery(input.value);
-  const topics = await getTopicsBySubject(selectedSubject.id);
+  const rawQuery = String(input.value || '').trim();
+  const query = normalizeTopicSearchQuery(rawQuery);
+  const topics = currentSubjectTopics.length
+    ? currentSubjectTopics
+    : await getTopicsBySubject(selectedSubject.id, { uiBlocking: false });
+  if (searchRunId !== topicSearchRunId) return;
   const topicNameById = Object.fromEntries(topics.map(topic => [topic.id, topic.name]));
   const topicIds = new Set(topics.map(topic => topic.id));
 
-  if (!query) {
+  if (!rawQuery || !query) {
+    setTopicSearchLoading(false);
     results.innerHTML = '<div class="tiny">Enter text to search cards in this subject.</div>';
     setTopicSearchMetaText(`Search in ${topics.length} ${topics.length === 1 ? 'topic' : 'topics'}.`);
     return;
   }
 
-  const cards = await getCardsByTopicIds([...topicIds]);
-  const matches = cards.filter(card => getCardSearchHaystack(card).includes(query));
-  matches.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
+  setTopicSearchLoading(true, 'Searching cards...');
+  setTopicSearchMetaText('Searching...');
 
-  results.innerHTML = '';
-  if (!matches.length) {
-    results.innerHTML = '<div class="tiny">No matching cards found.</div>';
-    setTopicSearchMetaText('0 cards found.');
-    return;
+  try {
+    const cardRefs = await searchCardRefsByTopicIds([...topicIds], rawQuery, {
+      uiBlocking: false,
+      payloadLabel: 'topic-search-refs'
+    });
+    if (searchRunId !== topicSearchRunId) return;
+    const cardIds = cardRefs
+      .map(ref => String(ref?.id || '').trim())
+      .filter(Boolean);
+
+    if (!cardIds.length) {
+      results.classList.remove('is-loading');
+      results.innerHTML = '<div class="tiny">No matching cards found.</div>';
+      setTopicSearchMetaText('0 cards found.');
+      return;
+    }
+
+    const cards = await getCardsByCardIds(cardIds, {
+      uiBlocking: false,
+      payloadLabel: 'topic-search-cards-by-id'
+    });
+    if (searchRunId !== topicSearchRunId) return;
+    const matches = cards.filter(card => topicIds.has(String(card?.topicId || '').trim()));
+    matches.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
+
+    results.classList.remove('is-loading');
+    results.innerHTML = '';
+    if (!matches.length) {
+      results.innerHTML = '<div class="tiny">No matching cards found.</div>';
+      setTopicSearchMetaText('0 cards found.');
+      return;
+    }
+
+    matches.forEach(card => {
+      results.appendChild(buildTopicSearchResultCard(card, topicNameById[card.topicId] || 'Unknown topic'));
+    });
+    const cardWord = matches.length === 1 ? 'card' : 'cards';
+    setTopicSearchMetaText(`${matches.length} ${cardWord} found.`);
+  } catch (err) {
+    if (searchRunId !== topicSearchRunId) return;
+    results.classList.remove('is-loading');
+    results.innerHTML = '<div class="tiny">Search failed. Please try again.</div>';
+    setTopicSearchMetaText('Search failed due to a network/backend error.');
+    console.error('Topic search failed:', err);
   }
-
-  matches.forEach(card => {
-    results.appendChild(buildTopicSearchResultCard(card, topicNameById[card.topicId] || 'Unknown topic'));
-  });
-  const cardWord = matches.length === 1 ? 'card' : 'cards';
-  setTopicSearchMetaText(`${matches.length} ${cardWord} found.`);
 }
 
 /**
@@ -9657,11 +9925,13 @@ async function openTopicSearchModal() {
     alert('Pick a subject first.');
     return;
   }
+  topicSearchRunId += 1;
   const dialog = el('topicSearchDialog');
   const input = el('topicSearchInput');
   const results = el('topicSearchResults');
   if (!dialog || !input || !results) return;
   input.value = '';
+  results.classList.remove('is-loading');
   results.innerHTML = '';
   setTopicSearchMetaText('Enter text to search in question and answer fields.');
   showDialog(dialog);
@@ -11757,8 +12027,16 @@ async function boot() {
       loadTopics();
     };
   }
+  const selectAllBulkTopicsBtn = el('selectAllBulkTopicsBtn');
+  if (selectAllBulkTopicsBtn) selectAllBulkTopicsBtn.onclick = toggleAllTopicsForBulk;
   const deleteSelectedTopicsBtn = el('deleteSelectedTopicsBtn');
   if (deleteSelectedTopicsBtn) deleteSelectedTopicsBtn.onclick = deleteSelectedTopics;
+  const selectAllSessionTopicsBtn = el('selectAllSessionTopicsBtn');
+  if (selectAllSessionTopicsBtn) {
+    selectAllSessionTopicsBtn.onclick = () => {
+      void selectAllTopicsForSession();
+    };
+  }
   const moveSelectedTopicsBtn = el('moveSelectedTopicsBtn');
   if (moveSelectedTopicsBtn) moveSelectedTopicsBtn.onclick = openMoveTopicsDialog;
   const confirmMoveTopicsBtn = el('confirmMoveTopicsBtn');
