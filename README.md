@@ -1,17 +1,57 @@
 # Flashcards
 
-Self-hosted flashcard web app for engineering students. The app serves from your laptop and uses a shared SQLite database so phone/iPad/laptop all use the same data.
+Flashcard web app for engineering students using Supabase.
 
 **Quick Start**
 
-1. Start the server:
-   ```bash
-   python3 server.py --host 0.0.0.0 --port 8000
+1. Host the static files (`index.html`, `app.js`, `styles.css`, `icons/`) on HTTPS (e.g. GitHub Pages).
+2. Open the hosted URL in browser.
+3. Set Supabase config in `index.html`:
+   ```html
+   <script>
+     window.__SUPABASE_URL__ = 'https://YOUR_PROJECT_ID.supabase.co';
+     window.__SUPABASE_ANON_KEY__ = 'YOUR_SUPABASE_ANON_KEY';
+   </script>
    ```
-2. Open `http://127.0.0.1:8000` on your laptop.
-3. On phone/iPad, connect to the same Wi-Fi and open:
-   - `http://<your-laptop-lan-ip>:8000`
-4. Keep the server process running while you study.
+4. Create table `records` in Supabase SQL editor:
+   ```sql
+   create table if not exists public.records (
+     store text not null,
+     record_key text not null,
+     payload jsonb not null,
+     updated_at timestamptz not null default now(),
+     primary key (store, record_key)
+   );
+   create index if not exists records_store_updated_idx on public.records (store, updated_at);
+   ```
+5. Enable RLS + policies for browser access (no login flow):
+   ```sql
+   alter table public.records enable row level security;
+
+   create policy "records_select_anon" on public.records
+     for select to anon using (true);
+
+   create policy "records_insert_anon" on public.records
+     for insert to anon with check (true);
+
+   create policy "records_update_anon" on public.records
+     for update to anon using (true) with check (true);
+
+   create policy "records_delete_anon" on public.records
+     for delete to anon using (true);
+   ```
+6. Open the hosted URL in browser.
+
+**One-Time Migration (SQLite -> Supabase)**
+
+```bash
+python3 scripts/migrate_sqlite_to_supabase.py \
+  --url https://ioizksaimszcsqkwqkhn.supabase.co \
+  --key YOUR_SUPABASE_KEY
+```
+
+Use `--dry-run` first to validate row counts without uploading.
+If your local Python TLS trust store is broken, add `--insecure` for migration only.
 
 **How To Use**
 
@@ -23,7 +63,7 @@ Self-hosted flashcard web app for engineering students. The app serves from your
    - In a Topic, add cards as either:
      - **Q&A** (front/back)
      - **Multi-select MCQ** (prefix correct options with `*`)
-   - Optionally attach an image (stored in SQLite).
+   - Optionally attach an image (stored in the card record payload as base64).
 
 3. **Study Session**
    - Start a session from the Topic view.
@@ -42,11 +82,11 @@ Self-hosted flashcard web app for engineering students. The app serves from your
 5. **Export / Import**
    - **Export JSON** for full backup of subjects, topics, cards, and progress.
    - **Export CSV** for cards only.
-   - **Import JSON** to restore data into the shared database.
+- **Import JSON** to restore data into the shared database.
 
 **Notes**
 
-- Data is stored in `flashcards.sqlite3` next to the app files.
-- If phone/iPad cannot connect, check laptop firewall settings for inbound connections on port `8000`.
-- The app now keeps a local offline cache of loaded API data and queues writes while the server is unreachable. Once the server is back, queued changes are synced automatically.
-- Full app-shell offline loading via Service Worker works only in secure contexts (`https://` or `http://localhost`). On plain LAN HTTP (`http://192.168.x.x:8000`), browser Service Worker restrictions may apply.
+- Data is stored in Supabase table `records` (JSON payload per key).
+- Card images are stored inside card payloads (base64). Keep image size small.
+- The app keeps a local offline cache of loaded data and queues writes while network is unavailable.
+- Full app-shell offline loading via Service Worker works in secure contexts (`https://` or `http://localhost`).
