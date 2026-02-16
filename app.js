@@ -20,6 +20,8 @@ let selectedTopicIds = new Set();
 let sessionSize = 15;
 let availableSessionCards = 0;
 let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeMap: {}, mode: 'default' };
+const SESSION_IMAGE_PRELOAD_CACHE_MAX = 256;
+const sessionImagePreloadCache = new Map();
 let editingCardId = null;
 let editingCardSnapshot = null;
 let editingSubjectId = null;
@@ -219,10 +221,13 @@ let subjectDirectoryById = new Map();
 let topicDirectoryReady = false;
 let topicPrefetchRunId = 0;
 let sessionMetaRefreshRunId = 0;
+let sessionMetaLoadingCount = 0;
 let supabaseInitPromise = null;
 let supabaseClient = null;
 const progressPersistInFlightByCardId = new Map();
 let appLoadingOverlayCount = 0;
+let appLoadingDebugPinned = false;
+let reviewTraceRunCounter = 0;
 
 const el = id => document.getElementById(id);
 
@@ -249,6 +254,44 @@ function setAppLoadingState(active = false, label = 'Loading...') {
   overlay.classList.remove('is-visible');
   overlay.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('app-loading');
+}
+
+/**
+ * @function openDebugLoadingOverlay
+ * @description Shows the loader overlay in pinned debug mode until manually dismissed.
+ */
+
+function openDebugLoadingOverlay() {
+  if (appLoadingDebugPinned) return;
+  appLoadingDebugPinned = true;
+  setAppLoadingState(true, 'Loader debug (Esc to close)');
+}
+
+/**
+ * @function closeDebugLoadingOverlay
+ * @description Closes the pinned loader debug overlay.
+ */
+
+function closeDebugLoadingOverlay() {
+  if (!appLoadingDebugPinned) return;
+  appLoadingDebugPinned = false;
+  setAppLoadingState(false);
+}
+
+/**
+ * @function logReviewTrace
+ * @description Logs structured timing output for daily review loading/debug.
+ */
+
+function logReviewTrace(runId, step, startedAtMs, extra = {}) {
+  const durationMs = Math.max(0, performance.now() - startedAtMs);
+  const payload = {
+    run: runId,
+    step,
+    ms: Number(durationMs.toFixed(1)),
+    ...extra
+  };
+  console.log('[REVIEW-TRACE]', payload);
 }
 
 // ============================================================================
@@ -884,7 +927,8 @@ function queueProgressRecordPersist(record = null) {
       try {
         await put('progress', payload, {
           skipFlushPending: true,
-          invalidate: 'progress'
+          invalidate: 'progress',
+          uiBlocking: false
         });
       } catch (err) {
         console.warn('Failed to persist progress update:', err);
@@ -912,7 +956,10 @@ async function recordCardProgress(cardId, grade, options = {}) {
   const masteryTarget = Number.isFinite(masteryTargetRaw)
     ? Math.max(1, Math.trunc(masteryTargetRaw))
     : 3;
-  await ensureProgressForCardIds([cardId], { payloadLabel: 'progress-update' });
+  await ensureProgressForCardIds([cardId], {
+    payloadLabel: 'progress-update',
+    uiBlocking: false
+  });
   const nowIso = new Date().toISOString();
   const todayKey = getTodayKey();
   const record = normalizeProgressRecord(progressByCardId.get(cardId), cardId);
@@ -1015,9 +1062,13 @@ function requiresProgressForSessionFilter(filters = sessionFilterState) {
  * @description Returns eligible card IDs (stats-only path) for selected topics without loading full card payloads.
  */
 
-async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFilterState) {
+async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFilterState, options = {}) {
   if (!Array.isArray(topicIds) || !topicIds.length) return [];
-  const refs = await getCardRefsByTopicIds(topicIds, { payloadLabel: 'session-refs' });
+  const opts = options && typeof options === 'object' ? options : {};
+  const refs = await getCardRefsByTopicIds(topicIds, {
+    ...opts,
+    payloadLabel: String(opts.payloadLabel || 'session-refs')
+  });
   if (!refs.length) return [];
   const ids = Array.from(new Set(
     refs.map(ref => String(ref?.id || '').trim()).filter(Boolean)
@@ -1026,7 +1077,10 @@ async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFi
   if (!requiresProgressForSessionFilter(filters)) {
     return ids;
   }
-  await ensureProgressForCardIds(ids, { payloadLabel: 'session-progress' });
+  await ensureProgressForCardIds(ids, {
+    ...opts,
+    payloadLabel: String(opts.progressPayloadLabel || 'session-progress')
+  });
   return ids.filter(cardId => cardMatchesSessionFilter(cardId, filters));
 }
 
@@ -1910,11 +1964,25 @@ function renderDailyReviewPanelSummary() {
  * @description Builds Daily Review panel data (counts, topic groups, and status filters).
  */
 
-async function prepareDailyReviewState() {
+async function prepareDailyReviewState(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking === true;
+  const traceRunId = Number(opts.traceRunId || 0);
+  const traceStartedAt = Number(opts.traceStartedAt || 0);
+  const traceEnabled = traceRunId > 0 && Number.isFinite(traceStartedAt) && traceStartedAt > 0;
   resetDailyReviewState();
+  if (traceEnabled) logReviewTrace(traceRunId, 'reset-state', traceStartedAt);
   const yesterdayKey = getDayKeyByOffset(-1);
   const todayKey = getTodayKey();
-  const progressRecords = await getAll('progress');
+  const progressRecords = await getAll('progress', {
+    uiBlocking,
+    loadingLabel: 'Loading review progress...'
+  });
+  if (traceEnabled) {
+    logReviewTrace(traceRunId, 'progress-loaded', traceStartedAt, {
+      rows: Array.isArray(progressRecords) ? progressRecords.length : 0
+    });
+  }
   const rows = Array.isArray(progressRecords) ? progressRecords : [];
   const todayStats = buildDailyReviewTodayStats(rows, todayKey);
 
@@ -1950,13 +2018,39 @@ async function prepareDailyReviewState() {
   });
 
   const uniqueCardIds = Array.from(new Set(answeredCardIds));
+  if (traceEnabled) {
+    logReviewTrace(traceRunId, 'review-candidates-derived', traceStartedAt, {
+      uniqueCardIds: uniqueCardIds.length
+    });
+  }
   const cardsByTopicId = new Map();
   let topics = [];
   if (uniqueCardIds.length) {
-    await preloadTopicDirectory();
-    const cardRefs = await getCardRefsByCardIds(uniqueCardIds, { payloadLabel: 'daily-review-candidate-refs' });
+    await preloadTopicDirectory({
+      uiBlocking,
+      loadingLabel: 'Loading topics...'
+    });
+    if (traceEnabled) logReviewTrace(traceRunId, 'topic-directory-loaded', traceStartedAt);
+    const cardRefs = await getCardRefsByCardIds(uniqueCardIds, {
+      payloadLabel: 'daily-review-candidate-refs',
+      uiBlocking,
+      loadingLabel: 'Loading review cards...'
+    });
+    if (traceEnabled) {
+      logReviewTrace(traceRunId, 'card-refs-loaded', traceStartedAt, {
+        refs: cardRefs.length
+      });
+    }
     if (cardRefs.length) {
-      const subjects = await getAll('subjects');
+      const subjects = await getAll('subjects', {
+        uiBlocking,
+        loadingLabel: 'Loading subjects...'
+      });
+      if (traceEnabled) {
+        logReviewTrace(traceRunId, 'subjects-loaded', traceStartedAt, {
+          subjects: Array.isArray(subjects) ? subjects.length : 0
+        });
+      }
       const subjectMetaById = new Map(
         subjects.map(subject => {
           const id = String(subject?.id || '').trim();
@@ -2018,6 +2112,12 @@ async function prepareDailyReviewState() {
     totalCards,
     size: totalCards > 0 ? Math.min(DAILY_REVIEW_DEFAULT_SIZE, totalCards) : 0
   };
+  if (traceEnabled) {
+    logReviewTrace(traceRunId, 'state-ready', traceStartedAt, {
+      topics: topics.length,
+      totalCards
+    });
+  }
   return true;
 }
 
@@ -2030,15 +2130,65 @@ async function refreshDailyReviewHomePanel(options = {}) {
   const panel = el('dailyReviewHomePanel');
   if (!panel) return;
   const opts = options && typeof options === 'object' ? options : {};
+  const traceEnabled = opts.trace !== false;
+  const traceRunId = traceEnabled ? ++reviewTraceRunCounter : 0;
+  const traceStartedAt = performance.now();
   const shouldReuseExisting = !!opts.useExisting && dailyReviewState.ready;
-  if (!shouldReuseExisting) {
-    const ready = await prepareDailyReviewState();
-    panel.classList.toggle('hidden', !ready);
-    if (!ready) return;
-  } else {
-    panel.classList.remove('hidden');
+  let localLoaderShown = false;
+  if (traceEnabled) {
+    logReviewTrace(traceRunId, 'refresh-start', traceStartedAt, {
+      useExisting: !!opts.useExisting,
+      hasCachedState: !!dailyReviewState.ready
+    });
   }
-  renderDailyReviewPanelSummary();
+  if (!shouldReuseExisting && !appLoadingDebugPinned) {
+    setAppLoadingState(true, 'Loading daily review...');
+    localLoaderShown = true;
+    if (traceEnabled) logReviewTrace(traceRunId, 'overlay-shown', traceStartedAt);
+  }
+  try {
+    if (!shouldReuseExisting) {
+      const ready = await prepareDailyReviewState({
+        uiBlocking: false,
+        traceRunId,
+        traceStartedAt
+      });
+      panel.classList.toggle('hidden', !ready);
+      if (!ready) {
+        if (traceEnabled) logReviewTrace(traceRunId, 'not-ready', traceStartedAt);
+        return;
+      }
+    } else {
+      panel.classList.remove('hidden');
+      if (traceEnabled) {
+        logReviewTrace(traceRunId, 'reuse-existing-state', traceStartedAt, {
+          topics: dailyReviewState.topics.length,
+          totalCards: dailyReviewState.totalCards
+        });
+      }
+    }
+    renderDailyReviewPanelSummary();
+    if (traceEnabled) {
+      logReviewTrace(traceRunId, 'summary-rendered', traceStartedAt, {
+        selectedTopics: dailyReviewState.selectedTopicIds?.size || 0,
+        visibleCards: getDailyReviewSelectedCardIds().length
+      });
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (traceEnabled) {
+      logReviewTrace(traceRunId, 'panel-fully-displayed', traceStartedAt, {
+        isHidden: panel.classList.contains('hidden'),
+        totalCards: dailyReviewState.totalCards,
+        topics: dailyReviewState.topics.length
+      });
+    }
+  } finally {
+    if (localLoaderShown) {
+      setAppLoadingState(false);
+      localLoaderShown = false;
+      if (traceEnabled) logReviewTrace(traceRunId, 'overlay-hidden', traceStartedAt);
+    }
+  }
 }
 
 /**
@@ -3175,6 +3325,22 @@ function parseApiBody(raw = null) {
 }
 
 /**
+ * @function getLoadingLabelForApiPath
+ * @description Returns a human-readable loading label for a given API route.
+ */
+
+function getLoadingLabelForApiPath(path = '') {
+  const route = getApiRouteFromPath(path);
+  if (route === `${API_BASE}/subjects`) return 'Loading subjects...';
+  if (route === `${API_BASE}/topics`) return 'Loading topics...';
+  if (route === `${API_BASE}/cards`) return 'Loading cards...';
+  if (route === `${API_BASE}/progress`) return 'Loading progress...';
+  if (route === `${API_BASE}/stats`) return 'Loading overview...';
+  if (route === `${API_BASE}/health`) return 'Connecting...';
+  return 'Loading...';
+}
+
+/**
  * @function assertSupabaseSuccess
  * @description Throws a normalized error when a Supabase response contains an error object.
  */
@@ -3469,6 +3635,17 @@ async function queryStatsSupabase() {
  */
 
 async function apiRequest(path, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking === true && !appLoadingDebugPinned;
+  const loadingLabel = String(opts.loadingLabel || '').trim() || getLoadingLabelForApiPath(path);
+  let loadingTimer = null;
+  let loadingShown = false;
+  if (uiBlocking) {
+    loadingTimer = setTimeout(() => {
+      loadingShown = true;
+      setAppLoadingState(true, loadingLabel);
+    }, 140);
+  }
   try {
     await initSupabaseBackend();
   } catch (err) {
@@ -3572,6 +3749,9 @@ async function apiRequest(path, options = {}) {
     throw error;
   } catch (err) {
     throw toNetworkError(err, 'Network error: Supabase request failed.');
+  } finally {
+    if (loadingTimer) clearTimeout(loadingTimer);
+    if (loadingShown) setAppLoadingState(false);
   }
 }
 
@@ -3627,6 +3807,8 @@ async function put(store, value, options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const skipFlushPending = !!opts.skipFlushPending;
   const invalidateScope = opts.invalidate === undefined ? store : opts.invalidate;
+  const uiBlocking = opts.uiBlocking !== false;
+  const loadingLabel = String(opts.loadingLabel || '').trim() || `Saving ${store}...`;
   const keyField = getStoreKeyField(store);
   if (!keyField) throw new Error(`Unknown store: ${store}`);
   const key = value?.[keyField];
@@ -3636,7 +3818,9 @@ async function put(store, value, options = {}) {
   try {
     await apiRequest(`${API_BASE}/${encodeURIComponent(store)}`, {
       method: 'PUT',
-      body: JSON.stringify(value)
+      body: JSON.stringify(value),
+      uiBlocking,
+      loadingLabel
     });
     dbReady = true;
     setOfflineModeUi(false);
@@ -3662,8 +3846,8 @@ async function put(store, value, options = {}) {
  * @description Handles put card bank logic.
  */
 
-async function putCardBank(value) {
-  return put('cardbank', value);
+async function putCardBank(value, options = {}) {
+  return put('cardbank', value, options);
 }
 
 /**
@@ -3675,13 +3859,17 @@ async function del(store, key, options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const skipFlushPending = !!opts.skipFlushPending;
   const invalidateScope = opts.invalidate === undefined ? store : opts.invalidate;
+  const uiBlocking = opts.uiBlocking !== false;
+  const loadingLabel = String(opts.loadingLabel || '').trim() || `Updating ${store}...`;
   const keyField = getStoreKeyField(store);
   if (!keyField) throw new Error(`Unknown store: ${store}`);
   const safeKey = String(key ?? '').trim();
   if (!safeKey) return;
   try {
     await apiRequest(`${API_BASE}/${encodeURIComponent(store)}/${encodeURIComponent(safeKey)}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      uiBlocking,
+      loadingLabel
     });
     dbReady = true;
     setOfflineModeUi(false);
@@ -3709,6 +3897,8 @@ async function del(store, key, options = {}) {
 async function getAll(store, options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const force = !!opts.force;
+  const uiBlocking = opts.uiBlocking !== false;
+  const loadingLabel = String(opts.loadingLabel || '').trim();
   const keyField = getStoreKeyField(store);
   if (!keyField) throw new Error(`Unknown store: ${store}`);
   const ttlMs = Number(API_STORE_CACHE_TTL_BY_STORE[store] ?? API_STORE_CACHE_DEFAULT_TTL_MS);
@@ -3724,7 +3914,10 @@ async function getAll(store, options = {}) {
 
   const requestPromise = (async () => {
     try {
-      const data = await apiRequest(`${API_BASE}/${encodeURIComponent(store)}`);
+      const data = await apiRequest(`${API_BASE}/${encodeURIComponent(store)}`, {
+        uiBlocking,
+        loadingLabel: loadingLabel || getLoadingLabelForApiPath(`${API_BASE}/${encodeURIComponent(store)}`)
+      });
       const records = Array.isArray(data) ? data : [];
       apiStoreCache.set(store, { ts: Date.now(), data: records });
       await writeOfflineCache(getOfflineStoreCacheKey(store), records);
@@ -3809,6 +4002,8 @@ function getOfflineDefaultForRoute(route = '') {
 async function getCachedApiQuery(path, options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const force = !!opts.force;
+  const uiBlocking = opts.uiBlocking !== false;
+  const loadingLabel = String(opts.loadingLabel || '').trim();
   const cacheKey = String(opts.cacheKey || path);
   const route = getApiRouteFromPath(path);
   const ttlMs = Number(opts.ttlMs ?? API_QUERY_CACHE_TTL_BY_ROUTE[route] ?? API_QUERY_CACHE_DEFAULT_TTL_MS);
@@ -3822,7 +4017,10 @@ async function getCachedApiQuery(path, options = {}) {
   }
   const requestPromise = (async () => {
     try {
-      const data = await apiRequest(path);
+      const data = await apiRequest(path, {
+        uiBlocking,
+        loadingLabel: loadingLabel || getLoadingLabelForApiPath(path)
+      });
       apiQueryCache.set(cacheKey, { ts: Date.now(), data });
       await writeOfflineCache(getOfflineQueryCacheKey(cacheKey), data);
       dbReady = true;
@@ -3933,7 +4131,11 @@ async function getTopicsBySubject(subjectId, options = {}) {
   const id = String(subjectId || '').trim();
   if (!id) return [];
   const opts = options && typeof options === 'object' ? options : {};
-  await preloadTopicDirectory({ force: !!opts.force });
+  await preloadTopicDirectory({
+    force: !!opts.force,
+    uiBlocking: opts.uiBlocking,
+    loadingLabel: opts.loadingLabel
+  });
   const scoped = topicDirectoryBySubject.get(id) || [];
   return cloneData(scoped);
 }
@@ -4085,7 +4287,7 @@ function prefetchSessionTopicCardsInBackground(topicIds = [], subjectId = '') {
     if (cacheKey && apiQueryCache.has(cacheKey)) return;
     const topic = topicDirectoryById.get(topicId) || null;
     const payloadLabel = `${topicTraceLabel(topic)}-session-prefetch`;
-    void getCardsByTopicIds([topicId], { payloadLabel }).catch(() => {
+    void getCardsByTopicIds([topicId], { payloadLabel, uiBlocking: false }).catch(() => {
       // Keep prefetch best-effort; session start can still fetch on demand.
     });
   });
@@ -4123,7 +4325,7 @@ async function prefetchSubjectTopicCards(topics = [], subjectId = '') {
     const cacheKey = buildTopicCardsCacheKey(topicId);
     if (cacheKey && apiQueryCache.has(cacheKey)) continue;
     try {
-      await getCardsByTopicIds([topicId], { payloadLabel: topicTraceLabel(topic) });
+      await getCardsByTopicIds([topicId], { payloadLabel: topicTraceLabel(topic), uiBlocking: false });
     } catch (_) {
       // Keep prefetch best-effort to avoid blocking UI workflows.
     }
@@ -5061,6 +5263,90 @@ function getCardImageList(card, side = 'Q') {
 }
 
 /**
+ * @function resetSessionImagePreloadCache
+ * @description Clears the in-memory image preload cache used to warm upcoming study cards.
+ */
+
+function resetSessionImagePreloadCache() {
+  sessionImagePreloadCache.clear();
+}
+
+/**
+ * @function preloadSessionImageSource
+ * @description Preloads one image source so the next study cards render without image decode lag.
+ */
+
+function preloadSessionImageSource(src = '') {
+  const key = String(src || '').trim();
+  if (!key) return Promise.resolve(false);
+  const cached = sessionImagePreloadCache.get(key);
+  if (cached) return cached;
+
+  if (sessionImagePreloadCache.size >= SESSION_IMAGE_PRELOAD_CACHE_MAX) {
+    const oldestKey = sessionImagePreloadCache.keys().next().value;
+    if (oldestKey) sessionImagePreloadCache.delete(oldestKey);
+  }
+
+  const preloadPromise = new Promise(resolve => {
+    const img = new Image();
+    let settled = false;
+    const finish = ok => {
+      if (settled) return;
+      settled = true;
+      img.onload = null;
+      img.onerror = null;
+      resolve(!!ok);
+    };
+    img.onload = () => finish(true);
+    img.onerror = () => finish(false);
+    img.decoding = 'async';
+    img.src = key;
+    if (typeof img.decode === 'function') {
+      img.decode().then(() => finish(true)).catch(() => {
+        // Keep onload/onerror fallback active.
+      });
+    }
+    setTimeout(() => finish(false), 10000);
+  });
+
+  sessionImagePreloadCache.set(key, preloadPromise);
+  return preloadPromise;
+}
+
+/**
+ * @function warmSessionCardAssets
+ * @description Starts background preload for all images used by one study card.
+ */
+
+function warmSessionCardAssets(card = null) {
+  if (!card || typeof card !== 'object') return;
+  const allImages = normalizeImageList([
+    ...getCardImageList(card, 'Q'),
+    ...getCardImageList(card, 'A')
+  ]);
+  allImages.forEach(src => {
+    void preloadSessionImageSource(src);
+  });
+}
+
+/**
+ * @function warmUpcomingSessionCards
+ * @description Preloads current/next study cards so flips and transitions feel instant.
+ */
+
+function warmUpcomingSessionCards(lookAhead = 2) {
+  const queue = Array.isArray(session?.activeQueue) ? session.activeQueue : [];
+  if (!queue.length) return;
+  const safeLookAhead = Number.isFinite(Number(lookAhead))
+    ? Math.max(0, Math.trunc(Number(lookAhead)))
+    : 2;
+  const maxIdx = Math.min(queue.length - 1, safeLookAhead);
+  for (let idx = 0; idx <= maxIdx; idx += 1) {
+    warmSessionCardAssets(queue[idx]);
+  }
+}
+
+/**
  * @function getFieldImageList
  * @description Returns the field image list.
  */
@@ -5493,12 +5779,19 @@ function buildSubjectRecord(subject = {}, overrides = {}, nowIso = new Date().to
  * @description Handles touch subject logic.
  */
 
-async function touchSubject(subjectId, whenIso = new Date().toISOString()) {
+async function touchSubject(subjectId, whenIso = new Date().toISOString(), options = {}) {
   if (!subjectId) return;
-  const subject = (await getAll('subjects')).find(s => s.id === subjectId);
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const subject = subjectDirectoryById.get(subjectId)
+    || (await getAll('subjects', { uiBlocking })).find(s => s.id === subjectId);
   if (!subject) return;
   const updatedSubject = buildSubjectRecord(subject, {}, whenIso);
-  await put('subjects', updatedSubject);
+  await put('subjects', updatedSubject, { uiBlocking });
+  subjectDirectoryById.set(subjectId, {
+    ...updatedSubject,
+    accent: normalizeHexColor(updatedSubject?.accent || '#2dd4bf')
+  });
   if (selectedSubject?.id === subjectId) {
     selectedSubject = { ...selectedSubject, ...updatedSubject };
   }
@@ -5509,11 +5802,13 @@ async function touchSubject(subjectId, whenIso = new Date().toISOString()) {
  * @description Finds touch subject by topic ID.
  */
 
-async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString()) {
+async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString(), options = {}) {
   if (!topicId) return;
-  const topic = await getById('topics', topicId);
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const topic = await getById('topics', topicId, { uiBlocking });
   if (!topic?.subjectId) return;
-  await touchSubject(topic.subjectId, whenIso);
+  await touchSubject(topic.subjectId, whenIso, { uiBlocking });
 }
 
 /**
@@ -5521,8 +5816,13 @@ async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString()
  * @description Loads and renders the sidebar subject list with sorting and accent colors.
  */
 
-async function refreshSidebar() {
-  const subjects = sortSubjectsByLastEdited(await getAll('subjects'));
+async function refreshSidebar(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const subjects = sortSubjectsByLastEdited(await getAll('subjects', {
+    uiBlocking,
+    loadingLabel: 'Loading subjects...'
+  }));
   rebuildSubjectDirectory(subjects);
   const list = el('subjectList');
   list.innerHTML = '';
@@ -5565,7 +5865,7 @@ async function refreshSidebar() {
     }
     list.appendChild(chip);
   });
-  const stats = await getStats();
+  const stats = await getStats({ uiBlocking, loadingLabel: 'Loading overview...' });
   const summarySubjectsEl = el('summarySubjects');
   const summaryTopicsEl = el('summaryTopics');
   const summaryCardsEl = el('summaryCards');
@@ -5573,7 +5873,7 @@ async function refreshSidebar() {
   if (summaryTopicsEl) summaryTopicsEl.textContent = `${stats.topics} Topics`;
   if (summaryCardsEl) summaryCardsEl.textContent = `${stats.cards} Cards`;
   applySubjectTheme(selectedSubject?.accent || '#2dd4bf');
-  loadHomeTopics();
+  loadHomeTopics({ uiBlocking });
 }
 
 /**
@@ -5581,14 +5881,16 @@ async function refreshSidebar() {
  * @description Loads home topics.
  */
 
-async function loadHomeTopics() {
+async function loadHomeTopics(options = {}) {
   const wrap = el('homeTopics');
   if (!wrap) return;
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
   if (!selectedSubject) {
     wrap.innerHTML = '<div class="tiny">Select a subject from the sidebar to drill down.</div>';
     return;
   }
-  const topics = await getTopicsBySubject(selectedSubject.id);
+  const topics = await getTopicsBySubject(selectedSubject.id, { uiBlocking });
   if (!topics.length) {
     wrap.innerHTML = '<div class="tiny">No topics yet.</div>';
     return;
@@ -5619,8 +5921,61 @@ async function loadHomeTopics() {
 function renderSessionSizeCounter() {
   const valueEl = el('sessionSizeValue');
   if (!valueEl) return;
+  let textEl = valueEl.querySelector('.session-size-value-text');
+  if (!textEl) {
+    const initialText = String(valueEl.textContent || '').trim();
+    valueEl.textContent = '';
+    textEl = document.createElement('span');
+    textEl.className = 'session-size-value-text';
+    textEl.textContent = initialText || '0 / 0';
+    valueEl.appendChild(textEl);
+  }
   const current = availableSessionCards > 0 ? sessionSize : 0;
-  valueEl.textContent = `${current} / ${availableSessionCards}`;
+  textEl.textContent = `${current} / ${availableSessionCards}`;
+}
+
+/**
+ * @function setSessionMetaLoading
+ * @description Toggles a local loading state only for the session-size counter area.
+ */
+
+function setSessionMetaLoading(active = false) {
+  const valueEl = el('sessionSizeValue');
+  if (!valueEl) return;
+  if (!valueEl.querySelector('.session-size-loader')) {
+    const loader = document.createElement('div');
+    loader.className = 'session-size-loader';
+    loader.setAttribute('aria-hidden', 'true');
+    loader.innerHTML = `
+      <div class="app-loader-stack">
+        <span class="app-loader-card card-one"></span>
+        <span class="app-loader-card card-two"></span>
+        <span class="app-loader-card card-three"></span>
+      </div>
+    `;
+    valueEl.appendChild(loader);
+  }
+  if (active) {
+    sessionMetaLoadingCount += 1;
+  } else {
+    sessionMetaLoadingCount = Math.max(0, sessionMetaLoadingCount - 1);
+  }
+  const isLoading = sessionMetaLoadingCount > 0;
+  valueEl.classList.toggle('is-loading', isLoading);
+  valueEl.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+}
+
+/**
+ * @function resetSessionMetaLoading
+ * @description Clears local loading state for the session-size counter area.
+ */
+
+function resetSessionMetaLoading() {
+  sessionMetaLoadingCount = 0;
+  const valueEl = el('sessionSizeValue');
+  if (!valueEl) return;
+  valueEl.classList.remove('is-loading');
+  valueEl.setAttribute('aria-busy', 'false');
 }
 
 /**
@@ -5681,6 +6036,7 @@ function buildSessionCardImage(src, alt = 'Flashcard image') {
 
 async function refreshTopicSessionMeta(topicsForSubject = null) {
   if (!selectedSubject) {
+    resetSessionMetaLoading();
     availableSessionCards = 0;
     sessionSize = 0;
     renderSessionSizeCounter();
@@ -5690,45 +6046,56 @@ async function refreshTopicSessionMeta(topicsForSubject = null) {
 
   const refreshRunId = ++sessionMetaRefreshRunId;
   const refreshSubjectId = String(selectedSubject.id || '').trim();
-  const topics = topicsForSubject || (await getTopicsBySubject(selectedSubject.id));
-  const selectedTopics = topics.filter(t => selectedTopicIds.has(t.id));
-  const selectedTopicLabel = el('selectedTopicsSummary');
-  if (selectedTopicLabel) {
-    selectedTopicLabel.innerHTML = '';
-    if (!selectedTopics.length) {
-      selectedTopicLabel.classList.add('is-empty');
-      selectedTopicLabel.textContent = 'Choose at least one topic below.';
-    } else {
-      selectedTopicLabel.classList.remove('is-empty');
-      selectedTopics.forEach(topic => {
-        const pill = document.createElement('span');
-        pill.className = 'study-topic-pill';
-        const name = String(topic?.name || '').trim() || 'Untitled topic';
-        pill.textContent = name;
-        pill.setAttribute('title', name);
-        selectedTopicLabel.appendChild(pill);
-      });
+  setSessionMetaLoading(true);
+  try {
+    const topics = topicsForSubject || (await getTopicsBySubject(selectedSubject.id, {
+      uiBlocking: false
+    }));
+    const selectedTopics = topics.filter(t => selectedTopicIds.has(t.id));
+    const selectedTopicLabel = el('selectedTopicsSummary');
+    if (selectedTopicLabel) {
+      selectedTopicLabel.innerHTML = '';
+      if (!selectedTopics.length) {
+        selectedTopicLabel.classList.add('is-empty');
+        selectedTopicLabel.textContent = 'Choose at least one topic below.';
+      } else {
+        selectedTopicLabel.classList.remove('is-empty');
+        selectedTopics.forEach(topic => {
+          const pill = document.createElement('span');
+          pill.className = 'study-topic-pill';
+          const name = String(topic?.name || '').trim() || 'Untitled topic';
+          pill.textContent = name;
+          pill.setAttribute('title', name);
+          selectedTopicLabel.appendChild(pill);
+        });
+      }
     }
+
+    const selectedIds = selectedTopics.map(t => t.id);
+    // Load only refs/progress for the count and prefetch full card payloads in background.
+    prefetchSessionTopicCardsInBackground(selectedIds, refreshSubjectId);
+    const eligibleCardIds = await getEligibleSessionCardIdsByTopicIds(selectedIds, sessionFilterState, {
+      uiBlocking: false,
+      payloadLabel: 'session-size-refs',
+      progressPayloadLabel: 'session-size-progress'
+    });
+
+    // Ignore stale async results if user switched subject/topics meanwhile.
+    if (refreshRunId !== sessionMetaRefreshRunId) return;
+    if (!selectedSubject || String(selectedSubject.id || '').trim() !== refreshSubjectId) return;
+
+    availableSessionCards = eligibleCardIds.length;
+    if (availableSessionCards <= 0) sessionSize = 0;
+    else if (sessionSize <= 0) sessionSize = Math.min(15, availableSessionCards);
+    else sessionSize = Math.min(sessionSize, availableSessionCards);
+    renderSessionSizeCounter();
+    renderSessionFilterSummary();
+
+    const startBtn = el('startSessionBtn');
+    if (startBtn) startBtn.disabled = !selectedTopics.length || availableSessionCards <= 0;
+  } finally {
+    setSessionMetaLoading(false);
   }
-
-  const selectedIds = selectedTopics.map(t => t.id);
-  // Load only refs/progress for the count and prefetch full card payloads in background.
-  prefetchSessionTopicCardsInBackground(selectedIds, refreshSubjectId);
-  const eligibleCardIds = await getEligibleSessionCardIdsByTopicIds(selectedIds, sessionFilterState);
-
-  // Ignore stale async results if user switched subject/topics meanwhile.
-  if (refreshRunId !== sessionMetaRefreshRunId) return;
-  if (!selectedSubject || String(selectedSubject.id || '').trim() !== refreshSubjectId) return;
-
-  availableSessionCards = eligibleCardIds.length;
-  if (availableSessionCards <= 0) sessionSize = 0;
-  else if (sessionSize <= 0) sessionSize = Math.min(15, availableSessionCards);
-  else sessionSize = Math.min(sessionSize, availableSessionCards);
-  renderSessionSizeCounter();
-  renderSessionFilterSummary();
-
-  const startBtn = el('startSessionBtn');
-  if (startBtn) startBtn.disabled = !selectedTopics.length || availableSessionCards <= 0;
 }
 
 /**
@@ -9136,6 +9503,94 @@ async function loadEditorCards() {
 // StudySession
 // ============================================================================
 /**
+ * @function shuffleArrayInPlace
+ * @description Randomly shuffles an array in place using Fisher-Yates.
+ */
+
+function shuffleArrayInPlace(items = []) {
+  const arr = Array.isArray(items) ? items : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * @function pickWeightedTopicId
+ * @description Picks one topic ID weighted by remaining bucket size.
+ */
+
+function pickWeightedTopicId(topicIds = [], bucketsByTopicId = new Map()) {
+  const ids = Array.isArray(topicIds) ? topicIds : [];
+  if (!ids.length) return '';
+  let totalWeight = 0;
+  ids.forEach(topicId => {
+    const bucket = bucketsByTopicId.get(topicId);
+    totalWeight += Array.isArray(bucket) ? bucket.length : 0;
+  });
+  if (totalWeight <= 0) return ids[0];
+  let roll = Math.random() * totalWeight;
+  for (const topicId of ids) {
+    const bucket = bucketsByTopicId.get(topicId);
+    const weight = Array.isArray(bucket) ? bucket.length : 0;
+    if (weight <= 0) continue;
+    if (roll < weight) return topicId;
+    roll -= weight;
+  }
+  return ids[ids.length - 1];
+}
+
+/**
+ * @function interleaveCardsByTopic
+ * @description Reorders cards to avoid same-topic streaks when multiple topics are present.
+ */
+
+function interleaveCardsByTopic(cards = []) {
+  const list = Array.isArray(cards) ? cards.filter(Boolean) : [];
+  if (list.length <= 2) return [...list];
+
+  const bucketsByTopicId = new Map();
+  list.forEach(card => {
+    const topicId = String(card?.topicId || '__unknown__').trim() || '__unknown__';
+    if (!bucketsByTopicId.has(topicId)) bucketsByTopicId.set(topicId, []);
+    bucketsByTopicId.get(topicId).push(card);
+  });
+
+  const topicIds = Array.from(bucketsByTopicId.keys());
+  if (topicIds.length <= 1) {
+    const onlyTopic = [...list];
+    shuffleArrayInPlace(onlyTopic);
+    return onlyTopic;
+  }
+
+  topicIds.forEach(topicId => {
+    shuffleArrayInPlace(bucketsByTopicId.get(topicId));
+  });
+  shuffleArrayInPlace(topicIds);
+
+  const mixed = [];
+  let previousTopicId = '';
+  while (mixed.length < list.length) {
+    const availableTopicIds = topicIds.filter(topicId => {
+      const bucket = bucketsByTopicId.get(topicId);
+      return Array.isArray(bucket) && bucket.length > 0;
+    });
+    if (!availableTopicIds.length) break;
+    const preferredTopicIds = availableTopicIds.filter(topicId => topicId !== previousTopicId);
+    const pool = preferredTopicIds.length ? preferredTopicIds : availableTopicIds;
+    const chosenTopicId = pickWeightedTopicId(pool, bucketsByTopicId);
+    const chosenBucket = bucketsByTopicId.get(chosenTopicId);
+    const nextCard = Array.isArray(chosenBucket) ? chosenBucket.shift() : null;
+    if (!nextCard) break;
+    mixed.push(nextCard);
+    previousTopicId = chosenTopicId;
+  }
+
+  return mixed.length === list.length ? mixed : list;
+}
+
+/**
 * @function startSession
  * @description Builds and starts a study session queue from selected topics, cards, and filters.
  */
@@ -9143,6 +9598,7 @@ async function loadEditorCards() {
 async function startSession(options = {}) {
   if (sessionStartInFlight) return;
   sessionStartInFlight = true;
+  resetSessionImagePreloadCache();
   setAppLoadingState(true, 'Preparing session...');
   try {
     const opts = (options && typeof options === 'object') ? options : {};
@@ -9208,14 +9664,16 @@ async function startSession(options = {}) {
     renderSessionSizeCounter();
     await preloadTopicDirectory();
 
-    const shuffledCardIds = [...eligibleCardIds].sort(() => Math.random() - 0.5).slice(0, sessionSize);
-    const fetchedCards = await getCardsByCardIds(shuffledCardIds, {
+    const randomizedEligibleCardIds = [...eligibleCardIds];
+    shuffleArrayInPlace(randomizedEligibleCardIds);
+    const selectedCardIds = randomizedEligibleCardIds.slice(0, sessionSize);
+    const fetchedCards = await getCardsByCardIds(selectedCardIds, {
       payloadLabel: reviewMode ? 'daily-review-session' : 'session-cards'
     });
     const cardsById = new Map(
       fetchedCards.map(card => [String(card?.id || '').trim(), card])
     );
-    const selectedCards = shuffledCardIds
+    const selectedCards = selectedCardIds
       .map(cardId => cardsById.get(cardId))
       .filter(Boolean);
     if (!selectedCards.length) {
@@ -9225,9 +9683,10 @@ async function startSession(options = {}) {
       );
       return;
     }
+    const mixedCards = interleaveCardsByTopic(selectedCards);
 
     const reviewCardIdSet = new Set(explicitCardIds);
-    const sessionCards = selectedCards.map(card => ({
+    const sessionCards = mixedCards.map(card => ({
       ...card,
       topicName: resolveCardTopicName(card),
       sessionCorrectCount: 0,
@@ -9261,6 +9720,7 @@ async function startSession(options = {}) {
       filters: { ...filterConfig },
       mode: reviewMode ? 'daily-review' : 'default'
     };
+    warmUpcomingSessionCards(2);
     closeDialog(el('sessionCompleteDialog'));
     setDeckTitle(reviewMode ? 'Daily Review' : (selectedSubject?.name || 'Study Session'));
     el('cardsOverviewSection').classList.add('hidden');
@@ -9800,6 +10260,7 @@ async function renderSessionCard() {
   if (swipeBadge) swipeBadge.textContent = '';
   if (!session.activeQueue.length) {
     session.active = false;
+    resetSessionImagePreloadCache();
     syncSidebarHiddenState();
     renderSessionPills();
     await openSessionCompleteDialog();
@@ -9810,6 +10271,7 @@ async function renderSessionCard() {
     return;
   }
   const card = session.activeQueue[0];
+  warmUpcomingSessionCards(2);
   flashcard.classList.remove('flipped');
   renderCardContent(card);
 }
@@ -10436,6 +10898,13 @@ async function boot() {
   wireSwipe();
   wireHapticFeedback();
   wireSidebarSwipeGesture();
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!appLoadingDebugPinned) return;
+    e.preventDefault();
+    e.stopPropagation();
+    closeDebugLoadingOverlay();
+  });
   window.addEventListener('online', () => { void openDB(); });
 
   el('homeBtn').onclick = () => {
@@ -10583,6 +11052,8 @@ async function boot() {
 
   const startDailyReviewBtn = el('startDailyReviewBtn');
   if (startDailyReviewBtn) startDailyReviewBtn.onclick = startDailyReviewFromHomePanel;
+  const debugLoaderBtn = el('debugLoaderBtn');
+  if (debugLoaderBtn) debugLoaderBtn.onclick = openDebugLoadingOverlay;
   const dailyReviewFilterIds = ['dailyReviewFilterGreen', 'dailyReviewFilterYellow', 'dailyReviewFilterRed'];
   dailyReviewFilterIds.forEach(filterId => {
     const input = el(filterId);
@@ -10795,7 +11266,7 @@ async function boot() {
         el('editSessionCardBtn')?.click();
         return;
       }
-      const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
+      const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar' || e.code === 'Numpad0';
       if (!isSpace || e.repeat) return;
       if (!canFlipSessionFlashcard(e.target, { allowButtonTarget: true })) return;
       e.preventDefault();
@@ -11429,13 +11900,13 @@ async function boot() {
     applyCreateOptionsTextAlign('center');
     void (async () => {
       try {
-        await putCardBank(card);
-        if (selectedSubject?.id) await touchSubject(selectedSubject.id);
+        await putCardBank(card, { uiBlocking: false });
+        if (selectedSubject?.id) await touchSubject(selectedSubject.id, undefined, { uiBlocking: false });
       } catch (err) {
         console.warn('Deferred post-create sync failed:', err);
       } finally {
         try {
-          await refreshSidebar();
+          await refreshSidebar({ uiBlocking: false });
           if (selectedTopic?.id === card.topicId) {
             void loadDeck();
             void loadEditorCards();
@@ -11515,14 +11986,14 @@ async function boot() {
 
     void (async () => {
       try {
-        await put('cards', updated);
-        await putCardBank(updated);
-        await touchSubjectByTopicId(updated.topicId);
+        await put('cards', updated, { uiBlocking: false });
+        await putCardBank(updated, { uiBlocking: false });
+        await touchSubjectByTopicId(updated.topicId, undefined, { uiBlocking: false });
       } catch (err) {
         console.warn('Deferred card edit sync failed:', err);
       } finally {
         try {
-          await refreshSidebar();
+          await refreshSidebar({ uiBlocking: false });
           const cardsOverviewSection = el('cardsOverviewSection');
           const cardsOverviewVisible = cardsOverviewSection
             ? !cardsOverviewSection.classList.contains('hidden')
@@ -11551,8 +12022,10 @@ async function boot() {
     if (!loaded) return;
     rerenderAllRichMath();
   });
-  await refreshSidebar();
-  await refreshDailyReviewHomePanel({ useExisting: false });
+  await Promise.all([
+    refreshSidebar(),
+    refreshDailyReviewHomePanel({ useExisting: false })
+  ]);
 }
 
 window.addEventListener('DOMContentLoaded', boot);

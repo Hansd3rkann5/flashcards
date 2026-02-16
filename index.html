@@ -15,12 +15,12 @@
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
-    integrity="sha384-wcIxYkQJvRV6A7vA3HfNdc0AGJi/7luWGINuD/7++UZ5EONosFVJeFt3uTJS3BM4" crossorigin="anonymous">
+    integrity="sha384-CIGaNQlQjmh0mdnW7ufcsOGCO5lCw/pwP5dxgDyVJjwFzJmlsJ4ojIKGJT/PpBb5" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"
-    integrity="sha384-hIoBPJpTUsM8c7kwh28ykVfoCENKz7LxyzKDn5XxhxL7sRKqzZo4PM5XgS5aXoaZ"
+    integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd"
     crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
-    integrity="sha384-hCXGrW6PitU8M1uuvvZp8K4D4ew3Efr2E1VlzDq+W8sELpAo0P5PLf4KJIp4jOSy"
+    integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk"
     crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
@@ -122,6 +122,7 @@
           </div> -->
           <div class="controls" style="margin-top:14px; margin-inline: 0">
             <button class="btn start-daily-review-btn" id="startDailyReviewBtn" type="button">Start Review</button>
+            <!-- <button class="btn debug-loader-btn" id="debugLoaderBtn" type="button">Debug Loader</button> -->
           </div>
         </div>
       </section>
@@ -144,7 +145,16 @@
                 <label>Session Size</label>
                 <div class="counter">
                   <button class="btn counter-btn" id="sessionMinus">-</button>
-                  <div class="counter-value" id="sessionSizeValue">15</div>
+                  <div class="counter-value" id="sessionSizeValue">
+                    <span class="session-size-value-text">15</span>
+                    <div class="session-size-loader" aria-hidden="true">
+                      <div class="app-loader-stack">
+                        <span class="app-loader-card card-one"></span>
+                        <span class="app-loader-card card-two"></span>
+                        <span class="app-loader-card card-three"></span>
+                      </div>
+                    </div>
+                  </div>
                   <button class="btn counter-btn" id="sessionPlus">+</button>
                 </div>
                 <div class="tiny">Pick how many cards to study this session.</div>
