@@ -5983,10 +5983,318 @@ function resetSessionMetaLoading() {
  * @description Opens the study image lightbox.
  */
 
+const studyImageLightboxState = {
+  scale: 1,
+  tx: 0,
+  ty: 0,
+  minScale: 1,
+  maxScale: 4,
+  panStartX: 0,
+  panStartY: 0,
+  startTx: 0,
+  startTy: 0,
+  pinchLastDistance: 0,
+  pinchLastCenterX: 0,
+  pinchLastCenterY: 0,
+  interacting: false,
+  moved: false,
+  ignoreTapUntil: 0
+};
+
+/**
+ * @function clampStudyImageLightboxValue
+ * @description Clamps a lightbox numeric value between min and max.
+ */
+
+function clampStudyImageLightboxValue(value, min, max) {
+  const num = Number.isFinite(value) ? value : min;
+  return Math.min(max, Math.max(min, num));
+}
+
+/**
+ * @function getStudyImageTouchDistance
+ * @description Calculates the distance in pixels between two touch points.
+ */
+
+function getStudyImageTouchDistance(touchA, touchB) {
+  if (!touchA || !touchB) return 0;
+  const dx = touchB.clientX - touchA.clientX;
+  const dy = touchB.clientY - touchA.clientY;
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * @function getStudyImageTouchCenter
+ * @description Calculates the center point between two touch points.
+ */
+
+function getStudyImageTouchCenter(touchA, touchB) {
+  return {
+    x: ((touchA?.clientX || 0) + (touchB?.clientX || 0)) / 2,
+    y: ((touchA?.clientY || 0) + (touchB?.clientY || 0)) / 2
+  };
+}
+
+/**
+ * @function clampStudyImageLightboxPan
+ * @description Clamps panning offsets to keep the zoomed image inside the lightbox viewport.
+ */
+
+function clampStudyImageLightboxPan() {
+  const lightbox = el('sessionImageLightbox');
+  const lightboxImg = el('sessionImageLightboxImg');
+  if (!lightbox || !lightboxImg) return;
+
+  const boxWidth = lightbox.clientWidth;
+  const boxHeight = lightbox.clientHeight;
+  const scaledWidth = lightboxImg.clientWidth * studyImageLightboxState.scale;
+  const scaledHeight = lightboxImg.clientHeight * studyImageLightboxState.scale;
+
+  const maxTx = Math.max(0, (scaledWidth - boxWidth) / 2);
+  const maxTy = Math.max(0, (scaledHeight - boxHeight) / 2);
+  studyImageLightboxState.tx = clampStudyImageLightboxValue(studyImageLightboxState.tx, -maxTx, maxTx);
+  studyImageLightboxState.ty = clampStudyImageLightboxValue(studyImageLightboxState.ty, -maxTy, maxTy);
+}
+
+/**
+ * @function applyStudyImageLightboxTransform
+ * @description Applies the current zoom/pan transform to the lightbox image.
+ */
+
+function applyStudyImageLightboxTransform({ disableTransition = false } = {}) {
+  const lightbox = el('sessionImageLightbox');
+  const lightboxImg = el('sessionImageLightboxImg');
+  if (!lightbox || !lightboxImg) return;
+
+  clampStudyImageLightboxPan();
+  const isZoomed = studyImageLightboxState.scale > 1.001;
+  lightbox.classList.toggle('is-zoomed', isZoomed);
+  lightbox.classList.toggle('is-interacting', studyImageLightboxState.interacting);
+  lightboxImg.style.transition = disableTransition ? 'none' : '';
+  lightboxImg.style.transform = `translate3d(${studyImageLightboxState.tx}px, ${studyImageLightboxState.ty}px, 0) scale(${studyImageLightboxState.scale})`;
+}
+
+/**
+ * @function resetStudyImageLightboxTransform
+ * @description Resets the lightbox image transform to default scale and position.
+ */
+
+function resetStudyImageLightboxTransform({ animate = false } = {}) {
+  studyImageLightboxState.scale = 1;
+  studyImageLightboxState.tx = 0;
+  studyImageLightboxState.ty = 0;
+  studyImageLightboxState.interacting = false;
+  studyImageLightboxState.moved = false;
+  studyImageLightboxState.panStartX = 0;
+  studyImageLightboxState.panStartY = 0;
+  studyImageLightboxState.startTx = 0;
+  studyImageLightboxState.startTy = 0;
+  studyImageLightboxState.pinchLastDistance = 0;
+  studyImageLightboxState.pinchLastCenterX = 0;
+  studyImageLightboxState.pinchLastCenterY = 0;
+  applyStudyImageLightboxTransform({ disableTransition: !animate });
+}
+
+/**
+ * @function zoomStudyImageLightboxAt
+ * @description Zooms the lightbox image around a viewport focal point.
+ */
+
+function zoomStudyImageLightboxAt(nextScale, clientX, clientY) {
+  const lightbox = el('sessionImageLightbox');
+  if (!lightbox) return;
+
+  const prevScale = studyImageLightboxState.scale;
+  const clampedScale = clampStudyImageLightboxValue(nextScale, studyImageLightboxState.minScale, studyImageLightboxState.maxScale);
+  if (Math.abs(clampedScale - prevScale) < 0.0001) return;
+
+  const boxCenterX = lightbox.clientWidth / 2;
+  const boxCenterY = lightbox.clientHeight / 2;
+  const focalX = clientX - boxCenterX;
+  const focalY = clientY - boxCenterY;
+  const ratio = clampedScale / prevScale;
+  studyImageLightboxState.tx = (ratio * studyImageLightboxState.tx) + ((1 - ratio) * focalX);
+  studyImageLightboxState.ty = (ratio * studyImageLightboxState.ty) + ((1 - ratio) * focalY);
+  studyImageLightboxState.scale = clampedScale;
+  applyStudyImageLightboxTransform({ disableTransition: true });
+}
+
+/**
+ * @function handleStudyImageLightboxTouchStart
+ * @description Starts pan/pinch handling for the lightbox image.
+ */
+
+function handleStudyImageLightboxTouchStart(event) {
+  const touches = event.targetTouches;
+  if (!touches?.length) return;
+  event.stopPropagation();
+  studyImageLightboxState.moved = false;
+
+  if (touches.length >= 2) {
+    const center = getStudyImageTouchCenter(touches[0], touches[1]);
+    studyImageLightboxState.pinchLastCenterX = center.x;
+    studyImageLightboxState.pinchLastCenterY = center.y;
+    studyImageLightboxState.pinchLastDistance = getStudyImageTouchDistance(touches[0], touches[1]);
+    studyImageLightboxState.interacting = true;
+    applyStudyImageLightboxTransform({ disableTransition: true });
+    event.preventDefault();
+    return;
+  }
+
+  if (studyImageLightboxState.scale <= 1.001) return;
+  const touch = touches[0];
+  studyImageLightboxState.panStartX = touch.clientX;
+  studyImageLightboxState.panStartY = touch.clientY;
+  studyImageLightboxState.startTx = studyImageLightboxState.tx;
+  studyImageLightboxState.startTy = studyImageLightboxState.ty;
+  studyImageLightboxState.interacting = true;
+  applyStudyImageLightboxTransform({ disableTransition: true });
+  event.preventDefault();
+}
+
+/**
+ * @function handleStudyImageLightboxTouchMove
+ * @description Updates zoom/pan while the user moves touches on the lightbox image.
+ */
+
+function handleStudyImageLightboxTouchMove(event) {
+  const touches = event.targetTouches;
+  if (!touches?.length) return;
+  event.stopPropagation();
+
+  if (touches.length >= 2) {
+    const center = getStudyImageTouchCenter(touches[0], touches[1]);
+    const distance = getStudyImageTouchDistance(touches[0], touches[1]);
+    if (!studyImageLightboxState.pinchLastDistance || !distance) {
+      studyImageLightboxState.pinchLastDistance = distance;
+      studyImageLightboxState.pinchLastCenterX = center.x;
+      studyImageLightboxState.pinchLastCenterY = center.y;
+      event.preventDefault();
+      return;
+    }
+
+    const prevScale = studyImageLightboxState.scale;
+    const scaleFactor = distance / studyImageLightboxState.pinchLastDistance;
+    const nextScale = clampStudyImageLightboxValue(prevScale * scaleFactor, studyImageLightboxState.minScale, studyImageLightboxState.maxScale);
+
+    const lightbox = el('sessionImageLightbox');
+    if (!lightbox) return;
+    const boxCenterX = lightbox.clientWidth / 2;
+    const boxCenterY = lightbox.clientHeight / 2;
+    const focalX = center.x - boxCenterX;
+    const focalY = center.y - boxCenterY;
+    const ratio = nextScale / prevScale;
+    let nextTx = (ratio * studyImageLightboxState.tx) + ((1 - ratio) * focalX);
+    let nextTy = (ratio * studyImageLightboxState.ty) + ((1 - ratio) * focalY);
+    nextTx += center.x - studyImageLightboxState.pinchLastCenterX;
+    nextTy += center.y - studyImageLightboxState.pinchLastCenterY;
+
+    studyImageLightboxState.scale = nextScale;
+    studyImageLightboxState.tx = nextTx;
+    studyImageLightboxState.ty = nextTy;
+    studyImageLightboxState.pinchLastDistance = distance;
+    studyImageLightboxState.pinchLastCenterX = center.x;
+    studyImageLightboxState.pinchLastCenterY = center.y;
+    studyImageLightboxState.moved = true;
+    studyImageLightboxState.interacting = true;
+    applyStudyImageLightboxTransform({ disableTransition: true });
+    event.preventDefault();
+    return;
+  }
+
+  if (studyImageLightboxState.scale <= 1.001) return;
+  const touch = touches[0];
+  const nextTx = studyImageLightboxState.startTx + (touch.clientX - studyImageLightboxState.panStartX);
+  const nextTy = studyImageLightboxState.startTy + (touch.clientY - studyImageLightboxState.panStartY);
+  const movedDistance = Math.hypot(nextTx - studyImageLightboxState.tx, nextTy - studyImageLightboxState.ty);
+  if (movedDistance > 0.4) studyImageLightboxState.moved = true;
+  studyImageLightboxState.tx = nextTx;
+  studyImageLightboxState.ty = nextTy;
+  studyImageLightboxState.interacting = true;
+  applyStudyImageLightboxTransform({ disableTransition: true });
+  event.preventDefault();
+}
+
+/**
+ * @function handleStudyImageLightboxTouchEnd
+ * @description Finalizes touch interaction for the lightbox image.
+ */
+
+function handleStudyImageLightboxTouchEnd(event) {
+  event.stopPropagation();
+  const touches = event.targetTouches || [];
+
+  if (touches.length >= 2) {
+    const center = getStudyImageTouchCenter(touches[0], touches[1]);
+    studyImageLightboxState.pinchLastCenterX = center.x;
+    studyImageLightboxState.pinchLastCenterY = center.y;
+    studyImageLightboxState.pinchLastDistance = getStudyImageTouchDistance(touches[0], touches[1]);
+    studyImageLightboxState.interacting = true;
+    applyStudyImageLightboxTransform({ disableTransition: true });
+    return;
+  }
+
+  if (touches.length === 1 && studyImageLightboxState.scale > 1.001) {
+    const touch = touches[0];
+    studyImageLightboxState.panStartX = touch.clientX;
+    studyImageLightboxState.panStartY = touch.clientY;
+    studyImageLightboxState.startTx = studyImageLightboxState.tx;
+    studyImageLightboxState.startTy = studyImageLightboxState.ty;
+    studyImageLightboxState.pinchLastDistance = 0;
+    studyImageLightboxState.interacting = true;
+    applyStudyImageLightboxTransform({ disableTransition: true });
+    return;
+  }
+
+  if (studyImageLightboxState.moved) {
+    studyImageLightboxState.ignoreTapUntil = Date.now() + 220;
+  }
+  studyImageLightboxState.moved = false;
+  if (studyImageLightboxState.scale <= 1.001) {
+    resetStudyImageLightboxTransform({ animate: true });
+    return;
+  }
+  studyImageLightboxState.interacting = false;
+  studyImageLightboxState.pinchLastDistance = 0;
+  applyStudyImageLightboxTransform({ disableTransition: false });
+}
+
+/**
+ * @function handleStudyImageLightboxWheel
+ * @description Handles mouse-wheel zoom for desktop/trackpad while the lightbox is open.
+ */
+
+function handleStudyImageLightboxWheel(event) {
+  const lightbox = el('sessionImageLightbox');
+  if (!lightbox || lightbox.classList.contains('hidden')) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const zoomFactor = event.deltaY < 0 ? 1.12 : 0.88;
+  const nextScale = studyImageLightboxState.scale * zoomFactor;
+  zoomStudyImageLightboxAt(nextScale, event.clientX, event.clientY);
+}
+
+/**
+ * @function handleStudyImageLightboxImageClick
+ * @description Handles tap/click behavior on the expanded image.
+ */
+
+function handleStudyImageLightboxImageClick(event) {
+  event.stopPropagation();
+  if (Date.now() < studyImageLightboxState.ignoreTapUntil) return;
+  if (studyImageLightboxState.scale > 1.001) {
+    resetStudyImageLightboxTransform({ animate: true });
+    return;
+  }
+  closeStudyImageLightbox();
+}
+
 function openStudyImageLightbox(src) {
   const lightbox = el('sessionImageLightbox');
   const lightboxImg = el('sessionImageLightboxImg');
   if (!lightbox || !lightboxImg || !src) return;
+  resetStudyImageLightboxTransform();
+  lightboxImg.onload = () => resetStudyImageLightboxTransform();
   lightboxImg.src = src;
   lightbox.classList.remove('hidden');
   document.body.classList.add('session-image-open');
@@ -6001,8 +6309,10 @@ function closeStudyImageLightbox() {
   const lightbox = el('sessionImageLightbox');
   const lightboxImg = el('sessionImageLightboxImg');
   if (!lightbox || !lightboxImg) return;
+  resetStudyImageLightboxTransform();
   lightbox.classList.add('hidden');
   lightboxImg.src = '';
+  lightboxImg.onload = null;
   document.body.classList.remove('session-image-open');
 }
 
@@ -6109,7 +6419,7 @@ function openCreateCardEditor() {
     return;
   }
   setDeckSelectionMode(false);
-  el('editorTitle').textContent = `Create Flashcards • ${selectedTopic.name}`;
+  el('editorTitle').textContent = `${selectedTopic.name}`;
   el('cardPrompt').value = '';
   el('cardAnswer').value = '';
   replaceFieldImages(el('cardPrompt'), el('questionImagePreview'), [], 'imageDataQ', updateCreateValidation);
@@ -11333,13 +11643,18 @@ async function boot() {
   const sessionImageLightbox = el('sessionImageLightbox');
   const sessionImageLightboxImg = el('sessionImageLightboxImg');
   if (sessionImageLightbox) {
-    sessionImageLightbox.addEventListener('click', () => closeStudyImageLightbox());
-  }
-  if (sessionImageLightboxImg) {
-    sessionImageLightboxImg.addEventListener('click', e => {
-      e.stopPropagation();
+    sessionImageLightbox.addEventListener('click', e => {
+      if (e.target !== sessionImageLightbox) return;
       closeStudyImageLightbox();
     });
+  }
+  if (sessionImageLightboxImg) {
+    sessionImageLightboxImg.addEventListener('click', handleStudyImageLightboxImageClick);
+    sessionImageLightboxImg.addEventListener('touchstart', handleStudyImageLightboxTouchStart, { passive: false });
+    sessionImageLightboxImg.addEventListener('touchmove', handleStudyImageLightboxTouchMove, { passive: false });
+    sessionImageLightboxImg.addEventListener('touchend', handleStudyImageLightboxTouchEnd, { passive: false });
+    sessionImageLightboxImg.addEventListener('touchcancel', handleStudyImageLightboxTouchEnd, { passive: false });
+    sessionImageLightboxImg.addEventListener('wheel', handleStudyImageLightboxWheel, { passive: false });
   }
 
   const moveCardsDialog = el('moveCardsDialog');
