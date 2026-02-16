@@ -172,12 +172,16 @@
             <div class="tiny session-filter-summary" id="sessionFilterSummary"></div>
           </div>
           <div class="topic-list-head">
-            <h3 id="topicListTitle" class="topic-list-title">Topics</h3>
+            <div class="topic-list-title-wrap">
+              <h3 id="topicListTitle" class="topic-list-title">Topics</h3>
+              <span id="topicListTotalCards" class="tiny topic-list-total-cards">0 cards</span>
+            </div>
             <div class="topic-list-actions">
               <button class="btn select-cards-btn topic-search-btn" id="openTopicSearchBtn" aria-label="Search cards"
                 title="Search cards" type="button">
                 <img src="icons/icons8-suche-48.svg" alt="" />
               </button>
+              <button class="btn topic-all-btn" id="selectAllSessionTopicsBtn" type="button">All</button>
               <button class="btn select-cards-btn" id="toggleTopicSelectBtn" aria-label="Select topics"
                 title="Select topics" type="button">
                 <img src="icons/check.svg" alt="" />
@@ -186,6 +190,7 @@
           </div>
           <div class="topic-bulk-actions hidden" id="topicBulkActions">
             <div class="tiny" id="topicSelectionCount">0 topics selected</div>
+            <button class="btn topic-all-btn" id="selectAllBulkTopicsBtn" type="button">All</button>
             <button class="btn" id="moveSelectedTopicsBtn" type="button">Move</button>
             <button class="btn delete" id="deleteSelectedTopicsBtn" type="button">Delete</button>
             <button class="btn" id="cancelTopicSelectionBtn" type="button">Cancel</button>
