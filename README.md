@@ -48,3 +48,5 @@ Self-hosted flashcard web app for engineering students. The app serves from your
 
 - Data is stored in `flashcards.sqlite3` next to the app files.
 - If phone/iPad cannot connect, check laptop firewall settings for inbound connections on port `8000`.
+- The app now keeps a local offline cache of loaded API data and queues writes while the server is unreachable. Once the server is back, queued changes are synced automatically.
+- Full app-shell offline loading via Service Worker works only in secure contexts (`https://` or `http://localhost`). On plain LAN HTTP (`http://192.168.x.x:8000`), browser Service Worker restrictions may apply.
