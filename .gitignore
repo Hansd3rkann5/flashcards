@@ -1,4 +1,25 @@
+# OS / Editor
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local SQLite database
 flashcards.sqlite3
 flashcards.sqlite3-shm
 flashcards.sqlite3-wal
-__pycache__/
+
+# Local certificates / TLS files
+*.pem
+*.cer
+*.crt
+*.key
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

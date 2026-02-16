@@ -1,14 +1,14 @@
-const STATIC_CACHE = 'flashcards-static-v1';
-const RUNTIME_CACHE = 'flashcards-runtime-v1';
-const API_CACHE = 'flashcards-api-v1';
+const STATIC_CACHE = 'flashcards-static-v2';
+const RUNTIME_CACHE = 'flashcards-runtime-v2';
+const API_CACHE = 'flashcards-api-v2';
 
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/icons/icon.png',
-  '/icons/apple-touch-icon.png'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './icons/icon.png',
+  './icons/apple-touch-icon.png'
 ];
 
 function isSameOrigin(url) {
@@ -78,11 +78,11 @@ self.addEventListener('fetch', event => {
       try {
         const response = await fetch(request);
         if (response && response.ok) {
-          cache.put('/index.html', response.clone());
+          cache.put('./index.html', response.clone());
         }
         return response;
       } catch (_) {
-        const cached = await cache.match('/index.html');
+        const cached = await cache.match('./index.html');
         if (cached) return cached;
         throw _;
       }
@@ -103,9 +103,8 @@ self.addEventListener('fetch', event => {
     if (cached) return cached;
     const network = await fetchPromise;
     if (network) return network;
-    const shell = await caches.match('/index.html');
+    const shell = await caches.match('./index.html');
     if (shell) return shell;
     return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
   })());
 });
-

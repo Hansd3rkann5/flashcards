@@ -3,6 +3,9 @@
  * Navigation tip: search for `@function <name>` to jump directly to a function.
  */
 const API_BASE = '/api';
+const SUPABASE_URL = String(window.__SUPABASE_URL__ || '').trim();
+const SUPABASE_ANON_KEY = String(window.__SUPABASE_ANON_KEY__ || '').trim();
+const SUPABASE_TABLE = 'records';
 const STORE_KEYS = {
   subjects: 'id',
   topics: 'id',
@@ -213,6 +216,8 @@ let topicDirectoryById = new Map();
 let subjectDirectoryById = new Map();
 let topicDirectoryReady = false;
 let topicPrefetchRunId = 0;
+let supabaseInitPromise = null;
+let supabaseClient = null;
 
 const el = id => document.getElementById(id);
 
@@ -499,7 +504,7 @@ async function flushPendingMutations() {
 function setOfflineModeUi(active = false) {
   document.body.classList.toggle('offline-mode', !!active);
   if (active && !offlineModeBannerShown) {
-    console.info('Offline mode active: using cached local data until server is reachable.');
+    console.info('Offline mode active: using cached local data until backend is reachable.');
     offlineModeBannerShown = true;
   }
 }
@@ -562,6 +567,22 @@ function setDeckTopicCardCount(count = null) {
   const safeCount = Math.max(0, Math.trunc(count));
   countEl.textContent = `${safeCount} ${safeCount === 1 ? 'card' : 'cards'}`;
   countEl.classList.remove('hidden');
+}
+
+/**
+ * @function bumpDeckTopicCardCount
+ * @description Adjusts the rendered topic card count badge by delta without reloading the full deck.
+ */
+
+function bumpDeckTopicCardCount(delta = 0) {
+  const countEl = el('deckTopicCardCount');
+  if (!countEl || countEl.classList.contains('hidden')) return;
+  const match = String(countEl.textContent || '').match(/^(\d+)/);
+  if (!match) return;
+  const current = Number(match[1]);
+  if (!Number.isFinite(current)) return;
+  const next = Math.max(0, current + Math.trunc(Number(delta) || 0));
+  setDeckTopicCardCount(next);
 }
 
 // ============================================================================
@@ -2902,7 +2923,7 @@ async function registerOfflineServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   if (!window.isSecureContext) return;
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    const registration = await navigator.serviceWorker.register('sw.js');
     if (registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
     }
@@ -2912,42 +2933,499 @@ async function registerOfflineServiceWorker() {
 }
 
 /**
+ * @function initSupabaseBackend
+ * @description Initializes Supabase client for browser usage.
+ */
+
+async function initSupabaseBackend() {
+  if (supabaseClient) return true;
+  if (supabaseInitPromise) return supabaseInitPromise;
+  supabaseInitPromise = (async () => {
+    if (!window.supabase?.createClient) {
+      const err = new Error('Supabase SDK not loaded.');
+      err.isNetworkError = false;
+      throw err;
+    }
+    const url = String(SUPABASE_URL || '').trim();
+    const key = String(SUPABASE_ANON_KEY || '').trim();
+    if (!url || !key) {
+      const err = new Error('Missing Supabase configuration (SUPABASE_URL / SUPABASE_ANON_KEY).');
+      err.isNetworkError = false;
+      throw err;
+    }
+    supabaseClient = window.supabase.createClient(url, key, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
+    return true;
+  })();
+  try {
+    return await supabaseInitPromise;
+  } finally {
+    supabaseInitPromise = null;
+  }
+}
+
+/**
+ * @function toNetworkError
+ * @description Normalizes Supabase/network errors into app-level network errors.
+ */
+
+function toNetworkError(err, fallback = 'Network error: backend unreachable.') {
+  const safeErr = err instanceof Error ? err : new Error(String(err || fallback));
+  const code = String(safeErr?.code || '').toLowerCase();
+  const message = String(safeErr?.message || '').toLowerCase();
+  const looksLikeNetwork =
+    code.includes('network')
+    || code.includes('fetch')
+    || code.includes('unavailable')
+    || code.includes('timeout')
+    || message.includes('network')
+    || message.includes('offline')
+    || message.includes('failed to fetch');
+  if (looksLikeNetwork) {
+    const wrapped = new Error(fallback);
+    wrapped.isNetworkError = true;
+    wrapped.cause = safeErr;
+    return wrapped;
+  }
+  return safeErr;
+}
+
+/**
+ * @function parseApiPath
+ * @description Parses a /api path into route parts and query params.
+ */
+
+function parseApiPath(path = '') {
+  const url = new URL(String(path || ''), window.location.origin);
+  const segments = url.pathname.split('/').filter(Boolean);
+  if (!segments.length || segments[0] !== 'api') return null;
+  return {
+    parts: segments.slice(1),
+    searchParams: url.searchParams
+  };
+}
+
+/**
+ * @function parseApiBody
+ * @description Safely parses JSON request bodies passed to apiRequest.
+ */
+
+function parseApiBody(raw = null) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (typeof raw === 'object') return raw;
+  return null;
+}
+
+/**
+ * @function assertSupabaseSuccess
+ * @description Throws a normalized error when a Supabase response contains an error object.
+ */
+
+function assertSupabaseSuccess(error, fallback = 'Backend request failed.') {
+  if (!error) return;
+  const err = new Error(String(error.message || fallback));
+  err.code = String(error.code || '');
+  err.details = error.details;
+  err.hint = error.hint;
+  throw err;
+}
+
+/**
+ * @function supabaseHealthcheck
+ * @description Executes a lightweight query to confirm backend connectivity.
+ */
+
+async function supabaseHealthcheck() {
+  if (!supabaseClient) throw new Error('Supabase client is not initialized.');
+  const { error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .select('store', { head: true, count: 'exact' })
+    .limit(1);
+  assertSupabaseSuccess(error, 'Supabase healthcheck failed.');
+}
+
+/**
+ * @function listStoreRecordsSupabase
+ * @description Reads all records for a store from the Supabase `records` table.
+ */
+
+async function listStoreRecordsSupabase(store = '') {
+  const safeStore = String(store || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  if (!safeStore || !keyField || !supabaseClient) return [];
+  const { data, error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .select('record_key,payload,updated_at')
+    .eq('store', safeStore)
+    .order('updated_at', { ascending: true });
+  assertSupabaseSuccess(error, `Failed to list records for store "${safeStore}".`);
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map(row => {
+    const payload = (row?.payload && typeof row.payload === 'object') ? { ...row.payload } : {};
+    if (!(keyField in payload) || payload[keyField] === undefined || payload[keyField] === null || payload[keyField] === '') {
+      payload[keyField] = String(row?.record_key || '').trim();
+    }
+    return payload;
+  });
+}
+
+/**
+ * @function getStoreRecordSupabase
+ * @description Reads one keyed record from Supabase.
+ */
+
+async function getStoreRecordSupabase(store = '', key = '') {
+  const safeStore = String(store || '').trim();
+  const safeKey = String(key || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  if (!safeStore || !safeKey || !keyField || !supabaseClient) return null;
+  const { data, error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .select('record_key,payload')
+    .eq('store', safeStore)
+    .eq('record_key', safeKey)
+    .maybeSingle();
+  assertSupabaseSuccess(error, `Failed to read record "${safeStore}/${safeKey}".`);
+  if (!data) return null;
+  const payload = (data.payload && typeof data.payload === 'object') ? { ...data.payload } : {};
+  if (!(keyField in payload) || payload[keyField] === undefined || payload[keyField] === null || payload[keyField] === '') {
+    payload[keyField] = safeKey;
+  }
+  return payload;
+}
+
+/**
+ * @function upsertStoreRecordSupabase
+ * @description Inserts or updates one store record in Supabase.
+ */
+
+async function upsertStoreRecordSupabase(store = '', payload = null) {
+  const safeStore = String(store || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  if (!safeStore || !keyField || !supabaseClient) return null;
+  const row = (payload && typeof payload === 'object') ? payload : null;
+  const key = String(row?.[keyField] ?? '').trim();
+  if (!row || !key) {
+    const error = new Error(`Missing key "${keyField}" for store "${safeStore}"`);
+    error.status = 400;
+    throw error;
+  }
+  const { error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .upsert({
+      store: safeStore,
+      record_key: key,
+      payload: row,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'store,record_key' });
+  assertSupabaseSuccess(error, `Failed to upsert record "${safeStore}/${key}".`);
+  return row;
+}
+
+/**
+ * @function deleteStoreRecordSupabase
+ * @description Deletes one store record in Supabase by key.
+ */
+
+async function deleteStoreRecordSupabase(store = '', key = '') {
+  const safeStore = String(store || '').trim();
+  const safeKey = String(key || '').trim();
+  if (!safeStore || !safeKey || !supabaseClient) return;
+  const { error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .delete()
+    .eq('store', safeStore)
+    .eq('record_key', safeKey);
+  assertSupabaseSuccess(error, `Failed to delete record "${safeStore}/${safeKey}".`);
+}
+
+/**
+ * @function parseApiFilterValues
+ * @description Parses repeated query values (`?x=a&x=b`) into unique trimmed strings.
+ */
+
+function parseApiFilterValues(searchParams, key) {
+  if (!searchParams || !key) return [];
+  const values = searchParams.getAll(key)
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  return Array.from(new Set(values));
+}
+
+/**
+ * @function normalizeStorePayloadRow
+ * @description Normalizes one Supabase records row into plain payload shape with key fallback.
+ */
+
+function normalizeStorePayloadRow(row, keyField = 'id') {
+  const payload = (row?.payload && typeof row.payload === 'object') ? { ...row.payload } : {};
+  const keyValue = String(row?.record_key || '').trim();
+  if (!(keyField in payload) || payload[keyField] === undefined || payload[keyField] === null || payload[keyField] === '') {
+    payload[keyField] = keyValue;
+  }
+  return payload;
+}
+
+/**
+ * @function queryStoreCountSupabase
+ * @description Returns exact record count for one store without loading payload rows.
+ */
+
+async function queryStoreCountSupabase(store = '') {
+  const safeStore = String(store || '').trim();
+  if (!safeStore || !supabaseClient) return 0;
+  const { count, error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .select('record_key', { head: true, count: 'exact' })
+    .eq('store', safeStore);
+  assertSupabaseSuccess(error, `Failed to count records for store "${safeStore}".`);
+  return Number(count || 0);
+}
+
+/**
+ * @function queryCardsSupabase
+ * @description Reads cards and applies API-compatible query filters.
+ */
+
+async function queryCardsSupabase(searchParams) {
+  const topicIds = parseApiFilterValues(searchParams, 'topicId');
+  const cardIds = parseApiFilterValues(searchParams, 'cardId');
+  const fieldsRaw = String(searchParams.get('fields') || '').trim();
+  const fields = fieldsRaw
+    .split(',')
+    .map(field => field.trim())
+    .filter(Boolean);
+  const lightweightFields = new Set(['id', 'topicId']);
+  const useLightweightProjection = fields.length > 0 && fields.every(field => lightweightFields.has(field));
+
+  let query = supabaseClient
+    .from(SUPABASE_TABLE)
+    .select(useLightweightProjection ? 'record_key,topic_id' : 'record_key,payload')
+    .eq('store', 'cards');
+
+  if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
+  else if (cardIds.length > 1) query = query.in('record_key', cardIds);
+
+  if (topicIds.length === 1) query = query.eq('topic_id', topicIds[0]);
+  else if (topicIds.length > 1) query = query.in('topic_id', topicIds);
+
+  const { data, error } = await query.order('updated_at', { ascending: true });
+  assertSupabaseSuccess(error, 'Failed to query cards.');
+  const rows = Array.isArray(data) ? data : [];
+
+  if (useLightweightProjection) {
+    return rows.map(row => {
+      const next = {};
+      if (fields.includes('id')) next.id = String(row?.record_key || '').trim();
+      if (fields.includes('topicId')) next.topicId = String(row?.topic_id || '').trim();
+      return next;
+    });
+  }
+
+  const cards = rows.map(row => normalizeStorePayloadRow(row, 'id'));
+  if (!fields.length) return cards;
+  return cards.map(card => {
+    const scoped = {};
+    fields.forEach(field => {
+      if (field in card) scoped[field] = card[field];
+    });
+    return scoped;
+  });
+}
+
+/**
+ * @function queryProgressSupabase
+ * @description Reads progress records and applies API-compatible cardId filters.
+ */
+
+async function queryProgressSupabase(searchParams) {
+  const cardIds = parseApiFilterValues(searchParams, 'cardId');
+  let query = supabaseClient
+    .from(SUPABASE_TABLE)
+    .select('record_key,payload')
+    .eq('store', 'progress');
+  if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
+  else if (cardIds.length > 1) query = query.in('record_key', cardIds);
+  const { data, error } = await query.order('updated_at', { ascending: true });
+  assertSupabaseSuccess(error, 'Failed to query progress.');
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map(row => normalizeStorePayloadRow(row, 'cardId'));
+}
+
+/**
+ * @function queryTopicsSupabase
+ * @description Reads topics and optionally augments with card counts.
+ */
+
+async function queryTopicsSupabase(searchParams) {
+  const includeCounts = String(searchParams.get('includeCounts') || '') === '1';
+  const subjectIds = parseApiFilterValues(searchParams, 'subjectId');
+  const rows = await listStoreRecordsSupabase('topics');
+  const topics = subjectIds.length
+    ? rows.filter(topic => subjectIds.includes(String(topic?.subjectId || '').trim()))
+    : rows;
+  if (!includeCounts) return topics;
+
+  const { data, error } = await supabaseClient
+    .from(SUPABASE_TABLE)
+    .select('topic_id')
+    .eq('store', 'cards');
+  assertSupabaseSuccess(error, 'Failed to load topic card counts.');
+  const cards = Array.isArray(data) ? data : [];
+  const counts = new Map();
+  cards.forEach(card => {
+    const topicId = String(card?.topic_id || '').trim();
+    if (!topicId) return;
+    counts.set(topicId, (counts.get(topicId) || 0) + 1);
+  });
+  return topics.map(topic => {
+    const topicId = String(topic?.id || '').trim();
+    return {
+      ...topic,
+      cardCount: counts.get(topicId) || 0
+    };
+  });
+}
+
+/**
+ * @function queryStatsSupabase
+ * @description Returns app stats from Supabase records.
+ */
+
+async function queryStatsSupabase() {
+  const [subjects, topics, cards] = await Promise.all([
+    queryStoreCountSupabase('subjects'),
+    queryStoreCountSupabase('topics'),
+    queryStoreCountSupabase('cards')
+  ]);
+  return {
+    subjects,
+    topics,
+    cards
+  };
+}
+
+/**
 * @function apiRequest
  * @description Executes a JSON API request with unified error handling and payload parsing.
  */
 
 async function apiRequest(path, options = {}) {
-  const init = { ...options };
-  if (init.body && !init.headers) init.headers = { 'Content-Type': 'application/json' };
-  if (init.body && init.headers && !init.headers['Content-Type']) {
-    init.headers['Content-Type'] = 'application/json';
-  }
-  let res;
   try {
-    res = await fetch(path, init);
-  } catch (fetchErr) {
-    const error = new Error('Network error: local server unreachable.');
-    error.isNetworkError = true;
-    error.cause = fetchErr;
+    await initSupabaseBackend();
+  } catch (err) {
+    throw toNetworkError(err, 'Network error: Supabase unavailable.');
+  }
+
+  const parsed = parseApiPath(path);
+  if (!parsed) {
+    const error = new Error('Request failed (404)');
+    error.status = 404;
     throw error;
   }
-  const text = await res.text();
-  let data = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch (_) {
-      data = { error: text };
+
+  const { parts, searchParams } = parsed;
+  const method = String(options?.method || 'GET').toUpperCase();
+
+  try {
+    if (method === 'GET') {
+      if (!parts.length || parts[0] === 'health') {
+        await supabaseHealthcheck();
+        return { ok: true };
+      }
+      if (parts.length === 1 && parts[0] === 'stats') {
+        return await queryStatsSupabase();
+      }
+      if (parts.length === 1) {
+        const store = parts[0];
+        if (!getStoreKeyField(store)) {
+          const error = new Error('Request failed (404)');
+          error.status = 404;
+          throw error;
+        }
+        if (store === 'topics') return await queryTopicsSupabase(searchParams);
+        if (store === 'cards') return await queryCardsSupabase(searchParams);
+        if (store === 'progress') return await queryProgressSupabase(searchParams);
+        return await listStoreRecordsSupabase(store);
+      }
+      if (parts.length === 2) {
+        const [store, key] = parts;
+        if (!getStoreKeyField(store)) {
+          const error = new Error('Request failed (404)');
+          error.status = 404;
+          throw error;
+        }
+        const row = await getStoreRecordSupabase(store, key);
+        if (!row) {
+          const error = new Error('Request failed (404)');
+          error.status = 404;
+          throw error;
+        }
+        return row;
+      }
+      const error = new Error('Request failed (404)');
+      error.status = 404;
+      throw error;
     }
-  }
-  if (!res.ok) {
-    const error = new Error(data?.error || `Request failed (${res.status})`);
-    if (String(data?.error || '') === 'offline-no-cache') {
-      error.isNetworkError = true;
+
+    if (method === 'PUT') {
+      if (parts.length !== 1) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      const store = parts[0];
+      const keyField = getStoreKeyField(store);
+      if (!keyField) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      const payload = parseApiBody(options?.body);
+      const key = String(payload?.[keyField] ?? '').trim();
+      if (!payload || !key) {
+        const error = new Error(`Missing key "${keyField}" for store "${store}"`);
+        error.status = 400;
+        throw error;
+      }
+      return await upsertStoreRecordSupabase(store, payload);
     }
+
+    if (method === 'DELETE') {
+      if (parts.length !== 2) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      const [store, keyRaw] = parts;
+      if (!getStoreKeyField(store)) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      const key = String(keyRaw || '').trim();
+      if (!key) return null;
+      await deleteStoreRecordSupabase(store, key);
+      return null;
+    }
+
+    const error = new Error('Request failed (405)');
+    error.status = 405;
     throw error;
+  } catch (err) {
+    throw toNetworkError(err, 'Network error: Supabase request failed.');
   }
-  return data;
 }
 
 // ============================================================================
@@ -2977,7 +3455,7 @@ async function openDB() {
 
 /**
  * @function openCardBankDB
- * @description Marks the card bank API layer as available in server-backed mode.
+ * @description Marks the card bank API layer as available.
  */
 
 function openCardBankDB() {
@@ -4613,6 +5091,19 @@ function appendSessionImages(container, images = [], altPrefix = 'Card image') {
 }
 
 /**
+ * @function buildCardImagePayloadForSave
+ * @description Normalizes image lists for persistence in card records.
+ */
+
+async function buildCardImagePayloadForSave(cardId, imagesQ, imagesA) {
+  void cardId;
+  return getCardImagePayload(
+    normalizeImageList(imagesQ),
+    normalizeImageList(imagesA)
+  );
+}
+
+/**
  * @function getCardImagePayload
  * @description Returns the card image payload.
  */
@@ -4951,6 +5442,9 @@ function buildSessionCardImage(src, alt = 'Flashcard image') {
   img.src = src;
   img.alt = alt;
   img.className = 'session-card-image';
+  img.addEventListener('load', () => {
+    queueSessionFaceOverflowSync();
+  });
   img.addEventListener('click', e => {
     e.stopPropagation();
     openStudyImageLightbox(src);
@@ -7957,6 +8451,7 @@ function renderCardTileAnswerContent(container, card, options = {}) {
 function buildCardTile(card, idx, compact = false) {
   const tile = document.createElement('div');
   tile.className = 'card-tile card-tile-overview';
+  tile.dataset.cardId = String(card?.id || '');
   if (compact) tile.classList.add('card-tile-compact');
   const selectionEnabled = deckSelectionMode && !compact;
   if (selectionEnabled) {
@@ -8044,6 +8539,35 @@ function buildCardTile(card, idx, compact = false) {
 
   tile.append(qTitle, qBody, separator, aTitle, aBody);
   return tile;
+}
+
+/**
+ * @function prependCardTileToContainer
+ * @description Inserts/updates one card tile at the top of a container for instant UI feedback.
+ */
+
+function prependCardTileToContainer(container, card, compact = false) {
+  if (!container || !card?.id) return;
+  const cardIdAttr = String(card.id).replace(/"/g, '\\"');
+  const existing = container.querySelector(`.card-tile[data-card-id="${cardIdAttr}"]`);
+  if (existing) existing.remove();
+  if (container.querySelector('.tiny')) container.innerHTML = '';
+  const tile = buildCardTile(card, 0, compact);
+  container.prepend(tile);
+}
+
+/**
+ * @function applyOptimisticCardCreate
+ * @description Updates editor/deck card overviews immediately after create without waiting for a refetch.
+ */
+
+function applyOptimisticCardCreate(card) {
+  if (!card?.id) return;
+  prependCardTileToContainer(el('editorCardsList'), card, true);
+  if (selectedTopic?.id === card.topicId) {
+    prependCardTileToContainer(el('cardsGrid'), card, false);
+    bumpDeckTopicCardCount(1);
+  }
 }
 
 /**
@@ -8883,6 +9407,45 @@ function renderCardContent(card) {
     });
   }
   appendSessionImages(back, aImages, 'Answer image');
+  queueSessionFaceOverflowSync();
+}
+
+/**
+ * @function syncSessionFaceOverflowState
+ * @description Keeps large study card content below the header/pill area and enables downward scrolling.
+ */
+
+function syncSessionFaceOverflowState() {
+  const flashcard = el('flashcard');
+  const isMcq = !!flashcard?.classList.contains('mcq-mode');
+  ['frontContent', 'backContent'].forEach(id => {
+    const content = el(id);
+    if (!content) return;
+    if (isMcq) {
+      content.classList.remove('is-overflowing');
+      content.scrollTop = 0;
+      return;
+    }
+    content.classList.remove('is-overflowing');
+    const isOverflowing = content.scrollHeight > (content.clientHeight + 2);
+    if (isOverflowing) {
+      content.classList.add('is-overflowing');
+      content.scrollTop = 0;
+    }
+  });
+}
+
+/**
+ * @function queueSessionFaceOverflowSync
+ * @description Defers overflow sync by two frames so layout/image updates are reflected before measurement.
+ */
+
+function queueSessionFaceOverflowSync() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      syncSessionFaceOverflowState();
+    });
+  });
 }
 
 /**
@@ -9512,8 +10075,23 @@ async function importJSON(file) {
   const data = JSON.parse(text);
   for (const s of ['subjects', 'topics', 'cards', 'progress']) {
     for (const row of (data[s] || [])) {
-      await put(s, row);
-      if (s === 'cards') await putCardBank(row);
+      if (s === 'cards') {
+        const cardId = String(row?.id || '').trim() || uid();
+        const migratedImagePayload = await buildCardImagePayloadForSave(
+          cardId,
+          getCardImageList(row, 'Q'),
+          getCardImageList(row, 'A')
+        );
+        const nextCard = {
+          ...row,
+          id: cardId,
+          ...migratedImagePayload
+        };
+        await put('cards', nextCard);
+        await putCardBank(nextCard);
+      } else {
+        await put(s, row);
+      }
     }
   }
   progressByCardId = new Map();
@@ -9533,17 +10111,17 @@ async function importJSON(file) {
 
 async function boot() {
   void registerOfflineServiceWorker();
-  let serverReachable = false;
+  let backendReachable = false;
   try {
-    serverReachable = await openDB();
+    backendReachable = await openDB();
     await openCardBankDB();
     await preloadTopicDirectory({ force: true });
   } catch (err) {
-    alert(err.message || 'Unable to connect to the local server.');
+    alert(err.message || 'Unable to connect to Supabase backend.');
     return;
   }
-  if (!serverReachable) {
-    console.info('Server not reachable. Running with offline cache and queued local changes.');
+  if (!backendReachable) {
+    console.info('Backend not reachable. Running with offline cache and queued local changes.');
   }
   wireNoZoomGuards();
   wireSwipe();
@@ -10126,6 +10704,7 @@ async function boot() {
     if (window.innerWidth > 980 && editorShell) editorShell.classList.remove('sidebar-open');
     if (currentView !== 3 && editorShell) editorShell.classList.remove('sidebar-open');
   });
+  window.addEventListener('resize', queueSessionFaceOverflowSync);
   window.addEventListener('resize', scheduleOverviewTableFit);
   el('closeEditCardBtn').onclick = () => el('editCardDialog').close();
   el('editAddMcqOptionBtn').onclick = () => {
@@ -10489,12 +11068,20 @@ async function boot() {
     }
     const imagesQ = getFieldImageList(el('cardPrompt'), 'imageDataQ');
     const imagesA = getFieldImageList(el('cardAnswer'), 'imageDataA');
-    const imagePayload = getCardImagePayload(imagesQ, imagesA);
+    const cardId = uid();
+    let imagePayload;
+    try {
+      imagePayload = await buildCardImagePayloadForSave(cardId, imagesQ, imagesA);
+    } catch (err) {
+      alert('Image upload failed. Please check your connection and try again.');
+      console.warn('Card image upload failed:', err);
+      return;
+    }
     const options = parseMcqOptions();
     const type = options.length > 1 ? 'mcq' : 'qa';
     const createdAt = new Date().toISOString();
     const card = {
-      id: uid(),
+      id: cardId,
       topicId: selectedTopic.id,
       type,
       textAlign: normalizeTextAlign(createQuestionTextAlign),
@@ -10509,8 +11096,7 @@ async function boot() {
       meta: { createdAt }
     };
     await put('cards', card);
-    await putCardBank(card);
-    if (selectedSubject?.id) await touchSubject(selectedSubject.id);
+    applyOptimisticCardCreate(card);
     el('cardPrompt').value = '';
     el('cardAnswer').value = '';
     replaceFieldImages(el('cardPrompt'), el('questionImagePreview'), [], 'imageDataQ', updateCreateValidation);
@@ -10524,9 +11110,24 @@ async function boot() {
     applyCreateQuestionTextAlign('center');
     applyCreateAnswerTextAlign('center');
     applyCreateOptionsTextAlign('center');
-    loadEditorCards();
-    loadDeck();
-    refreshSidebar();
+    void (async () => {
+      try {
+        await putCardBank(card);
+        if (selectedSubject?.id) await touchSubject(selectedSubject.id);
+      } catch (err) {
+        console.warn('Deferred post-create sync failed:', err);
+      } finally {
+        try {
+          await refreshSidebar();
+          if (selectedTopic?.id === card.topicId) {
+            void loadDeck();
+            void loadEditorCards();
+          }
+        } catch (err) {
+          console.warn('Deferred post-create refresh failed:', err);
+        }
+      }
+    })();
   };
 
   el('saveEditCardBtn').onclick = async () => {
@@ -10537,7 +11138,14 @@ async function boot() {
     const updatedAt = new Date().toISOString();
     const imagesQ = getFieldImageList(el('editCardPrompt'), 'imageDataQ');
     const imagesA = getFieldImageList(el('editCardAnswer'), 'imageDataA');
-    const imagePayload = getCardImagePayload(imagesQ, imagesA);
+    let imagePayload;
+    try {
+      imagePayload = await buildCardImagePayloadForSave(card.id, imagesQ, imagesA);
+    } catch (err) {
+      alert('Image upload failed. Please check your connection and try again.');
+      console.warn('Card image upload failed:', err);
+      return;
+    }
     const options = parseEditMcqOptions();
     const type = options.length > 1 ? 'mcq' : 'qa';
     const updated = {

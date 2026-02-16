@@ -1167,9 +1167,24 @@ textarea:focus-visible {
   height: calc(100% - (2 * var(--space-4)));
   margin: var(--space-4) var(--space-3);
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
+  padding-top: clamp(52px, 7vh, 70px);
+  padding-bottom: var(--space-3);
+  scroll-padding-top: clamp(52px, 7vh, 70px);
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+#studySessionSection .flashcard:not(.mcq-mode) .face-content.is-overflowing {
+  justify-content: flex-start;
+}
+
+#studySessionSection .flashcard:not(.mcq-mode) .face {
+  overflow: hidden;
 }
 
 .card-edit-btn {
