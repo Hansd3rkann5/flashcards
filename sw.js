@@ -1,12 +1,27 @@
-const STATIC_CACHE = 'flashcards-static-v2';
-const RUNTIME_CACHE = 'flashcards-runtime-v2';
-const API_CACHE = 'flashcards-api-v2';
+const STATIC_CACHE = 'flashcards-static-v4';
+const RUNTIME_CACHE = 'flashcards-runtime-v4';
+const API_CACHE = 'flashcards-api-v4';
 
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
-  './app.js',
+  './js/app-globals.js',
+  './js/core-utils.js',
+  './js/review-panel.js',
+  './js/server-communication.js',
+  './js/data-access.js',
+  './js/device-interactions.js',
+  './js/navigation-layout.js',
+  './js/text-rendering.js',
+  './js/media-handling.js',
+  './js/sidebar-subject-management.js',
+  './js/subject-topic-panel.js',
+  './js/editor-panel.js',
+  './js/deck-search-panel.js',
+  './js/study-session.js',
+  './js/settings-management.js',
+  './js/bootstrap.js',
   './icons/icon.png',
   './icons/apple-touch-icon.png'
 ];
@@ -17,6 +32,14 @@ function isSameOrigin(url) {
 
 function isApiRequest(url) {
   return url.pathname.startsWith('/api/');
+}
+
+function isVersionSensitiveAsset(url) {
+  const path = String(url.pathname || '');
+  return path.endsWith('.css')
+    || path.endsWith('.js')
+    || path.endsWith('.html')
+    || path.startsWith('/js/');
 }
 
 self.addEventListener('install', event => {
@@ -99,6 +122,15 @@ self.addEventListener('fetch', event => {
       }
       return response;
     }).catch(() => null);
+
+    if (isVersionSensitiveAsset(url)) {
+      const network = await fetchPromise;
+      if (network) return network;
+      if (cached) return cached;
+      const shell = await caches.match('./index.html');
+      if (shell) return shell;
+      return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+    }
 
     if (cached) return cached;
     const network = await fetchPromise;

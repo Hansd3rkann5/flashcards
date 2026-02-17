@@ -4,7 +4,7 @@ Flashcard web app for engineering students using Supabase.
 
 **Quick Start**
 
-1. Host the static files (`index.html`, `app.js`, `styles.css`, `icons/`) on HTTPS (e.g. GitHub Pages).
+1. Host the static files (`index.html`, `styles.css`, `js/`, `icons/`, `sw.js`) on HTTPS (e.g. GitHub Pages).
 2. Open the hosted URL in browser.
 3. Set Supabase config in `index.html`:
    ```html

@@ -66,6 +66,12 @@
             Start a short review based on your latest saved card status.
           </div>
           <div class="tiny daily-review-today-stats" id="dailyReviewTodayStats"></div>
+          <div class="daily-review-analytics-header">
+            <div class="tiny">Analytics</div>
+            <button class="btn daily-review-analytics-toggle" id="toggleDailyReviewAnalyticsBtn" type="button"
+              aria-expanded="true">Hide charts</button>
+          </div>
+          <div id="dailyReviewAnalytics" class="daily-review-analytics"></div>
           <div class="session-complete-stats">
             <div class="session-complete-stat">
               <div class="tiny">Answered Cards</div>
@@ -413,7 +419,22 @@
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js" defer></script>
+  <script src="js/app-globals.js" defer></script>
+  <script src="js/core-utils.js" defer></script>
+  <script src="js/review-panel.js" defer></script>
+  <script src="js/server-communication.js" defer></script>
+  <script src="js/data-access.js" defer></script>
+  <script src="js/device-interactions.js" defer></script>
+  <script src="js/navigation-layout.js" defer></script>
+  <script src="js/text-rendering.js" defer></script>
+  <script src="js/media-handling.js" defer></script>
+  <script src="js/sidebar-subject-management.js" defer></script>
+  <script src="js/subject-topic-panel.js" defer></script>
+  <script src="js/editor-panel.js" defer></script>
+  <script src="js/deck-search-panel.js" defer></script>
+  <script src="js/study-session.js" defer></script>
+  <script src="js/settings-management.js" defer></script>
+  <script src="js/bootstrap.js" defer></script>
 
   <dialog id="subjectDialog" class="modal">
     <h3>New Subject</h3>
