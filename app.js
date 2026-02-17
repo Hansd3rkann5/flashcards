@@ -3114,10 +3114,17 @@ function playSessionCompleteConfetti() {
     scalar: 1,
     colors
   };
-
-  emit({ ...base, particleCount: 120 });
-  setTimeout(() => emit({ ...base, particleCount: 90, spread: 95, startVelocity: 42, scalar: 0.92 }), 140);
-  setTimeout(() => emit({ ...base, particleCount: 75, spread: 110, startVelocity: 36, scalar: 1.06 }), 280);
+  emit({ ...base, particleCount: 220 });
+  setTimeout(() => emit({ ...base,
+    particleCount: 180,
+    spread: 95,
+    startVelocity: 42,
+    scalar: 0.92 }), 140);
+  setTimeout(() => emit({ ...base,
+    particleCount: 120,
+    spread: 110,
+    startVelocity: 78,
+    scalar: 1.06 }), 280);
 }
 
 /**
