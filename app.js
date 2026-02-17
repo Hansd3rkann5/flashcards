@@ -11,15 +11,27 @@ const STORE_KEYS = {
   topics: 'id',
   cards: 'id',
   progress: 'cardId',
-  cardbank: 'id'
+  cardbank: 'id',
+  settings: 'id'
 };
 let dbReady = false;
 let selectedSubject = null;
 let selectedTopic = null;
 let selectedTopicIds = new Set();
 let sessionSize = 15;
+const SESSION_SIZE_MODEL_STORAGE_KEY = 'flashcards.session-size-model.v1';
+const SESSION_SIZE_MODEL_SETTINGS_ID = 'session-size-model';
+const SESSION_SIZE_MODEL_BASELINE = 15;
+const SESSION_SIZE_MODEL_MIN_SAMPLES_PER_SUBJECT = 2;
+const SESSION_SIZE_MODEL_MIN_SAMPLES_GLOBAL = 3;
 let availableSessionCards = 0;
 let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeMap: {}, mode: 'default' };
+let sessionSizeModelCache = null;
+let sessionSizeModelRemoteReady = false;
+let sessionSizeModelLoadPromise = null;
+let sessionSizeModelSyncTimer = null;
+let sessionSizeManualOverride = false;
+let sessionSizeManualOverrideSubjectId = '';
 const SESSION_IMAGE_PRELOAD_CACHE_MAX = 256;
 const sessionImagePreloadCache = new Map();
 let editingCardId = null;
@@ -233,6 +245,256 @@ let appLoadingDebugPinned = false;
 let reviewTraceRunCounter = 0;
 
 const el = id => document.getElementById(id);
+
+/**
+ * @function normalizeSessionSizeModelBucket
+ * @description Normalizes one session-size model bucket.
+ */
+
+function normalizeSessionSizeModelBucket(bucket = null) {
+  const countRaw = Number(bucket?.count);
+  const meanRaw = Number(bucket?.mean);
+  const count = Number.isFinite(countRaw) && countRaw > 0 ? Math.floor(countRaw) : 0;
+  const mean = Number.isFinite(meanRaw) && meanRaw > 0 ? meanRaw : SESSION_SIZE_MODEL_BASELINE;
+  return { count, mean };
+}
+
+/**
+ * @function normalizeSessionSizeModelState
+ * @description Normalizes complete session-size model payload.
+ */
+
+function normalizeSessionSizeModelState(model = null) {
+  const source = (model && typeof model === 'object') ? model : {};
+  const global = normalizeSessionSizeModelBucket(source.global);
+  const subjectsRaw = (source.subjects && typeof source.subjects === 'object') ? source.subjects : {};
+  const subjects = {};
+  Object.entries(subjectsRaw).forEach(([subjectId, bucket]) => {
+    const key = String(subjectId || '').trim();
+    if (!key) return;
+    subjects[key] = normalizeSessionSizeModelBucket(bucket);
+  });
+  const updatedAtRaw = Number(source.updatedAt);
+  const updatedAt = Number.isFinite(updatedAtRaw) && updatedAtRaw > 0 ? Math.floor(updatedAtRaw) : 0;
+  return { global, subjects, updatedAt };
+}
+
+/**
+ * @function loadSessionSizeModel
+ * @description Loads the session-size learning model from localStorage.
+ */
+
+function loadSessionSizeModel() {
+  if (sessionSizeModelCache) return sessionSizeModelCache;
+  const fallback = normalizeSessionSizeModelState({
+    global: { count: 0, mean: SESSION_SIZE_MODEL_BASELINE },
+    subjects: {},
+    updatedAt: 0
+  });
+  if (typeof window === 'undefined' || !window.localStorage) {
+    sessionSizeModelCache = fallback;
+    return sessionSizeModelCache;
+  }
+  try {
+    const raw = window.localStorage.getItem(SESSION_SIZE_MODEL_STORAGE_KEY);
+    if (!raw) {
+      sessionSizeModelCache = fallback;
+      return sessionSizeModelCache;
+    }
+    const parsed = JSON.parse(raw);
+    const normalized = normalizeSessionSizeModelState(parsed);
+    if (normalized.updatedAt <= 0) {
+      const hasAnyHistory = normalized.global.count > 0
+        || Object.values(normalized.subjects).some(bucket => Number(bucket?.count || 0) > 0);
+      if (hasAnyHistory) normalized.updatedAt = Date.now();
+    }
+    sessionSizeModelCache = normalized;
+    saveSessionSizeModel();
+  } catch (_) {
+    sessionSizeModelCache = fallback;
+  }
+  return sessionSizeModelCache;
+}
+
+/**
+ * @function saveSessionSizeModel
+ * @description Persists the in-memory session-size learning model to localStorage.
+ */
+
+function saveSessionSizeModel() {
+  if (typeof window === 'undefined' || !window.localStorage || !sessionSizeModelCache) return;
+  try {
+    window.localStorage.setItem(SESSION_SIZE_MODEL_STORAGE_KEY, JSON.stringify(sessionSizeModelCache));
+  } catch (_) {
+    // Ignore storage write errors (private mode/quota/etc.).
+  }
+}
+
+/**
+ * @function applySessionSizeSampleToBucket
+ * @description Updates running mean/count in-place for one bucket.
+ */
+
+function applySessionSizeSampleToBucket(bucket, sampleSize) {
+  const size = Number(sampleSize);
+  if (!bucket || !Number.isFinite(size) || size <= 0) return;
+  const prevCount = Number(bucket.count || 0);
+  const nextCount = prevCount + 1;
+  const prevMean = Number.isFinite(Number(bucket.mean)) ? Number(bucket.mean) : SESSION_SIZE_MODEL_BASELINE;
+  bucket.count = nextCount;
+  bucket.mean = ((prevMean * prevCount) + size) / nextCount;
+}
+
+/**
+ * @function recordSessionSizeSample
+ * @description Records one finished session-size choice into the local learning model.
+ */
+
+function recordSessionSizeSample(subjectId, sessionCardCount) {
+  const safeSubjectId = String(subjectId || '').trim();
+  const size = Number(sessionCardCount);
+  if (!safeSubjectId || !Number.isFinite(size) || size <= 0) return;
+  const model = loadSessionSizeModel();
+  if (!model.subjects[safeSubjectId]) {
+    model.subjects[safeSubjectId] = { count: 0, mean: SESSION_SIZE_MODEL_BASELINE };
+  }
+  applySessionSizeSampleToBucket(model.global, size);
+  applySessionSizeSampleToBucket(model.subjects[safeSubjectId], size);
+  model.updatedAt = Date.now();
+  saveSessionSizeModel();
+  queueSessionSizeModelSync();
+}
+
+/**
+ * @function getSuggestedSessionSizeForSubject
+ * @description Predicts a suitable session size from learned history (subject-first, then global).
+ */
+
+function getSuggestedSessionSizeForSubject(subjectId) {
+  const safeSubjectId = String(subjectId || '').trim();
+  const model = loadSessionSizeModel();
+  const subjectBucket = safeSubjectId ? model.subjects[safeSubjectId] : null;
+  if (subjectBucket && subjectBucket.count >= SESSION_SIZE_MODEL_MIN_SAMPLES_PER_SUBJECT) {
+    return Math.max(1, Math.round(subjectBucket.mean));
+  }
+  if (model.global.count >= SESSION_SIZE_MODEL_MIN_SAMPLES_GLOBAL) {
+    return Math.max(1, Math.round(model.global.mean));
+  }
+  return SESSION_SIZE_MODEL_BASELINE;
+}
+
+/**
+ * @function markSessionSizeManualOverride
+ * @description Marks that the user manually changed the session size in current subject.
+ */
+
+function markSessionSizeManualOverride() {
+  sessionSizeManualOverride = true;
+  sessionSizeManualOverrideSubjectId = String(selectedSubject?.id || '').trim();
+}
+
+/**
+ * @function clearSessionSizeManualOverride
+ * @description Clears manual session-size override so auto-size can apply again.
+ */
+
+function clearSessionSizeManualOverride() {
+  sessionSizeManualOverride = false;
+  sessionSizeManualOverrideSubjectId = '';
+}
+
+/**
+ * @function buildSessionSizeModelSettingsPayload
+ * @description Builds settings payload for server persistence.
+ */
+
+function buildSessionSizeModelSettingsPayload() {
+  const model = loadSessionSizeModel();
+  return {
+    id: SESSION_SIZE_MODEL_SETTINGS_ID,
+    global: normalizeSessionSizeModelBucket(model.global),
+    subjects: normalizeSessionSizeModelState(model).subjects,
+    updatedAt: Number.isFinite(Number(model.updatedAt)) ? Number(model.updatedAt) : 0
+  };
+}
+
+/**
+ * @function ensureSessionSizeModelLoadedFromServer
+ * @description Loads session-size model from Supabase settings store and merges via timestamp.
+ */
+
+async function ensureSessionSizeModelLoadedFromServer(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const force = !!opts.force;
+  const uiBlocking = opts.uiBlocking === true;
+  if (sessionSizeModelRemoteReady && !force) return loadSessionSizeModel();
+  if (sessionSizeModelLoadPromise && !force) return sessionSizeModelLoadPromise;
+
+  sessionSizeModelLoadPromise = (async () => {
+    const localModel = loadSessionSizeModel();
+    let loaded = false;
+    try {
+      const remoteRecord = await getById('settings', SESSION_SIZE_MODEL_SETTINGS_ID, {
+        uiBlocking,
+        loadingLabel: ''
+      });
+      const remoteModel = normalizeSessionSizeModelState(remoteRecord);
+      if (remoteModel.updatedAt > localModel.updatedAt) {
+        sessionSizeModelCache = remoteModel;
+        saveSessionSizeModel();
+      } else if (localModel.updatedAt > 0 && localModel.updatedAt > remoteModel.updatedAt) {
+        queueSessionSizeModelSync();
+      }
+      loaded = true;
+    } catch (_) {
+      // Keep local model when remote read fails (offline/permissions/etc.).
+    } finally {
+      if (loaded) sessionSizeModelRemoteReady = true;
+    }
+    return loadSessionSizeModel();
+  })();
+
+  try {
+    return await sessionSizeModelLoadPromise;
+  } finally {
+    sessionSizeModelLoadPromise = null;
+  }
+}
+
+/**
+ * @function syncSessionSizeModelToServer
+ * @description Writes session-size model to Supabase settings store.
+ */
+
+async function syncSessionSizeModelToServer() {
+  const payload = buildSessionSizeModelSettingsPayload();
+  if (Number(payload.updatedAt || 0) <= 0) return;
+  try {
+    await put('settings', payload, {
+      uiBlocking: false,
+      loadingLabel: '',
+      invalidate: 'settings'
+    });
+    sessionSizeModelRemoteReady = true;
+  } catch (_) {
+    // put() already queues offline mutations; nothing else needed here.
+  }
+}
+
+/**
+ * @function queueSessionSizeModelSync
+ * @description Debounces server sync writes for the session-size model.
+ */
+
+function queueSessionSizeModelSync() {
+  if (sessionSizeModelSyncTimer !== null) {
+    clearTimeout(sessionSizeModelSyncTimer);
+  }
+  sessionSizeModelSyncTimer = setTimeout(() => {
+    sessionSizeModelSyncTimer = null;
+    void syncSessionSizeModelToServer();
+  }, 600);
+}
 
 /**
  * @function setAppLoadingState
@@ -3121,10 +3383,10 @@ function playSessionCompleteConfetti() {
     startVelocity: 42,
     scalar: 0.92 }), 140);
   setTimeout(() => emit({ ...base,
-    particleCount: 120,
+    particleCount: 220,
     spread: 110,
     startVelocity: 78,
-    scalar: 1.06 }), 280);
+    scalar: 1.06 }), 200);
 }
 
 /**
@@ -3827,6 +4089,7 @@ async function openDB() {
     dbReady = true;
     setOfflineModeUi(false);
     await flushPendingMutations();
+    await ensureSessionSizeModelLoadedFromServer({ uiBlocking: false, force: true });
     invalidateApiStoreCache();
     return true;
   } catch (err) {
@@ -5931,6 +6194,7 @@ async function refreshSidebar(options = {}) {
     chip.onclick = () => {
       selectedSubject = s;
       selectedTopic = null;
+      clearSessionSizeManualOverride();
       setTopicSelectionMode(false);
       applySubjectTheme(s.accent || '#2dd4bf');
       loadTopics();
@@ -6442,6 +6706,12 @@ async function refreshTopicSessionMeta(topicsForSubject = null) {
   const refreshSubjectId = String(selectedSubject.id || '').trim();
   setSessionMetaLoading(true);
   try {
+    if (dbReady && !sessionSizeModelRemoteReady) {
+      await ensureSessionSizeModelLoadedFromServer({ uiBlocking: false });
+    }
+    if (refreshRunId !== sessionMetaRefreshRunId) return;
+    if (!selectedSubject || String(selectedSubject.id || '').trim() !== refreshSubjectId) return;
+
     const topics = topicsForSubject || (await getTopicsBySubject(selectedSubject.id, {
       uiBlocking: false
     }));
@@ -6479,9 +6749,19 @@ async function refreshTopicSessionMeta(topicsForSubject = null) {
     if (!selectedSubject || String(selectedSubject.id || '').trim() !== refreshSubjectId) return;
 
     availableSessionCards = eligibleCardIds.length;
-    if (availableSessionCards <= 0) sessionSize = 0;
-    else if (sessionSize <= 0) sessionSize = Math.min(15, availableSessionCards);
-    else sessionSize = Math.min(sessionSize, availableSessionCards);
+    if (sessionSizeManualOverride && sessionSizeManualOverrideSubjectId !== refreshSubjectId) {
+      clearSessionSizeManualOverride();
+    }
+    if (availableSessionCards <= 0) {
+      sessionSize = 0;
+    } else {
+      const suggested = getSuggestedSessionSizeForSubject(refreshSubjectId);
+      if (!sessionSizeManualOverride || sessionSize <= 0) {
+        sessionSize = Math.min(Math.max(suggested, 1), availableSessionCards);
+      } else {
+        sessionSize = Math.min(Math.max(sessionSize, 1), availableSessionCards);
+      }
+    }
     renderSessionSizeCounter();
     renderSessionFilterSummary();
 
@@ -10270,6 +10550,10 @@ async function startSession(options = {}) {
       );
       return;
     }
+    if (!reviewMode && selectedSubject?.id) {
+      recordSessionSizeSample(selectedSubject.id, selectedCards.length);
+      clearSessionSizeManualOverride();
+    }
     const mixedCards = interleaveCardsByTopic(selectedCards);
 
     const reviewCardIdSet = new Set(explicitCardIds);
@@ -12382,6 +12666,7 @@ async function boot() {
       }
       const next = Math.max(1, availableSessionCards);
       if (sessionSize !== next) {
+        markSessionSizeManualOverride();
         sessionSize = next;
         renderSessionSizeCounter();
       }
@@ -12403,6 +12688,7 @@ async function boot() {
         renderSessionSizeCounter();
         return;
       }
+      markSessionSizeManualOverride();
       sessionSize = Math.max(1, sessionSize - 1);
       renderSessionSizeCounter();
     };
@@ -12416,6 +12702,7 @@ async function boot() {
         renderSessionSizeCounter();
         return;
       }
+      markSessionSizeManualOverride();
       sessionSize = Math.min(availableSessionCards, sessionSize + 1);
       renderSessionSizeCounter();
     };
