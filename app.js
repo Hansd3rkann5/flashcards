@@ -18,12 +18,14 @@ let dbReady = false;
 let selectedSubject = null;
 let selectedTopic = null;
 let selectedTopicIds = new Set();
-let sessionSize = 15;
+let sessionSize = 10;
 const SESSION_SIZE_MODEL_STORAGE_KEY = 'flashcards.session-size-model.v1';
 const SESSION_SIZE_MODEL_SETTINGS_ID = 'session-size-model';
-const SESSION_SIZE_MODEL_BASELINE = 15;
+const SESSION_SIZE_MODEL_BASELINE = 10;
 const SESSION_SIZE_MODEL_MIN_SAMPLES_PER_SUBJECT = 2;
 const SESSION_SIZE_MODEL_MIN_SAMPLES_GLOBAL = 3;
+const SESSION_SIZE_MODEL_REPEAT_WEIGHT_STEP = 0.5;
+const SESSION_SIZE_MODEL_REPEAT_WEIGHT_MAX_BONUS = 2;
 let availableSessionCards = 0;
 let session = { active: false, activeQueue: [], mastered: [], counts: {}, gradeMap: {}, mode: 'default' };
 let sessionSizeModelCache = null;
@@ -254,9 +256,16 @@ const el = id => document.getElementById(id);
 function normalizeSessionSizeModelBucket(bucket = null) {
   const countRaw = Number(bucket?.count);
   const meanRaw = Number(bucket?.mean);
+  const weightSumRaw = Number(bucket?.weightSum);
+  const streakRaw = Number(bucket?.streak);
+  const lastSizeRaw = Number(bucket?.lastSize);
   const count = Number.isFinite(countRaw) && countRaw > 0 ? Math.floor(countRaw) : 0;
   const mean = Number.isFinite(meanRaw) && meanRaw > 0 ? meanRaw : SESSION_SIZE_MODEL_BASELINE;
-  return { count, mean };
+  const fallbackWeightSum = count > 0 ? count : 0;
+  const weightSum = Number.isFinite(weightSumRaw) && weightSumRaw > 0 ? weightSumRaw : fallbackWeightSum;
+  const streak = Number.isFinite(streakRaw) && streakRaw > 0 ? Math.floor(streakRaw) : 0;
+  const lastSize = Number.isFinite(lastSizeRaw) && lastSizeRaw > 0 ? Math.floor(lastSizeRaw) : 0;
+  return { count, mean, weightSum, streak, lastSize };
 }
 
 /**
@@ -338,11 +347,30 @@ function saveSessionSizeModel() {
 function applySessionSizeSampleToBucket(bucket, sampleSize) {
   const size = Number(sampleSize);
   if (!bucket || !Number.isFinite(size) || size <= 0) return;
+  const normalizedSize = Math.max(1, Math.round(size));
   const prevCount = Number(bucket.count || 0);
+  const prevWeightSumRaw = Number(bucket.weightSum);
+  const prevWeightSum = Number.isFinite(prevWeightSumRaw) && prevWeightSumRaw > 0
+    ? prevWeightSumRaw
+    : Math.max(0, prevCount);
   const nextCount = prevCount + 1;
   const prevMean = Number.isFinite(Number(bucket.mean)) ? Number(bucket.mean) : SESSION_SIZE_MODEL_BASELINE;
+  const prevLastSize = Number(bucket.lastSize || 0);
+  const prevStreak = Number(bucket.streak || 0);
+  const nextStreak = prevLastSize === normalizedSize
+    ? Math.max(1, prevStreak + 1)
+    : 1;
+  const streakBonus = Math.min(
+    SESSION_SIZE_MODEL_REPEAT_WEIGHT_MAX_BONUS,
+    Math.max(0, nextStreak - 1) * SESSION_SIZE_MODEL_REPEAT_WEIGHT_STEP
+  );
+  const sampleWeight = 1 + streakBonus;
+  const nextWeightSum = prevWeightSum + sampleWeight;
   bucket.count = nextCount;
-  bucket.mean = ((prevMean * prevCount) + size) / nextCount;
+  bucket.weightSum = nextWeightSum;
+  bucket.lastSize = normalizedSize;
+  bucket.streak = nextStreak;
+  bucket.mean = ((prevMean * prevWeightSum) + (normalizedSize * sampleWeight)) / nextWeightSum;
 }
 
 /**
@@ -356,7 +384,7 @@ function recordSessionSizeSample(subjectId, sessionCardCount) {
   if (!safeSubjectId || !Number.isFinite(size) || size <= 0) return;
   const model = loadSessionSizeModel();
   if (!model.subjects[safeSubjectId]) {
-    model.subjects[safeSubjectId] = { count: 0, mean: SESSION_SIZE_MODEL_BASELINE };
+    model.subjects[safeSubjectId] = normalizeSessionSizeModelBucket(null);
   }
   applySessionSizeSampleToBucket(model.global, size);
   applySessionSizeSampleToBucket(model.subjects[safeSubjectId], size);
