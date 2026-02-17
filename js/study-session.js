@@ -822,17 +822,15 @@ async function gradeCard(result) {
     session.mastered.push(card);
     delete session.gradeMap[card.id];
   } else if (result === 'wrong') {
-    // Red stays relatively near the front, but not at the very end when the queue gets short.
-    const target = Math.min(4, Math.max(0, remainingActiveCount - 1));
+    // Wrong: move ~30% of remaining non-mastered queue length to the back (rounded to nearest int).
+    const moveBack = Math.max(0, Math.round(remainingNonMasteredCount * 0.3));
+    const target = Math.min(moveBack, remainingActiveCount);
     session.activeQueue.splice(target, 0, card);
     session.gradeMap[card.id] = result;
   } else if (result === 'partial') {
-    // Yellow should always be behind red in the remaining queue.
-    const redTarget = Math.min(4, Math.max(0, remainingActiveCount - 1));
-    let target = remainingNonMasteredCount - 3;
-    if (target < 0 || target > remainingActiveCount || target <= redTarget) {
-      target = remainingActiveCount;
-    }
+    // Partial: move ~70% of remaining non-mastered queue length to the back (rounded to nearest int).
+    const moveBack = Math.max(0, Math.round(remainingNonMasteredCount * 0.7));
+    const target = Math.min(moveBack, remainingActiveCount);
     session.activeQueue.splice(target, 0, card);
     session.gradeMap[card.id] = result;
   } else {
