@@ -272,7 +272,8 @@ function parseApiFilterValues(searchParams, key) {
 
 function sanitizeCardSearchInput(value = '') {
   return String(value || '')
-    .replace(/[,*%_()]/g, ' ')
+    // Keep only letters/numbers/space to avoid PostgREST filter-parser edge cases.
+    .replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -291,6 +292,41 @@ function buildCardSearchOrFilter(searchValue = '') {
     `payload->>question.ilike.${pattern}`,
     `payload->>answer.ilike.${pattern}`
   ].join(',');
+}
+
+/**
+ * @function normalizeSearchComparableText
+ * @description Normalizes text to lowercase accent-insensitive tokens for local fallback matching.
+ */
+
+function normalizeSearchComparableText(value = '') {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * @function cardPayloadMatchesSearch
+ * @description Checks whether a card payload matches a search string (fallback path).
+ */
+
+function cardPayloadMatchesSearch(payload = null, searchValue = '') {
+  const needle = normalizeSearchComparableText(searchValue);
+  if (!needle) return false;
+  const safePayload = (payload && typeof payload === 'object') ? payload : {};
+  const optionText = Array.isArray(safePayload.options)
+    ? safePayload.options.map(option => String(option?.text || '')).join('\n')
+    : '';
+  const haystack = normalizeSearchComparableText([
+    safePayload.prompt,
+    safePayload.question,
+    safePayload.answer,
+    optionText
+  ].join('\n'));
+  return haystack.includes(needle);
 }
 
 /**
@@ -333,7 +369,9 @@ async function queryCardsSupabase(searchParams) {
   const cardIds = parseApiFilterValues(searchParams, 'cardId');
   const searchRaw = String(searchParams.get('search') || '').trim();
   const searchFilter = buildCardSearchOrFilter(searchRaw);
+  const searchRequested = searchRaw.length > 0;
   const hasSearch = !!searchFilter;
+  if (searchRequested && !hasSearch) return [];
   const fieldsRaw = String(searchParams.get('fields') || '').trim();
   const fields = fieldsRaw
     .split(',')
@@ -357,13 +395,32 @@ async function queryCardsSupabase(searchParams) {
     else if (topicIds.length > 1) query = query.in('topic_id', topicIds);
   }
 
-  if (hasSearch) {
-    query = query.or(searchFilter);
-  }
+  const runOrderedQuery = async request => {
+    const { data, error } = await request.order('updated_at', { ascending: true });
+    assertSupabaseSuccess(error, 'Failed to query cards.');
+    return Array.isArray(data) ? data : [];
+  };
 
-  const { data, error } = await query.order('updated_at', { ascending: true });
-  assertSupabaseSuccess(error, 'Failed to query cards.');
-  const rows = Array.isArray(data) ? data : [];
+  let rows = [];
+  if (hasSearch) {
+    try {
+      rows = await runOrderedQuery(query.or(searchFilter));
+    } catch (searchErr) {
+      // Some user inputs still trigger PostgREST/DB parser errors.
+      // Fallback: fetch scoped rows and match locally to keep search usable.
+      console.warn('Card search fallback: DB-side search failed, switching to local match.', searchErr);
+      let fallbackQuery = supabaseClient
+        .from(SUPABASE_TABLE)
+        .select('record_key,payload,topic_id')
+        .eq('store', 'cards');
+      if (cardIds.length === 1) fallbackQuery = fallbackQuery.eq('record_key', cardIds[0]);
+      else if (cardIds.length > 1) fallbackQuery = fallbackQuery.in('record_key', cardIds);
+      const fallbackRows = await runOrderedQuery(fallbackQuery);
+      rows = fallbackRows.filter(row => cardPayloadMatchesSearch(row?.payload, searchRaw));
+    }
+  } else {
+    rows = await runOrderedQuery(query);
+  }
 
   const scopedRows = (hasSearch && topicIds.length)
     ? rows.filter(row => {
