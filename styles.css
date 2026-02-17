@@ -4045,7 +4045,7 @@ dialog::backdrop {
 }
 
 #startAnotherSessionBtn {
-  background-color: var(--success)
+  background: var(--button)
 }
 
 .start-daily-review-btn:hover {
