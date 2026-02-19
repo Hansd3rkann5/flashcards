@@ -2739,12 +2739,16 @@ function playSessionCompleteConfetti() {
 
   if (typeof emit.reset === 'function') emit.reset();
 
+  const vw = Math.max(window.innerWidth, 320);
+  const BASE_WIDTH = 1200;
+  const scale = Math.min(1.2, Math.max(0.6, vw / BASE_WIDTH));
+
   const origin = { x: 0.5, y: 1.02 };
   const colors = ['#22c55e', '#38bdf8', '#f59e0b', '#ef4444', '#a78bfa', '#facc15', '#14b8a6'];
   const base = {
     origin,
     angle: 90,
-    spread: 75,
+    spread: 75*scale,
     startVelocity: 48,
     gravity: 1.05,
     ticks: 220,
@@ -2753,16 +2757,20 @@ function playSessionCompleteConfetti() {
     colors
   };
   emit({ ...base, particleCount: 220 });
-  setTimeout(() => emit({ ...base,
+  setTimeout(() => emit({
+    ...base,
     particleCount: 180,
-    spread: 95,
+    spread: 95*scale,
     startVelocity: 42,
-    scalar: 0.92 }), 140);
-  setTimeout(() => emit({ ...base,
+    scalar: 0.92
+  }), 140);
+  setTimeout(() => emit({
+    ...base,
     particleCount: 220,
-    spread: 110,
+    spread: 110*scale,
     startVelocity: 78,
-    scalar: 1.06 }), 200);
+    scalar: 1.06
+  }), 200);
 }
 
 /**
