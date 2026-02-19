@@ -698,16 +698,28 @@ function closeStudyImageLightbox() {
 
 function buildSessionCardImage(src, alt = 'Flashcard image') {
   const img = document.createElement('img');
-  img.src = src;
+  bindImageElementSource(img, src);
   img.alt = alt;
   img.className = 'session-card-image';
   img.addEventListener('load', () => {
     queueSessionFaceOverflowSync();
   });
-  img.addEventListener('click', e => {
+  img.addEventListener('click', async e => {
     e.stopPropagation();
-    openStudyImageLightbox(src);
+    const preferred = String(img.currentSrc || img.src || '').trim();
+    if (preferred) {
+      openStudyImageLightbox(preferred);
+      return;
+    }
+    const raw = String(img.dataset.imageSource || src || '').trim();
+    if (!raw) return;
+    try {
+      const resolved = await resolveImageSourceForDisplay(raw);
+      if (!resolved) return;
+      openStudyImageLightbox(resolved);
+    } catch (_) {
+      // Keep click best-effort when source resolution fails.
+    }
   });
   return img;
 }
-

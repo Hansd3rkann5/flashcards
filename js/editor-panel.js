@@ -514,7 +514,6 @@ function ensureInlineColorToolbarControls() {
 
 function toggleListPrefix(textarea, listType = 'ul') {
   if (!textarea) return;
-  ensureListInputLeftAligned(textarea);
   const value = textarea.value || '';
   const start = textarea.selectionStart ?? 0;
   const end = textarea.selectionEnd ?? start;
@@ -1615,7 +1614,6 @@ function handleListAutoIndent(e) {
   if (!listMeta) return;
 
   e.preventDefault();
-  ensureListInputLeftAligned(textarea);
   let insert = '\n';
   if (!listMeta.text.trim()) {
     insert = '\n';
@@ -1663,7 +1661,6 @@ function handleListTabIndent(e) {
   if (!listMeta) return;
 
   e.preventDefault();
-  ensureListInputLeftAligned(textarea);
   let nextLine = line;
   if (e.shiftKey) {
     const outdentedIndent = listMeta.indent.slice(0, Math.max(0, listMeta.indent.length - 2));

@@ -42,6 +42,636 @@ function readAuthCredentials() {
   return { email, password };
 }
 
+const ONBOARDING_TUTORIAL_STORAGE_PREFIX = 'flashcards.onboarding-tutorial.v1.';
+const ONBOARDING_TUTORIAL_STEPS = Object.freeze([
+  Object.freeze({
+    title: 'Welcome to Engineering Flashcards',
+    body: 'Create your first Subject to define what you want to learn. Start by adding your name below so your profile is complete.'
+  }),
+  Object.freeze({
+    title: 'Add Topics Inside a Subject',
+    body: 'Each Subject can contain multiple Topics. Use Topics to split large subjects into focused study areas.'
+  }),
+  Object.freeze({
+    title: 'Start a Study Session',
+    body: 'Select one or more Topics, choose your Session Size, then press Start Session to build a mixed card queue.'
+  }),
+  Object.freeze({
+    title: 'Review Cards Efficiently',
+    body: 'Flip cards with Space, grade them as Correct, Not quite, or Wrong, and use keys 1/2/3 for faster progress.'
+  }),
+  Object.freeze({
+    title: 'Track Progress and Repeat Daily',
+    body: 'Use Home for Daily Review, adjust filters when needed, and open Settings to export, import, or sign out.'
+  })
+]);
+
+const ONBOARDING_PROFILE_NAME_MAX_LEN = 80;
+let authenticatedSupabaseUser = null;
+let onboardingProfileName = '';
+let onboardingNameRequired = false;
+let onboardingNameOnlyMode = false;
+let onboardingNameSaving = false;
+let onboardingTutorialStepIndex = 0;
+let onboardingTutorialOpen = false;
+let onboardingTutorialWired = false;
+
+/**
+ * @function normalizeOnboardingProfileName
+ * @description Normalizes user profile names for onboarding and Supabase metadata writes.
+ */
+
+function normalizeOnboardingProfileName(value = '') {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, ONBOARDING_PROFILE_NAME_MAX_LEN);
+}
+
+/**
+ * @function extractOnboardingProfileNameFromUser
+ * @description Extracts a display name from Supabase auth user metadata.
+ */
+
+function extractOnboardingProfileNameFromUser(user = null) {
+  const meta = (user?.user_metadata && typeof user.user_metadata === 'object')
+    ? user.user_metadata
+    : {};
+  const candidates = [meta.full_name, meta.name, meta.display_name, meta.displayName];
+  for (const raw of candidates) {
+    const normalized = normalizeOnboardingProfileName(raw);
+    if (normalized) return normalized;
+  }
+  return '';
+}
+
+/**
+ * @function refreshAuthenticatedProfileName
+ * @description Refreshes profile-name state from Supabase auth user data.
+ */
+
+async function refreshAuthenticatedProfileName() {
+  let user = authenticatedSupabaseUser;
+  try {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error) throw error;
+    if (data?.user) {
+      user = data.user;
+      authenticatedSupabaseUser = data.user;
+    }
+  } catch (err) {
+    // Keep fallback from current session user when network is unavailable.
+  }
+  const hasUser = !!user;
+  onboardingProfileName = extractOnboardingProfileNameFromUser(user);
+  onboardingNameRequired = hasUser ? !onboardingProfileName : false;
+}
+
+/**
+ * @function setOnboardingNameMessage
+ * @description Sets onboarding name validation/sync feedback.
+ */
+
+function setOnboardingNameMessage(message = '', type = '') {
+  const messageEl = el('onboardingNameMessage');
+  if (!messageEl) return;
+  messageEl.textContent = String(message || '');
+  messageEl.classList.remove('error', 'success');
+  if (type === 'error' || type === 'success') messageEl.classList.add(type);
+}
+
+/**
+ * @function getOnboardingVisibleStepCount
+ * @description Returns the active number of onboarding steps (full tutorial or profile-completion only).
+ */
+
+function getOnboardingVisibleStepCount() {
+  return onboardingNameOnlyMode ? 1 : ONBOARDING_TUTORIAL_STEPS.length;
+}
+
+/**
+ * @function getOnboardingTutorialStorageKey
+ * @description Returns the per-user localStorage key that tracks tutorial completion.
+ */
+
+function getOnboardingTutorialStorageKey(ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return '';
+  return `${ONBOARDING_TUTORIAL_STORAGE_PREFIX}${safeOwnerId}`;
+}
+
+/**
+ * @function hasCompletedOnboardingTutorial
+ * @description Returns true when the current user already completed the onboarding tutorial.
+ */
+
+function hasCompletedOnboardingTutorial(ownerId = '') {
+  const key = getOnboardingTutorialStorageKey(ownerId);
+  if (!key || typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    return window.localStorage.getItem(key) === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * @function markOnboardingTutorialCompleted
+ * @description Persists tutorial completion for the current user.
+ */
+
+function markOnboardingTutorialCompleted(ownerId = '') {
+  const key = getOnboardingTutorialStorageKey(ownerId);
+  if (!key || typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(key, '1');
+  } catch (_) {
+    // Ignore storage write failures (private mode/quota/etc.).
+  }
+}
+
+/**
+ * @function shouldShowOnboardingTutorial
+ * @description Returns true when onboarding should be shown for the authenticated user.
+ */
+
+function shouldShowOnboardingTutorial(ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return false;
+  return !hasCompletedOnboardingTutorial(safeOwnerId);
+}
+
+/**
+ * @function setOnboardingTutorialVisibility
+ * @description Shows or hides the onboarding tutorial overlay.
+ */
+
+function setOnboardingTutorialVisibility(visible = false) {
+  const overlay = el('onboardingTutorial');
+  if (!overlay) return;
+  const show = !!visible;
+  overlay.classList.toggle('hidden', !show);
+  overlay.setAttribute('aria-hidden', show ? 'false' : 'true');
+  document.body.classList.toggle('tutorial-open', show);
+}
+
+/**
+ * @function renderOnboardingTutorialStep
+ * @description Renders the current tutorial step text and progress indicators.
+ */
+
+function renderOnboardingTutorialStep() {
+  const totalSteps = getOnboardingVisibleStepCount();
+  const safeIndex = Math.max(0, Math.min(totalSteps - 1, onboardingTutorialStepIndex));
+  const step = ONBOARDING_TUTORIAL_STEPS[safeIndex];
+  if (!step) return;
+  const titleEl = el('onboardingTutorialTitle');
+  const bodyEl = el('onboardingTutorialBody');
+  const stepMetaEl = el('onboardingTutorialStepMeta');
+  const prevBtn = el('onboardingTutorialPrevBtn');
+  const nextBtn = el('onboardingTutorialNextBtn');
+  const dotsWrap = el('onboardingTutorialDots');
+  const nameBlock = el('onboardingNameBlock');
+  const nameInput = el('onboardingNameInput');
+  const isFirstStep = safeIndex === 0;
+  const isLastStep = safeIndex >= totalSteps - 1;
+  if (titleEl) titleEl.textContent = step.title;
+  if (bodyEl) bodyEl.textContent = step.body;
+  if (stepMetaEl) stepMetaEl.textContent = `Step ${safeIndex + 1} of ${totalSteps}`;
+  if (prevBtn) prevBtn.disabled = onboardingNameSaving || safeIndex <= 0;
+  if (nextBtn) {
+    nextBtn.disabled = onboardingNameSaving;
+    nextBtn.setAttribute('aria-label', isLastStep ? 'Finish tutorial' : 'Next step');
+    nextBtn.title = isLastStep ? 'Finish' : 'Next';
+  }
+  if (nameBlock) nameBlock.classList.toggle('hidden', !isFirstStep);
+  if (nameInput instanceof HTMLInputElement) {
+    if (isFirstStep && onboardingProfileName && !nameInput.value.trim()) {
+      nameInput.value = onboardingProfileName;
+    }
+    nameInput.disabled = onboardingNameSaving;
+    nameInput.required = onboardingNameRequired;
+  }
+  if (dotsWrap) {
+    dotsWrap.innerHTML = '';
+    for (let idx = 0; idx < totalSteps; idx += 1) {
+      const dot = document.createElement('span');
+      dot.className = idx === safeIndex ? 'onboarding-dot active' : 'onboarding-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      dotsWrap.appendChild(dot);
+    }
+  }
+}
+
+/**
+ * @function setOnboardingTutorialStep
+ * @description Changes the active tutorial step to a clamped index.
+ */
+
+function setOnboardingTutorialStep(nextIndex = 0) {
+  const max = Math.max(0, getOnboardingVisibleStepCount() - 1);
+  const clamped = Math.max(0, Math.min(max, Math.trunc(Number(nextIndex) || 0)));
+  onboardingTutorialStepIndex = clamped;
+  renderOnboardingTutorialStep();
+}
+
+/**
+ * @function closeOnboardingTutorial
+ * @description Closes the onboarding overlay and optionally persists completion.
+ */
+
+function closeOnboardingTutorial(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  onboardingTutorialOpen = false;
+  setOnboardingTutorialVisibility(false);
+  setOnboardingNameMessage('');
+  onboardingNameSaving = false;
+  if (opts.completed) {
+    markOnboardingTutorialCompleted(supabaseOwnerId);
+  }
+}
+
+/**
+ * @function persistOnboardingNameFromInput
+ * @description Persists the entered name into Supabase auth user metadata.
+ */
+
+async function persistOnboardingNameFromInput() {
+  const nameInput = el('onboardingNameInput');
+  if (!(nameInput instanceof HTMLInputElement)) return true;
+  const normalized = normalizeOnboardingProfileName(nameInput.value);
+  if (!normalized) {
+    setOnboardingNameMessage('Please enter your name.', 'error');
+    nameInput.focus({ preventScroll: true });
+    return false;
+  }
+  if (onboardingNameSaving) return false;
+  onboardingNameSaving = true;
+  setOnboardingNameMessage('Saving name...');
+  renderOnboardingTutorialStep();
+  try {
+    await initSupabaseBackend();
+    const { data, error } = await supabaseClient.auth.updateUser({
+      data: {
+        full_name: normalized,
+        name: normalized
+      }
+    });
+    if (error) throw error;
+    if (data?.user) authenticatedSupabaseUser = data.user;
+    onboardingProfileName = normalized;
+    onboardingNameRequired = false;
+    nameInput.value = normalized;
+    setOnboardingNameMessage('Name saved.', 'success');
+    return true;
+  } catch (err) {
+    setOnboardingNameMessage(err?.message || 'Could not save your name. Please try again.', 'error');
+    return false;
+  } finally {
+    onboardingNameSaving = false;
+    renderOnboardingTutorialStep();
+  }
+}
+
+/**
+ * @function advanceOnboardingTutorial
+ * @description Moves tutorial backward/forward and finishes on the final step.
+ */
+
+async function advanceOnboardingTutorial(direction = 1) {
+  if (!onboardingTutorialOpen) return;
+  if (onboardingNameSaving) return;
+  const delta = Math.trunc(Number(direction) || 0);
+  if (delta === 0) return;
+  if (delta > 0 && onboardingTutorialStepIndex === 0 && onboardingNameRequired) {
+    const saved = await persistOnboardingNameFromInput();
+    if (!saved) return;
+    if (onboardingNameOnlyMode) {
+      closeOnboardingTutorial({ completed: false });
+      return;
+    }
+  }
+  const total = getOnboardingVisibleStepCount();
+  const nextIndex = onboardingTutorialStepIndex + delta;
+  if (delta > 0 && nextIndex >= total) {
+    closeOnboardingTutorial({ completed: true });
+    return;
+  }
+  setOnboardingTutorialStep(nextIndex);
+}
+
+/**
+ * @function handleOnboardingTutorialKeydown
+ * @description Handles arrow-key navigation while onboarding is visible.
+ */
+
+function handleOnboardingTutorialKeydown(event) {
+  if (!onboardingTutorialOpen) return;
+  const target = event.target instanceof Element ? event.target : null;
+  if (target && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    event.stopPropagation();
+    void advanceOnboardingTutorial(1);
+    return;
+  }
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    event.stopPropagation();
+    void advanceOnboardingTutorial(-1);
+  }
+}
+
+/**
+ * @function wireOnboardingTutorial
+ * @description Wires onboarding buttons and keyboard listeners once.
+ */
+
+function wireOnboardingTutorial() {
+  if (onboardingTutorialWired) return;
+  onboardingTutorialWired = true;
+  const prevBtn = el('onboardingTutorialPrevBtn');
+  const nextBtn = el('onboardingTutorialNextBtn');
+  const nameInput = el('onboardingNameInput');
+  if (prevBtn) prevBtn.onclick = () => { void advanceOnboardingTutorial(-1); };
+  if (nextBtn) nextBtn.onclick = () => { void advanceOnboardingTutorial(1); };
+  if (nameInput instanceof HTMLInputElement) {
+    nameInput.addEventListener('input', () => setOnboardingNameMessage(''));
+    nameInput.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      void advanceOnboardingTutorial(1);
+    });
+  }
+  document.addEventListener('keydown', handleOnboardingTutorialKeydown, true);
+}
+
+/**
+ * @function openOnboardingTutorial
+ * @description Opens onboarding from the first step.
+ */
+
+function openOnboardingTutorial() {
+  const overlay = el('onboardingTutorial');
+  if (!overlay) return;
+  onboardingTutorialOpen = true;
+  setOnboardingTutorialStep(0);
+  const nameInput = el('onboardingNameInput');
+  if (nameInput instanceof HTMLInputElement) {
+    nameInput.value = onboardingProfileName || '';
+  }
+  setOnboardingNameMessage('');
+  setOnboardingTutorialVisibility(true);
+  if (onboardingNameRequired && nameInput instanceof HTMLInputElement) {
+    nameInput.focus({ preventScroll: true });
+    nameInput.select();
+    return;
+  }
+  const nextBtn = el('onboardingTutorialNextBtn');
+  nextBtn?.focus?.({ preventScroll: true });
+}
+
+const EDITOR_INTRO_STORAGE_PREFIX = 'flashcards.editor-intro.v1.';
+const EDITOR_INTRO_SHORTCUTS = Object.freeze([
+  Object.freeze({
+    keys: ['Shift', 'Enter'],
+    description: 'Create a flashcard in the create editor or save changes in the edit dialog.'
+  }),
+  Object.freeze({
+    keys: ['Ctrl', '+'],
+    description: 'Add one additional MCQ answer option in create and edit fields.'
+  }),
+  Object.freeze({
+    keys: ['Cmd/Ctrl', 'B'],
+    description: 'Toggle bold markdown markers around the current selection.'
+  }),
+  Object.freeze({
+    keys: ['Cmd/Ctrl', 'I'],
+    description: 'Toggle italic markdown markers around the current selection.'
+  }),
+  Object.freeze({
+    keys: ['Cmd/Ctrl', 'U'],
+    description: 'Toggle underline markdown markers around the current selection.'
+  }),
+  Object.freeze({
+    keys: ['Cmd/Ctrl', 'L'],
+    description: 'Apply left alignment to the active editor field.'
+  }),
+  Object.freeze({
+    keys: ['Cmd/Ctrl', 'C'],
+    description: 'Apply center alignment when no text is selected (copy still works with selected text).'
+  }),
+  Object.freeze({
+    keys: ['Cmd/Ctrl', 'J'],
+    description: 'Apply justify alignment to the active editor field.'
+  }),
+  Object.freeze({
+    keys: ['Escape'],
+    description: 'Close an open inline color picker menu.'
+  }),
+  Object.freeze({
+    keys: ['Tab'],
+    description: 'In the Question field: jump directly to the Answer field.'
+  }),
+  Object.freeze({
+    keys: ['Tab', 'Shift', 'Tab'],
+    description: 'In list lines: indent (Tab) or outdent (Shift+Tab).'
+  }),
+  Object.freeze({
+    keys: ['Enter'],
+    description: 'In list lines: continue numbering/bullets, or exit the list on empty item.'
+  }),
+  Object.freeze({
+    keys: ['Enter'],
+    description: 'In primary MCQ answer mode: Enter is blocked to keep the answer single-line.'
+  }),
+  Object.freeze({
+    keys: ['Shift', 'Enter'],
+    description: 'In the table dialog: insert or update the generated markdown table.'
+  }),
+  Object.freeze({
+    keys: ['(', '[', '{', '$'],
+    description: 'Wrap current selection with matching pairs in editor text fields.'
+  })
+]);
+
+let editorIntroOpen = false;
+let editorIntroWired = false;
+
+/**
+ * @function getEditorIntroStorageKey
+ * @description Returns the per-user localStorage key for editor intro completion.
+ */
+
+function getEditorIntroStorageKey(ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return '';
+  return `${EDITOR_INTRO_STORAGE_PREFIX}${safeOwnerId}`;
+}
+
+/**
+ * @function hasCompletedEditorIntro
+ * @description Returns true when the editor intro was already dismissed for this user.
+ */
+
+function hasCompletedEditorIntro(ownerId = '') {
+  const key = getEditorIntroStorageKey(ownerId);
+  if (!key || typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    return window.localStorage.getItem(key) === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * @function markEditorIntroCompleted
+ * @description Marks the editor intro as completed for the current user.
+ */
+
+function markEditorIntroCompleted(ownerId = '') {
+  const key = getEditorIntroStorageKey(ownerId);
+  if (!key || typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(key, '1');
+  } catch (_) {
+    // Ignore storage write failures (private mode/quota/etc.).
+  }
+}
+
+/**
+ * @function shouldShowEditorIntro
+ * @description Returns true when the editor intro should be shown for the active user.
+ */
+
+function shouldShowEditorIntro(ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return false;
+  return !hasCompletedEditorIntro(safeOwnerId);
+}
+
+/**
+ * @function setEditorIntroVisibility
+ * @description Shows or hides the editor intro overlay.
+ */
+
+function setEditorIntroVisibility(visible = false) {
+  const overlay = el('editorIntro');
+  if (!overlay) return;
+  const show = !!visible;
+  overlay.classList.toggle('hidden', !show);
+  overlay.setAttribute('aria-hidden', show ? 'false' : 'true');
+  document.body.classList.toggle('editor-intro-open', show);
+}
+
+/**
+ * @function renderEditorIntroShortcutList
+ * @description Renders all available editor keyboard shortcuts into the intro panel.
+ */
+
+function renderEditorIntroShortcutList() {
+  const list = el('editorIntroShortcutList');
+  if (!list) return;
+  list.innerHTML = '';
+  EDITOR_INTRO_SHORTCUTS.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'editor-intro-shortcut';
+    const keysWrap = document.createElement('div');
+    keysWrap.className = 'editor-intro-shortcut-keys';
+    const keys = Array.isArray(entry.keys) ? entry.keys : [];
+    keys.forEach(keyLabel => {
+      const keyNode = document.createElement('kbd');
+      keyNode.textContent = String(keyLabel || '');
+      keysWrap.appendChild(keyNode);
+    });
+    const desc = document.createElement('div');
+    desc.className = 'editor-intro-shortcut-desc';
+    desc.textContent = String(entry.description || '');
+    row.append(keysWrap, desc);
+    list.appendChild(row);
+  });
+}
+
+/**
+ * @function closeEditorIntro
+ * @description Closes the editor intro and stores completion.
+ */
+
+function closeEditorIntro() {
+  if (!editorIntroOpen) return;
+  editorIntroOpen = false;
+  setEditorIntroVisibility(false);
+  markEditorIntroCompleted(supabaseOwnerId);
+}
+
+/**
+ * @function openEditorIntro
+ * @description Opens the editor intro panel.
+ */
+
+function openEditorIntro() {
+  const overlay = el('editorIntro');
+  if (!overlay) return;
+  renderEditorIntroShortcutList();
+  const card = overlay.querySelector('.editor-intro-card');
+  const shortcutList = el('editorIntroShortcutList');
+  if (card) card.scrollTop = 0;
+  if (shortcutList) shortcutList.scrollTop = 0;
+  overlay.scrollTop = 0;
+  editorIntroOpen = true;
+  setEditorIntroVisibility(true);
+  requestAnimationFrame(() => {
+    if (card) card.scrollTop = 0;
+    overlay.scrollTop = 0;
+  });
+  const closeBtn = el('editorIntroCloseBtn');
+  closeBtn?.focus?.({ preventScroll: true });
+}
+
+/**
+ * @function maybeOpenEditorIntro
+ * @description Opens the editor intro only if the user has not seen it before.
+ */
+
+function maybeOpenEditorIntro() {
+  if (!shouldShowEditorIntro(supabaseOwnerId)) return;
+  openEditorIntro();
+}
+
+/**
+ * @function handleEditorIntroKeydown
+ * @description Handles key actions while the editor intro is open.
+ */
+
+function handleEditorIntroKeydown(event) {
+  if (!editorIntroOpen) return;
+  if (event.key === 'Escape' || event.key === 'Enter') {
+    event.preventDefault();
+    event.stopPropagation();
+    closeEditorIntro();
+  }
+}
+
+/**
+ * @function wireEditorIntro
+ * @description Wires editor intro controls once.
+ */
+
+function wireEditorIntro() {
+  if (editorIntroWired) return;
+  editorIntroWired = true;
+  const overlay = el('editorIntro');
+  const closeBtn = el('editorIntroCloseBtn');
+  if (closeBtn) closeBtn.onclick = () => closeEditorIntro();
+  if (overlay) {
+    overlay.addEventListener('click', event => {
+      if (event.target !== overlay) return;
+      closeEditorIntro();
+    });
+  }
+  document.addEventListener('keydown', handleEditorIntroKeydown, true);
+}
+
 /**
  * @function ensureAuthenticatedSession
  * @description Requires a valid Supabase session before the app can initialize.
@@ -52,7 +682,8 @@ async function ensureAuthenticatedSession() {
   const { data, error } = await supabaseClient.auth.getSession();
   if (error) throw error;
   if (data?.session) {
-    supabaseOwnerId = String(data.session?.user?.id || '').trim();
+    authenticatedSupabaseUser = data.session?.user || null;
+    supabaseOwnerId = String(authenticatedSupabaseUser?.id || '').trim();
     setAuthGateVisibility(false);
     return true;
   }
@@ -92,7 +723,8 @@ async function ensureAuthenticatedSession() {
       try {
         const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword(credentials);
         if (signInError) throw signInError;
-        supabaseOwnerId = String(signInData?.user?.id || '').trim();
+        authenticatedSupabaseUser = signInData?.user || null;
+        supabaseOwnerId = String(authenticatedSupabaseUser?.id || '').trim();
         complete();
       } catch (err) {
         setBusy(false);
@@ -110,7 +742,8 @@ async function ensureAuthenticatedSession() {
         const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp(credentials);
         if (signUpError) throw signUpError;
         if (signUpData?.session) {
-          supabaseOwnerId = String(signUpData?.user?.id || signUpData?.session?.user?.id || '').trim();
+          authenticatedSupabaseUser = signUpData?.user || signUpData?.session?.user || null;
+          supabaseOwnerId = String(authenticatedSupabaseUser?.id || '').trim();
           complete();
           return;
         }
@@ -144,6 +777,12 @@ async function boot() {
     alert(err?.message || 'Authentication failed.');
     return;
   }
+  let showOnboardingTutorial = shouldShowOnboardingTutorial(supabaseOwnerId);
+  await refreshAuthenticatedProfileName();
+  onboardingNameOnlyMode = onboardingNameRequired && !showOnboardingTutorial;
+  showOnboardingTutorial = showOnboardingTutorial || onboardingNameRequired;
+  wireOnboardingTutorial();
+  wireEditorIntro();
 
   let backendReachable = false;
   try {
@@ -188,6 +827,11 @@ async function boot() {
         const { error: signOutError } = await supabaseClient.auth.signOut();
         if (signOutError) throw signOutError;
         supabaseOwnerId = '';
+        authenticatedSupabaseUser = null;
+        onboardingProfileName = '';
+        onboardingNameRequired = false;
+        onboardingNameOnlyMode = false;
+        onboardingNameSaving = false;
         supabaseTenantColumn = '';
         window.location.reload();
       } catch (err) {
@@ -205,6 +849,8 @@ async function boot() {
   if (exportJsonBtn) exportJsonBtn.onclick = exportJSON;
   const exportCsvBtn = el('exportCsvBtn');
   if (exportCsvBtn) exportCsvBtn.onclick = exportCSV;
+  const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
+  if (migrateImagesToStorageBtn) migrateImagesToStorageBtn.onclick = migrateImagesToStorage;
   const importInput = el('importInput');
   if (importInput) {
     importInput.addEventListener('change', e => {
@@ -430,7 +1076,10 @@ async function boot() {
     setView(returnToHome ? 0 : 1);
     if (returnToHome) void refreshDailyReviewHomePanel({ useExisting: false });
   };
-  el('backToDeckBtn').onclick = () => setView(2);
+  el('backToDeckBtn').onclick = () => {
+    setView(2);
+    if (selectedTopic) void loadDeck();
+  };
   const flashcardEl = el('flashcard');
   if (flashcardEl) {
     const canFlipSessionFlashcard = (eventTarget = null, opts = {}) => {
@@ -773,8 +1422,15 @@ async function boot() {
   const editorShell = document.querySelector('#editorPanel .editor-shell');
   const editorOverlay = el('editorOverlay');
   const toggleSidebarBtn = el('toggleEditorSidebarBtn');
+  const openEditorIntroBtn = el('openEditorIntroBtn');
   if (toggleSidebarBtn && editorShell) {
     toggleSidebarBtn.onclick = () => editorShell.classList.toggle('sidebar-open');
+  }
+  if (openEditorIntroBtn) {
+    openEditorIntroBtn.onclick = () => {
+      if (editorIntroOpen) closeEditorIntro();
+      else openEditorIntro();
+    };
   }
   if (editorOverlay && editorShell) {
     editorOverlay.onclick = () => editorShell.classList.remove('sidebar-open');
@@ -1342,6 +1998,7 @@ async function boot() {
     refreshSidebar(),
     refreshDailyReviewHomePanel({ useExisting: false })
   ]);
+  if (showOnboardingTutorial) openOnboardingTutorial();
 }
 
 window.addEventListener('DOMContentLoaded', boot);

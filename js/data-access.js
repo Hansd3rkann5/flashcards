@@ -447,6 +447,60 @@ async function getCardRefsByTopicIds(topicIds, options = {}) {
 }
 
 /**
+ * @function getCardPromptRefsByTopicIds
+ * @description Loads lightweight card references (id, topicId and prompt) for the given topic IDs.
+ */
+
+async function getCardPromptRefsByTopicIds(topicIds, options = {}) {
+  const ids = Array.isArray(topicIds)
+    ? Array.from(new Set(topicIds.map(topicId => String(topicId || '').trim()).filter(Boolean)))
+    : [];
+  if (!ids.length) return [];
+
+  ids.sort();
+  const opts = options && typeof options === 'object' ? options : {};
+
+  const baseParams = new URLSearchParams();
+  ids.forEach(topicId => baseParams.append('topicId', topicId));
+  baseParams.set('fields', 'id,topicId,prompt');
+  const baseQueryPath = `${API_BASE}/cards?${baseParams.toString()}`;
+  const requestParams = new URLSearchParams(baseParams.toString());
+  let payloadLabel = String(opts.payloadLabel || '').trim();
+  if (!payloadLabel && ids.length === 1) {
+    const topic = topicDirectoryById.get(ids[0]) || null;
+    payloadLabel = `${topicTraceLabel(topic)}-prompt-refs`;
+  }
+  if (!payloadLabel && ids.length > 1) {
+    payloadLabel = `topics-${ids.length}-prompt-refs`;
+  }
+  if (payloadLabel) requestParams.set('payload', payloadLabel);
+  const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
+  const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * @function getAllCardIds
+ * @description Loads all card IDs with a lightweight projection to avoid large payload reads.
+ */
+
+async function getAllCardIds(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const baseParams = new URLSearchParams();
+  baseParams.set('fields', 'id');
+  const baseQueryPath = `${API_BASE}/cards?${baseParams.toString()}`;
+  const requestParams = new URLSearchParams(baseParams.toString());
+  const payloadLabel = String(opts.payloadLabel || '').trim();
+  if (payloadLabel) requestParams.set('payload', payloadLabel);
+  const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
+  const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
+  const rows = Array.isArray(data) ? data : [];
+  return Array.from(new Set(
+    rows.map(row => String(row?.id || '').trim()).filter(Boolean)
+  ));
+}
+
+/**
  * @function searchCardRefsByTopicIds
  * @description Runs one DB-side text search in question/answer fields and returns matching card refs.
  */
@@ -522,6 +576,32 @@ async function getCardRefsByCardIds(cardIds, options = {}) {
   const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
   const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
 
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * @function getCardImageRefsByCardIds
+ * @description Loads card image-related fields without full card payloads.
+ */
+
+async function getCardImageRefsByCardIds(cardIds, options = {}) {
+  const ids = Array.isArray(cardIds)
+    ? Array.from(new Set(cardIds.map(id => String(id || '').trim()).filter(Boolean)))
+    : [];
+  if (!ids.length) return [];
+
+  ids.sort();
+  const opts = options && typeof options === 'object' ? options : {};
+
+  const baseParams = new URLSearchParams();
+  ids.forEach(cardId => baseParams.append('cardId', cardId));
+  baseParams.set('fields', 'id,imageDataQ,imageDataA,imageData,imagesQ,imagesA');
+  const baseQueryPath = `${API_BASE}/cards?${baseParams.toString()}`;
+  const requestParams = new URLSearchParams(baseParams.toString());
+  const payloadLabel = String(opts.payloadLabel || '').trim();
+  if (payloadLabel) requestParams.set('payload', payloadLabel);
+  const requestPath = `${API_BASE}/cards?${requestParams.toString()}`;
+  const data = await getCachedApiQuery(requestPath, { ...opts, cacheKey: baseQueryPath });
   return Array.isArray(data) ? data : [];
 }
 

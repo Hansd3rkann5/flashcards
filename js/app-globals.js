@@ -5,6 +5,7 @@
 const API_BASE = '/api';
 const SUPABASE_URL = String(window.__SUPABASE_URL__ || '').trim();
 const SUPABASE_ANON_KEY = String(window.__SUPABASE_ANON_KEY__ || '').trim();
+const SUPABASE_PICTURES_BUCKET = String(window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures').trim() || 'Pictures';
 const SUPABASE_TABLE = 'records';
 const STORE_KEYS = {
   subjects: 'id',
@@ -38,6 +39,8 @@ let sessionSizeManualOverride = false;
 let sessionSizeManualOverrideSubjectId = '';
 const SESSION_IMAGE_PRELOAD_CACHE_MAX = 256;
 const sessionImagePreloadCache = new Map();
+const storageImageResolvedUrlCache = new Map();
+const storageImageResolveInFlight = new Map();
 let editingCardId = null;
 let editingCardSnapshot = null;
 let editingSubjectId = null;

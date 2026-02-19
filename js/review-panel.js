@@ -2502,55 +2502,84 @@ async function renderProgressCheckTable() {
   if (!meta || !body) return;
   meta.textContent = 'Loading...';
   body.innerHTML = '<tr><td colspan="9" class="tiny">Loading...</td></tr>';
+  try {
+    const [subjects, topics] = await Promise.all([
+      getAll('subjects', { uiBlocking: false }),
+      getAll('topics', { uiBlocking: false })
+    ]);
+    const topicRows = Array.isArray(topics) ? topics : [];
+    const topicIds = Array.from(new Set(
+      topicRows.map(topic => String(topic?.id || '').trim()).filter(Boolean)
+    ));
 
-  const [subjects, topics, cards, progressRows] = await Promise.all([
-    getAll('subjects'),
-    getAll('topics'),
-    getAll('cards'),
-    getAll('progress')
-  ]);
-  const subjectById = new Map(
-    (subjects || []).map(subject => [String(subject?.id || '').trim(), String(subject?.name || '').trim()])
-  );
-  const topicById = new Map(
-    (topics || []).map(topic => [String(topic?.id || '').trim(), topic])
-  );
-  const progressByCardId = new Map(
-    (progressRows || []).map(row => [String(row?.cardId || '').trim(), row])
-  );
+    const lightweightCards = topicIds.length
+      ? await getCardPromptRefsByTopicIds(topicIds, {
+        payloadLabel: 'progress-check-cards',
+        uiBlocking: false
+      })
+      : [];
 
-  const cardRows = Array.isArray(cards) ? cards : [];
-  progressCheckRowsCache = cardRows.map(card => {
-    const cardId = String(card?.id || '').trim();
-    const topic = topicById.get(String(card?.topicId || '').trim()) || {};
-    const subjectName = String(subjectById.get(String(topic?.subjectId || '').trim()) || 'Unknown subject');
-    const topicName = String(topic?.name || 'Unknown topic');
-    const record = progressByCardId.get(cardId) || null;
-    const current = getCurrentProgressState(record, cardId);
-    const history = getProgressHistoryLines(record, cardId);
-    const latest = getLatestProgressDayEntry(record, cardId);
-    const rawLastAnswered = String(latest?.day?.lastAnsweredAt || record?.lastAnsweredAt || '').trim();
-    const parsedTs = Date.parse(rawLastAnswered);
-    const lastAnsweredTs = Number.isFinite(parsedTs) ? parsedTs : 0;
-    return {
-      cardId,
-      subject: subjectName,
-      topic: topicName,
-      question: getQuestionPreviewText(card),
-      currentKey: current.key,
-      currentLabel: current.label,
-      streak: current.streak,
-      lastGrade: current.lastGrade,
-      lastAnsweredAt: current.lastAnsweredAt,
-      lastAnsweredTs,
-      totalsText: `${current.totals.correct}/${current.totals.partial}/${current.totals.wrong}`,
-      history,
-      attemptsTotal: current.attemptsTotal
-    };
-  });
-  initProgressCheckFilterState();
-  renderProgressCheckRows();
-  if (progressCheckHeaderMenuState.column) renderProgressCheckHeaderMenu();
+    const cardsById = new Map();
+    (Array.isArray(lightweightCards) ? lightweightCards : []).forEach(card => {
+      const cardId = String(card?.id || '').trim();
+      if (!cardId || cardsById.has(cardId)) return;
+      cardsById.set(cardId, card);
+    });
+
+    const progressRows = await getAll('progress', {
+      uiBlocking: false
+    });
+
+    const subjectById = new Map(
+      (subjects || []).map(subject => [String(subject?.id || '').trim(), String(subject?.name || '').trim()])
+    );
+    const topicById = new Map(
+      topicRows.map(topic => [String(topic?.id || '').trim(), topic])
+    );
+    const progressByCardId = new Map(
+      (progressRows || []).map(row => [String(row?.cardId || '').trim(), row])
+    );
+
+    progressCheckRowsCache = Array.from(cardsById.values()).map(card => {
+      const cardId = String(card?.id || '').trim();
+      const topic = topicById.get(String(card?.topicId || '').trim()) || {};
+      const subjectName = String(subjectById.get(String(topic?.subjectId || '').trim()) || 'Unknown subject');
+      const topicName = String(topic?.name || 'Unknown topic');
+      const record = progressByCardId.get(cardId) || null;
+      const current = getCurrentProgressState(record, cardId);
+      const history = getProgressHistoryLines(record, cardId);
+      const latest = getLatestProgressDayEntry(record, cardId);
+      const rawLastAnswered = String(latest?.day?.lastAnsweredAt || record?.lastAnsweredAt || '').trim();
+      const parsedTs = Date.parse(rawLastAnswered);
+      const lastAnsweredTs = Number.isFinite(parsedTs) ? parsedTs : 0;
+      return {
+        cardId,
+        subject: subjectName,
+        topic: topicName,
+        question: getQuestionPreviewText(card),
+        currentKey: current.key,
+        currentLabel: current.label,
+        streak: current.streak,
+        lastGrade: current.lastGrade,
+        lastAnsweredAt: current.lastAnsweredAt,
+        lastAnsweredTs,
+        totalsText: `${current.totals.correct}/${current.totals.partial}/${current.totals.wrong}`,
+        history,
+        attemptsTotal: current.attemptsTotal
+      };
+    });
+    initProgressCheckFilterState();
+    renderProgressCheckRows();
+    if (progressCheckHeaderMenuState.column) renderProgressCheckHeaderMenu();
+  } catch (err) {
+    console.error('Failed to render progress check table:', err);
+    progressCheckRowsCache = [];
+    initProgressCheckFilterState();
+    closeProgressCheckHeaderMenu();
+    meta.textContent = 'Could not load progress overview.';
+    body.innerHTML = '<tr><td colspan="9" class="tiny">Could not load progress overview. Please try again.</td></tr>';
+    renderProgressCheckHeaderStates();
+  }
 }
 
 /**
