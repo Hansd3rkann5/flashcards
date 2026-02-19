@@ -46,6 +46,47 @@
     </div>
   </div>
 
+  <div id="onboardingTutorial" class="onboarding-tutorial hidden" aria-hidden="true">
+    <div class="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboardingTutorialTitle"
+      aria-describedby="onboardingTutorialBody">
+      <div class="tiny onboarding-step-meta" id="onboardingTutorialStepMeta">Step 1 of 5</div>
+      <h2 id="onboardingTutorialTitle">Welcome to Engineering Flashcards</h2>
+      <p id="onboardingTutorialBody">
+        Build your first study flow by creating a subject, then adding topics and cards.
+      </p>
+      <div id="onboardingNameBlock" class="onboarding-name-block hidden">
+        <label for="onboardingNameInput">Your name</label>
+        <input id="onboardingNameInput" class="input" type="text" maxlength="80" autocomplete="name"
+          placeholder="Enter your name" />
+        <div id="onboardingNameMessage" class="tiny onboarding-name-message" aria-live="polite"></div>
+      </div>
+      <div class="tiny onboarding-shortcuts">Use Left and Right Arrow keys to continue.</div>
+      <div class="onboarding-controls">
+        <button class="btn onboarding-nav-btn" id="onboardingTutorialPrevBtn" type="button"
+          aria-label="Previous step">←</button>
+        <div id="onboardingTutorialDots" class="onboarding-dots" aria-label="Tutorial progress"></div>
+        <button class="btn onboarding-nav-btn" id="onboardingTutorialNextBtn" type="button"
+          aria-label="Next step">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editorIntro" class="editor-intro hidden" aria-hidden="true">
+    <div class="editor-intro-card" role="dialog" aria-modal="true" aria-labelledby="editorIntroTitle"
+      aria-describedby="editorIntroBody">
+      <h2 id="editorIntroTitle">Editor Quick Intro</h2>
+      <p id="editorIntroBody">
+        This panel is optimized for quick card creation. Here are the available keyboard shortcuts and key-driven
+        behaviors.
+      </p>
+      <div id="editorIntroShortcutList" class="editor-intro-shortcuts"></div>
+      <div class="tiny editor-intro-footnote">Use the shortcuts directly in Question, Answer, and MCQ option fields.</div>
+      <div class="controls" style="margin-top:12px; margin-inline:0;">
+        <button class="btn save-primary" id="editorIntroCloseBtn" type="button">Start Editing</button>
+      </div>
+    </div>
+  </div>
+
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
   <div id="appLoadingOverlay" class="app-loading-overlay" aria-hidden="true">
     <div class="app-loading-inner" role="status" aria-live="polite" aria-atomic="true">
@@ -320,7 +361,10 @@
               <h2 id="editorTitle" style="margin:0;">+</h2>
               <!-- <div class="tiny" id="editorSubtitle">Autosaved locally</div> -->
             </div>
-            <button class="btn editor-sidebar-toggle" id="toggleEditorSidebarBtn">Cards</button>
+            <div class="editor-header-actions">
+              <button class="btn editor-shortcuts-btn" id="openEditorIntroBtn" type="button">Shortcuts</button>
+              <button class="btn editor-sidebar-toggle" id="toggleEditorSidebarBtn">Cards</button>
+            </div>
           </div>
           <div id="editorOverlay" class="editor-overlay"></div>
           <div class="editor-grid">
@@ -437,6 +481,7 @@
     // Supabase project config.
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
+    window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -564,7 +609,7 @@
           <img src="icons/close.svg" alt="" aria-hidden="true" />
         </button>
       </div>
-      <div class="controls" style="margin:0; margin-top:8px; justify-content: space-between; width: 100%;">
+      <div class="controls" style="margin:0; margin-top:8px; justify-content: space-between; width: 100%; align-items: center;">
         <div class="tiny" id="progressCheckMeta">Loading...</div>
         <button class="btn" id="refreshProgressCheckBtn" type="button">Refresh</button>
       </div>
@@ -742,9 +787,25 @@
       <button class="btn" id="exportJsonBtn" type="button">Export JSON</button>
       <button class="btn" id="exportCsvBtn" type="button">Export CSV</button>
       <button class="btn" id="openProgressCheckFromSettingsBtn" type="button">✓ Check Status</button>
+      <button class="btn" id="migrateImagesToStorageBtn" type="button">Migrate Images</button>
       <label class="btn" for="importInput">Import JSON</label>
       <input id="importInput" type="file" accept="application/json" class="hidden" />
       <button class="btn" id="signOutBtn" type="button">Sign Out</button>
+    </div>
+  </dialog>
+
+  <dialog id="imageMigrationLogDialog" class="modal">
+    <div class="editor-header">
+      <h3>Image Migration</h3>
+      <button class="btn close-icon-btn" id="closeImageMigrationLogBtn" type="button"
+        aria-label="Close image migration dialog" title="Close">
+        <img src="icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+    <div class="migration-log-meta tiny" id="imageMigrationStatus">Waiting to start...</div>
+    <pre id="imageMigrationLogOutput" class="migration-log-output" aria-live="polite"></pre>
+    <div class="controls migration-log-actions">
+      <button class="btn" id="doneImageMigrationLogBtn" type="button">Close</button>
     </div>
   </dialog>
 

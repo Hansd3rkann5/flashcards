@@ -96,6 +96,7 @@ function openCreateCardEditor() {
     alert('Pick a topic first.');
     return;
   }
+  setDeckTitle(selectedTopic.name);
   setDeckSelectionMode(false);
   el('editorTitle').textContent = `${selectedTopic.name}`;
   el('cardPrompt').value = '';
@@ -115,6 +116,7 @@ function openCreateCardEditor() {
   setPreview('answerPreview', '', createAnswerTextAlign);
   loadEditorCards();
   setView(3);
+  if (typeof maybeOpenEditorIntro === 'function') maybeOpenEditorIntro();
 }
 
 /**

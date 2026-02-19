@@ -473,12 +473,43 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
     .split(',')
     .map(field => field.trim())
     .filter(Boolean);
-  const lightweightFields = new Set(['id', 'topicId']);
-  const useLightweightProjection = fields.length > 0 && fields.every(field => lightweightFields.has(field)) && !hasSearch;
+  const lightweightScalarFieldSelectors = {
+    prompt: 'prompt:payload->>prompt',
+    question: 'question:payload->>question',
+    answer: 'answer:payload->>answer',
+    imageDataQ: 'imageDataQ:payload->>imageDataQ',
+    imageDataA: 'imageDataA:payload->>imageDataA',
+    imageData: 'imageData:payload->>imageData'
+  };
+  const lightweightJsonFieldSelectors = {
+    imagesQ: 'imagesQ:payload->imagesQ',
+    imagesA: 'imagesA:payload->imagesA'
+  };
+  const lightweightBaseFields = new Set(['id', 'topicId']);
+  const lightweightScalarFields = new Set(Object.keys(lightweightScalarFieldSelectors));
+  const lightweightJsonFields = new Set(Object.keys(lightweightJsonFieldSelectors));
+  const useLightweightProjection = !hasSearch
+    && fields.length > 0
+    && fields.every(field =>
+      lightweightBaseFields.has(field)
+      || lightweightScalarFields.has(field)
+      || lightweightJsonFields.has(field)
+    );
+
+  const lightweightSelectParts = ['record_key', 'topic_id'];
+  if (useLightweightProjection) {
+    fields.forEach(field => {
+      const selector = lightweightScalarFieldSelectors[field] || lightweightJsonFieldSelectors[field];
+      if (selector) lightweightSelectParts.push(selector);
+    });
+  }
+  const selectClause = useLightweightProjection
+    ? Array.from(new Set(lightweightSelectParts)).join(',')
+    : 'record_key,payload,topic_id';
 
   let query = withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .select(useLightweightProjection ? 'record_key,topic_id' : 'record_key,payload,topic_id'), safeOwnerId)
+    .select(selectClause), safeOwnerId)
     .eq('store', 'cards');
 
   if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
@@ -491,8 +522,20 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
     else if (topicIds.length > 1) query = query.in('topic_id', topicIds);
   }
 
+  const shouldOrderByUpdatedAt = !(
+    useLightweightProjection
+    && fields.length === 1
+    && fields[0] === 'id'
+    && !hasSearch
+    && !cardIds.length
+    && !topicIds.length
+  );
+
   const runOrderedQuery = async request => {
-    const { data, error } = await request.order('updated_at', { ascending: true });
+    const orderedRequest = shouldOrderByUpdatedAt
+      ? request.order('updated_at', { ascending: true })
+      : request;
+    const { data, error } = await orderedRequest;
     assertSupabaseSuccess(error, 'Failed to query cards.');
     return Array.isArray(data) ? data : [];
   };
@@ -531,6 +574,18 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
       const next = {};
       if (fields.includes('id')) next.id = String(row?.record_key || '').trim();
       if (fields.includes('topicId')) next.topicId = String(row?.topic_id || '').trim();
+      if (fields.includes('prompt')) next.prompt = String(row?.prompt || '');
+      if (fields.includes('question')) next.question = String(row?.question || '');
+      if (fields.includes('answer')) next.answer = String(row?.answer || '');
+      if (fields.includes('imageDataQ')) next.imageDataQ = String(row?.imageDataQ || '');
+      if (fields.includes('imageDataA')) next.imageDataA = String(row?.imageDataA || '');
+      if (fields.includes('imageData')) next.imageData = String(row?.imageData || '');
+      if (fields.includes('imagesQ')) {
+        next.imagesQ = Array.isArray(row?.imagesQ) ? row.imagesQ : [];
+      }
+      if (fields.includes('imagesA')) {
+        next.imagesA = Array.isArray(row?.imagesA) ? row.imagesA : [];
+      }
       return next;
     });
   }
