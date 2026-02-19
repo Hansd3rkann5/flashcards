@@ -27,6 +27,25 @@
 </head>
 
 <body>
+  <div id="authGate" class="auth-gate hidden" aria-hidden="true">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <h2 id="authTitle">Sign In</h2>
+      <p class="tiny">Please sign in with your Supabase account to open the app.</p>
+      <form id="authForm" class="auth-form" autocomplete="on">
+        <label for="authEmail">Email</label>
+        <input id="authEmail" class="input" type="email" autocomplete="email" required placeholder="name@example.com" />
+        <label for="authPassword">Password</label>
+        <input id="authPassword" class="input" type="password" autocomplete="current-password" required
+          placeholder="Your password" />
+        <div class="auth-actions">
+          <button class="btn" id="authSignInBtn" type="submit">Sign In</button>
+          <button class="btn" id="authSignUpBtn" type="button">Create Account</button>
+        </div>
+      </form>
+      <div class="tiny auth-message" id="authMessage" aria-live="polite"></div>
+    </div>
+  </div>
+
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
   <div id="appLoadingOverlay" class="app-loading-overlay" aria-hidden="true">
     <div class="app-loading-inner" role="status" aria-live="polite" aria-atomic="true">
@@ -66,12 +85,12 @@
             Start a short review based on your latest saved card status.
           </div>
           <div class="tiny daily-review-today-stats" id="dailyReviewTodayStats"></div>
-          <div class="daily-review-analytics-header">
+          <!-- <div class="daily-review-analytics-header">
             <div class="tiny">Analytics</div>
             <button class="btn daily-review-analytics-toggle" id="toggleDailyReviewAnalyticsBtn" type="button"
               aria-expanded="true">Hide charts</button>
-          </div>
-          <div id="dailyReviewAnalytics" class="daily-review-analytics"></div>
+          </div> -->
+          <!-- <div id="dailyReviewAnalytics" class="daily-review-analytics"></div> -->
           <div class="session-complete-stats">
             <div class="session-complete-stat">
               <div class="tiny">Answered Cards</div>
@@ -244,15 +263,16 @@
         </div>
 
         <div class="section hidden" id="studySessionSection" style="height: 100%;">
-          <div style="margin-inline: var(--space-4)">
-            <div class="session-top">
-              <button class="btn" id="backToTopicsBtnSession">←</button>
-              <h3>Study Session</h3>
-            </div>
-            <div class="session-pill-bar">
+          <div class="session-top">
+            <button class="btn" id="backToTopicsBtnSession" style="position: absolute;">←</button>
+            <div id="sessionPillBar" class="session-pill-bar">
               <div id="masteredPills" class="pill-row mastered"></div>
               <div id="activePills" class="pill-row active"></div>
             </div>
+            <!-- <div class="session-pill-bar">
+              <div id="masteredPills" class="pill-row mastered"></div>
+              <div id="activePills" class="pill-row active"></div>
+            </div> -->
           </div>
           <div class="flash-area">
             <div id="flashcard" class="flashcard hidden">
@@ -650,15 +670,15 @@
         <span>All (remaining today)</span>
       </label>
       <label class="session-filter-option">
-        <input id="sessionFilterCorrect" type="checkbox" style="background-color: var(--success)"/>
+        <input id="sessionFilterCorrect" type="checkbox" style="background-color: var(--success)" />
         <span>Correctly answered (mastered)</span>
       </label>
       <label class="session-filter-option">
-        <input id="sessionFilterPartial" type="checkbox"  style="background-color: var(--warn)"/>
+        <input id="sessionFilterPartial" type="checkbox" style="background-color: var(--warn)" />
         <span>Partially</span>
       </label>
       <label class="session-filter-option">
-        <input id="sessionFilterWrong" type="checkbox"  style="background-color: var(--danger)"/>
+        <input id="sessionFilterWrong" type="checkbox" style="background-color: var(--danger)" />
         <span>Wrong</span>
       </label>
       <label class="session-filter-option">
@@ -724,6 +744,7 @@
       <button class="btn" id="openProgressCheckFromSettingsBtn" type="button">✓ Check Status</button>
       <label class="btn" for="importInput">Import JSON</label>
       <input id="importInput" type="file" accept="application/json" class="hidden" />
+      <button class="btn" id="signOutBtn" type="button">Sign Out</button>
     </div>
   </dialog>
 
@@ -918,7 +939,8 @@
       Use Shift + Enter to insert/update.</div>
     <div id="tableBuilderGrid" class="table-builder-grid" role="region" aria-label="Editable table grid"></div>
     <div class="controls" style="margin-top:12px; margin-inline: 0">
-      <button class="btn" id="insertTableBtn" type="button" style="width: 100%; background-color: #6f2bd4">Insert Table</button>
+      <button class="btn" id="insertTableBtn" type="button" style="width: 100%; background-color: #6f2bd4">Insert
+        Table</button>
     </div>
   </dialog>
 

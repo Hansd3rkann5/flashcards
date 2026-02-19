@@ -177,6 +177,63 @@ body.sidebar-hidden .main {
   display: none;
 }
 
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(5, 10, 20, 0.86);
+  backdrop-filter: blur(10px);
+}
+
+.auth-card {
+  width: min(460px, 100%);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid #2f4776;
+  background: linear-gradient(180deg, rgba(13, 21, 40, 0.98) 0%, rgba(10, 17, 34, 0.98) 100%);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.5);
+}
+
+.auth-card h2 {
+  margin: 0 0 8px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.auth-actions {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.auth-message {
+  min-height: 1.2em;
+  margin-top: 10px;
+}
+
+.auth-message.error {
+  color: #fda4af;
+}
+
+.auth-message.success {
+  color: #86efac;
+}
+
+@media (max-width: 520px) {
+  .auth-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 body.app-loading {
   overflow: hidden;
 }
@@ -644,7 +701,7 @@ body.app-loading {
   flex: 1;
   min-height: 0;
   height: auto;
-  margin-bottom: var(--space-3);
+  /* margin-bottom: var(--space-3); */
 }
 
 #studySessionSection .controls {
@@ -1215,7 +1272,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .flashcard {
@@ -1338,7 +1395,7 @@ textarea:focus-visible {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable both-edges;
-  padding-top: clamp(52px, 7vh, 70px);
+  /* padding-top: clamp(52px, 7vh, 70px); */
   padding-bottom: var(--space-3);
   scroll-padding-top: clamp(52px, 7vh, 70px);
   align-items: center;
@@ -1392,7 +1449,7 @@ textarea:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
-  max-width: min(50%, 320px);
+  /* max-width: min(50%, 320px); */
   justify-content: center;
   text-align: center;
   pointer-events: none;
@@ -2775,12 +2832,15 @@ body.session-image-open {
 }
 
 .pill-dot {
-  width: 44px;
-  height: 18px;
+  width: var(--dynamic-pill-width, 20px);
+  height: var(--dynamic-pill-height, 10px);
   border-radius: 999px;
   background: #293348;
   border: 1px solid #3a4660;
-  transition: transform 0.3s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.2s ease, border-color 0.2s ease, width 0.25s ease,
+    height 0.25s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .pill-dot.current {
@@ -2846,14 +2906,18 @@ body.session-image-open {
   gap: var(--space-3);
   justify-content: space-between;
   flex-wrap: wrap;
+  margin-bottom: var(--space-5);
 }
 
 .session-pill-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
   flex: 1;
   justify-content: center;
+  transition:
+    width 0.25s ease,
+    height 0.25s ease,
+    transform 0.3s ease;
 }
 
 .pill-row.mastered {
@@ -2949,9 +3013,8 @@ dialog.modal {
 }
 
 dialog.modal-wide {
-  max-width: none;
+  max-width: 50%;
   width: 70%;
-  max-width: none;
   height: 80%;
 }
 
@@ -4565,32 +4628,40 @@ dialog::backdrop {
 
   }
 
-  .session-pill-bar {
+  /* .session-pill-bar {
     width: 100%;
     display: grid;
     grid-template-columns: 1fr;
     gap: 6px;
     overflow: visible;
-  }
+  } */
 
-  .pill-row {
+  /* .pill-row {
     width: 100%;
     gap: 4px;
     margin: 4px 0;
     justify-content: center;
     flex-wrap: wrap;
-  }
+  } */
 
-  .pill-row.mastered,
-  .pill-row.active {
-    justify-content: center;
-    flex-wrap: wrap;
+  .pill-row.mastered {
+    margin-right: var(--dynamic-pill-width, 12px);
   }
 
   .pill-dot {
-    width: clamp(14px, 5.4vw, 24px);
-    height: clamp(8px, 2.8vw, 12px);
-    border-radius: 999px;
+    height: var(--dynamic-pill-width, 12px);
+  }
+
+  #backToTopicsBtnSession {
+    margin-top: -5vh;
+  }
+
+  .session-pill-bar {
+    margin-top: 6vh;
+  }
+
+  .session-top {
+    margin-bottom: 0;
   }
 
   #studySessionSection .controls {
@@ -4833,8 +4904,8 @@ dialog::backdrop {
   }
 
   #studySessionSection {
-    padding: var(--space-3);
-    gap: var(--space-2);
+    padding: var(--space-4);
+    /* gap: var(--space-2); */
   }
 
   #studySessionSection>div:first-child {
@@ -4848,7 +4919,7 @@ dialog::backdrop {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: var(--space-2);
+    margin-bottom: 0;
   }
 
   #studySessionSection .flashcard {
@@ -4856,33 +4927,28 @@ dialog::backdrop {
     height: 100%;
   }
 
-  .session-pill-bar {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 6px;
-    overflow: visible;
-  }
-
+  /* 
   .pill-row {
     width: 100%;
     gap: 4px;
     margin: 4px 0;
     justify-content: center;
     flex-wrap: wrap;
-  }
+  } */
 
-  .pill-row.mastered,
+  /* .pill-row.mastered,
   .pill-row.active {
     justify-content: center;
     flex-wrap: wrap;
-  }
+  } */
 
-  .pill-dot {
+
+
+  /* .pill-dot {
     width: clamp(14px, 3.6vw, 24px);
     height: clamp(8px, 1.8vw, 12px);
     border-radius: 999px;
-  }
+  } */
 
   #studySessionSection .controls {
     margin-inline: 0;
