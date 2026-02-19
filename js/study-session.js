@@ -543,6 +543,13 @@ function openCardPreviewDialog(card) {
   showDialog(dialog);
 }
 
+function getSwipeThresholds() {
+  return {
+    x: Math.max(card.clientWidth * 0.18, 50),
+    y: Math.max(card.clientHeight * 0.25, 80)
+  };
+}
+
 /**
  * @function renderCardContent
  * @description Renders card content.
@@ -1194,6 +1201,7 @@ function wireSwipe() {
 
   const rotateLimit = 15;
   const ARC_RADIUS = Math.max(window.innerHeight * 1.4, 1200);
+  const ARC_COMMIT_ANGLE = 0.55;
 
   let dragging = false;
   let swipeDecisionPending = false;
@@ -1251,7 +1259,7 @@ function wireSwipe() {
   function getSwipeResult() {
     if (dy < 0) return null; // ⛔ up gesperrt
 
-    const xT = Math.max(card.clientWidth * 0.25, 60);
+    const xT = Math.max(card.clientWidth * 0.18, 50);
     const yT = Math.max(card.clientHeight * 0.25, 80);
 
     if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > xT) {
@@ -1259,6 +1267,21 @@ function wireSwipe() {
     }
     if (dy > yT) return 'partial';
     return null;
+  }
+
+  function computeArcTransformFromAngle(angle) {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight + ARC_RADIUS;
+
+    const arcX = cx + ARC_RADIUS * Math.sin(angle);
+    const arcY = cy - ARC_RADIUS * Math.cos(angle);
+    const baseArcY = cy - ARC_RADIUS;
+
+    return {
+      x: arcX - cardCenterX,
+      y: arcY - baseArcY,
+      rotate: angle * rotateLimit * 1.4
+    };
   }
 
   function computeArcTransform(dx) {
@@ -1367,14 +1390,18 @@ function wireSwipe() {
     if (result) {
       card.style.transition = 'transform 240ms cubic-bezier(0.2,0.8,0.2,1)';
       applySwipeFeedback(result, 1);
+
       requestAnimationFrame(() => {
         if (result === 'partial') {
           setTransform(0, window.innerHeight * 1.1, 0);
         } else {
-          const arc = computeArcTransform(dx * 3);
+          const direction = dx < 0 ? -1 : 1;
+          const angle = direction * ARC_COMMIT_ANGLE;
+          const arc = computeArcTransformFromAngle(angle);
           setTransform(arc.x, arc.y, arc.rotate);
         }
       });
+
       setTimeout(() => gradeCard(result), 210);
       return;
     }
