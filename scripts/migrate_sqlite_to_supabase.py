@@ -32,6 +32,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument('--table', default=DEFAULT_TABLE, help='Target table name in Supabase (default: records).')
   parser.add_argument('--batch-size', type=int, default=100, help='Rows per upsert batch (default: 100).')
   parser.add_argument('--stores', nargs='*', default=None, help='Optional store filter, e.g. subjects topics cards progress cardbank')
+  parser.add_argument('--owner-id', default='', help='Optional Supabase auth user id to assign as owner_id for all migrated rows.')
   parser.add_argument('--insecure', action='store_true', help='Disable TLS certificate validation (use only if your local Python SSL trust store is broken).')
   parser.add_argument('--dry-run', action='store_true', help='Print what would be uploaded, without sending requests.')
   return parser.parse_args()
@@ -46,7 +47,7 @@ def to_iso_timestamp(value: object) -> str:
     return datetime.now(tz=timezone.utc).isoformat()
 
 
-def load_local_rows(db_path: Path, stores: list[str] | None = None) -> list[dict]:
+def load_local_rows(db_path: Path, stores: list[str] | None = None, owner_id: str = '') -> list[dict]:
   """Read rows from local SQLite `records` and normalize payload JSON."""
   if not db_path.exists():
     raise FileNotFoundError(f'Database not found: {db_path}')
@@ -77,6 +78,8 @@ def load_local_rows(db_path: Path, stores: list[str] | None = None) -> list[dict
       'payload': payload,
       'updated_at': to_iso_timestamp(row['updated_at'])
     })
+    if owner_id:
+      out[-1]['owner_id'] = owner_id
 
   return out
 
@@ -90,7 +93,9 @@ def chunked(rows: list[dict], size: int):
 def upsert_batch(url: str, key: str, table: str, batch: list[dict], insecure: bool = False) -> None:
   """Upsert one batch into Supabase REST endpoint."""
   safe_url = url.rstrip('/')
-  endpoint = f'{safe_url}/rest/v1/{table}?on_conflict=store,record_key'
+  has_owner_id = any('owner_id' in row for row in batch)
+  conflict_cols = 'owner_id,store,record_key' if has_owner_id else 'store,record_key'
+  endpoint = f'{safe_url}/rest/v1/{table}?on_conflict={conflict_cols}'
   data = json.dumps(batch, separators=(',', ':')).encode('utf-8')
 
   req = urllib.request.Request(endpoint, method='POST', data=data)
@@ -109,8 +114,9 @@ def upsert_batch(url: str, key: str, table: str, batch: list[dict], insecure: bo
 def main() -> int:
   args = parse_args()
   db_path = Path(args.db).expanduser().resolve()
+  owner_id = str(args.owner_id or '').strip()
 
-  rows = load_local_rows(db_path, args.stores)
+  rows = load_local_rows(db_path, args.stores, owner_id=owner_id)
   counts = Counter(row['store'] for row in rows)
   print(f'Loaded {len(rows)} rows from {db_path}')
   for store in sorted(counts):

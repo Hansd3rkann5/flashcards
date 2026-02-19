@@ -1,12 +1,150 @@
 // Bootstrap + Event Wiring
 // ============================================================================
 /**
+ * @function setAuthGateVisibility
+ * @description Shows or hides the initial Supabase authentication gate.
+ */
+
+function setAuthGateVisibility(visible = false) {
+  const gate = el('authGate');
+  if (!gate) return;
+  gate.classList.toggle('hidden', !visible);
+  gate.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
+/**
+ * @function setAuthMessage
+ * @description Updates authentication status text.
+ */
+
+function setAuthMessage(message = '', type = '') {
+  const messageEl = el('authMessage');
+  if (!messageEl) return;
+  messageEl.textContent = String(message || '');
+  messageEl.classList.remove('error', 'success');
+  if (type === 'error' || type === 'success') {
+    messageEl.classList.add(type);
+  }
+}
+
+/**
+ * @function readAuthCredentials
+ * @description Reads and validates auth input values from the auth gate.
+ */
+
+function readAuthCredentials() {
+  const email = String(el('authEmail')?.value || '').trim();
+  const password = String(el('authPassword')?.value || '');
+  if (!email || !password) {
+    setAuthMessage('Please enter email and password.', 'error');
+    return null;
+  }
+  return { email, password };
+}
+
+/**
+ * @function ensureAuthenticatedSession
+ * @description Requires a valid Supabase session before the app can initialize.
+ */
+
+async function ensureAuthenticatedSession() {
+  await initSupabaseBackend();
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  if (data?.session) {
+    supabaseOwnerId = String(data.session?.user?.id || '').trim();
+    setAuthGateVisibility(false);
+    return true;
+  }
+
+  setAuthMessage('');
+  setAuthGateVisibility(true);
+  const emailInput = el('authEmail');
+  const passwordInput = el('authPassword');
+  const authForm = el('authForm');
+  const signUpBtn = el('authSignUpBtn');
+  if (emailInput) emailInput.focus({ preventScroll: true });
+
+  return await new Promise(resolve => {
+    let busy = false;
+    const setBusy = nextBusy => {
+      busy = !!nextBusy;
+      if (emailInput) emailInput.disabled = busy;
+      if (passwordInput) passwordInput.disabled = busy;
+      const signInBtn = el('authSignInBtn');
+      if (signInBtn) signInBtn.disabled = busy;
+      if (signUpBtn) signUpBtn.disabled = busy;
+    };
+    const complete = () => {
+      setBusy(false);
+      setAuthMessage('');
+      setAuthGateVisibility(false);
+      cleanup();
+      resolve(true);
+    };
+    const handleSignIn = async event => {
+      event?.preventDefault?.();
+      if (busy) return;
+      const credentials = readAuthCredentials();
+      if (!credentials) return;
+      setBusy(true);
+      setAuthMessage('Signing in...');
+      try {
+        const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword(credentials);
+        if (signInError) throw signInError;
+        supabaseOwnerId = String(signInData?.user?.id || '').trim();
+        complete();
+      } catch (err) {
+        setBusy(false);
+        setAuthMessage(err?.message || 'Sign in failed.', 'error');
+      }
+    };
+    const handleSignUp = async event => {
+      event?.preventDefault?.();
+      if (busy) return;
+      const credentials = readAuthCredentials();
+      if (!credentials) return;
+      setBusy(true);
+      setAuthMessage('Creating account...');
+      try {
+        const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp(credentials);
+        if (signUpError) throw signUpError;
+        if (signUpData?.session) {
+          supabaseOwnerId = String(signUpData?.user?.id || signUpData?.session?.user?.id || '').trim();
+          complete();
+          return;
+        }
+        setBusy(false);
+        setAuthMessage('Account created. Confirm your email, then sign in.', 'success');
+      } catch (err) {
+        setBusy(false);
+        setAuthMessage(err?.message || 'Sign up failed.', 'error');
+      }
+    };
+    const cleanup = () => {
+      authForm?.removeEventListener('submit', handleSignIn);
+      signUpBtn?.removeEventListener('click', handleSignUp);
+    };
+
+    authForm?.addEventListener('submit', handleSignIn);
+    signUpBtn?.addEventListener('click', handleSignUp);
+  });
+}
+
+/**
 * @function boot
  * @description Initializes app state, wires UI events, and loads initial data for the first screen.
  */
 
 async function boot() {
   void registerOfflineServiceWorker();
+  try {
+    await ensureAuthenticatedSession();
+  } catch (err) {
+    alert(err?.message || 'Authentication failed.');
+    return;
+  }
+
   let backendReachable = false;
   try {
     backendReachable = await openDB();
@@ -40,6 +178,24 @@ async function boot() {
   el('settingsBtn').onclick = () => document.getElementById('settingsDialog').showModal();
   const closeSettingsBtn = el('closeSettingsBtn');
   if (closeSettingsBtn) closeSettingsBtn.onclick = () => closeDialog(el('settingsDialog'));
+  const signOutBtn = el('signOutBtn');
+  if (signOutBtn) {
+    signOutBtn.onclick = async () => {
+      if (!confirm('Sign out from this device?')) return;
+      signOutBtn.disabled = true;
+      try {
+        await initSupabaseBackend();
+        const { error: signOutError } = await supabaseClient.auth.signOut();
+        if (signOutError) throw signOutError;
+        supabaseOwnerId = '';
+        supabaseTenantColumn = '';
+        window.location.reload();
+      } catch (err) {
+        signOutBtn.disabled = false;
+        alert(err?.message || 'Sign out failed.');
+      }
+    };
+  }
   const quickAddSubjectBtn = el('quickAddSubject');
   if (quickAddSubjectBtn) quickAddSubjectBtn.onclick = openSubjectDialog;
   el('addSubjectBtn').onclick = openSubjectDialog;

@@ -41,8 +41,9 @@ async function initSupabaseBackend() {
     }
     supabaseClient = window.supabase.createClient(url, key, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
       }
     });
     return true;
@@ -144,6 +145,86 @@ function assertSupabaseSuccess(error, fallback = 'Backend request failed.') {
 }
 
 /**
+ * @function isMissingColumnError
+ * @description Returns true when Supabase reports an unknown/missing column.
+ */
+
+function isMissingColumnError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  return code === '42703' || (message.includes('column') && (message.includes('does not exist') || message.includes('unknown')));
+}
+
+/**
+ * @function resolveSupabaseTenantColumn
+ * @description Detects which tenant column exists in `records` (`uid`, `UID`, or `owner_id`).
+ */
+
+async function resolveSupabaseTenantColumn() {
+  if (supabaseTenantColumn) return supabaseTenantColumn;
+  const candidates = ['uid', 'UID', 'owner_id'];
+  for (const column of candidates) {
+    const { error } = await supabaseClient
+      .from(SUPABASE_TABLE)
+      .select(column)
+      .limit(1);
+    if (!error) {
+      supabaseTenantColumn = column;
+      return supabaseTenantColumn;
+    }
+    if (!isMissingColumnError(error)) {
+      assertSupabaseSuccess(error, 'Failed to inspect Supabase tenant column.');
+    }
+  }
+  throw new Error('Missing tenant column in Supabase table `records`. Add `uid` (text) and retry.');
+}
+
+/**
+ * @function withTenantScope
+ * @description Applies user scoping to a Supabase query using the active tenant column.
+ */
+
+function withTenantScope(query, ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!query || !safeOwnerId || !supabaseTenantColumn) return query;
+  return query.eq(supabaseTenantColumn, safeOwnerId);
+}
+
+/**
+ * @function withTenantValue
+ * @description Adds the active tenant value to a row payload before insert/upsert.
+ */
+
+function withTenantValue(row = {}, ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId || !supabaseTenantColumn) return row;
+  return {
+    ...row,
+    [supabaseTenantColumn]: safeOwnerId
+  };
+}
+
+/**
+ * @function getSupabaseOwnerId
+ * @description Returns the authenticated Supabase user id used to isolate per-user data.
+ */
+
+async function getSupabaseOwnerId() {
+  await resolveSupabaseTenantColumn();
+  if (supabaseOwnerId) return supabaseOwnerId;
+  const { data, error } = await supabaseClient.auth.getUser();
+  assertSupabaseSuccess(error, 'Failed to load authenticated user.');
+  const ownerId = String(data?.user?.id || '').trim();
+  if (!ownerId) {
+    const err = new Error('Authentication required.');
+    err.status = 401;
+    throw err;
+  }
+  supabaseOwnerId = ownerId;
+  return ownerId;
+}
+
+/**
  * @function supabaseHealthcheck
  * @description Executes a lightweight query to confirm backend connectivity.
  */
@@ -162,13 +243,14 @@ async function supabaseHealthcheck() {
  * @description Reads all records for a store from the Supabase `records` table.
  */
 
-async function listStoreRecordsSupabase(store = '') {
+async function listStoreRecordsSupabase(store = '', ownerId = '') {
   const safeStore = String(store || '').trim();
+  const safeOwnerId = String(ownerId || '').trim();
   const keyField = getStoreKeyField(safeStore);
-  if (!safeStore || !keyField || !supabaseClient) return [];
-  const { data, error } = await supabaseClient
+  if (!safeStore || !keyField || !safeOwnerId || !supabaseClient) return [];
+  const { data, error } = await withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .select('record_key,payload,updated_at')
+    .select('record_key,payload,updated_at'), safeOwnerId)
     .eq('store', safeStore)
     .order('updated_at', { ascending: true });
   assertSupabaseSuccess(error, `Failed to list records for store "${safeStore}".`);
@@ -187,14 +269,15 @@ async function listStoreRecordsSupabase(store = '') {
  * @description Reads one keyed record from Supabase.
  */
 
-async function getStoreRecordSupabase(store = '', key = '') {
+async function getStoreRecordSupabase(store = '', key = '', ownerId = '') {
   const safeStore = String(store || '').trim();
   const safeKey = String(key || '').trim();
+  const safeOwnerId = String(ownerId || '').trim();
   const keyField = getStoreKeyField(safeStore);
-  if (!safeStore || !safeKey || !keyField || !supabaseClient) return null;
-  const { data, error } = await supabaseClient
+  if (!safeStore || !safeKey || !safeOwnerId || !keyField || !supabaseClient) return null;
+  const { data, error } = await withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .select('record_key,payload')
+    .select('record_key,payload'), safeOwnerId)
     .eq('store', safeStore)
     .eq('record_key', safeKey)
     .maybeSingle();
@@ -212,10 +295,11 @@ async function getStoreRecordSupabase(store = '', key = '') {
  * @description Inserts or updates one store record in Supabase.
  */
 
-async function upsertStoreRecordSupabase(store = '', payload = null) {
+async function upsertStoreRecordSupabase(store = '', payload = null, ownerId = '') {
   const safeStore = String(store || '').trim();
+  const safeOwnerId = String(ownerId || '').trim();
   const keyField = getStoreKeyField(safeStore);
-  if (!safeStore || !keyField || !supabaseClient) return null;
+  if (!safeStore || !safeOwnerId || !keyField || !supabaseClient) return null;
   const row = (payload && typeof payload === 'object') ? payload : null;
   const key = String(row?.[keyField] ?? '').trim();
   if (!row || !key) {
@@ -223,14 +307,22 @@ async function upsertStoreRecordSupabase(store = '', payload = null) {
     error.status = 400;
     throw error;
   }
-  const { error } = await supabaseClient
+  const writeRow = withTenantValue({
+    store: safeStore,
+    record_key: key,
+    payload: row,
+    updated_at: new Date().toISOString()
+  }, safeOwnerId);
+  let error = null;
+  ({ error } = await supabaseClient
     .from(SUPABASE_TABLE)
-    .upsert({
-      store: safeStore,
-      record_key: key,
-      payload: row,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'store,record_key' });
+    .upsert(writeRow, { onConflict: `${supabaseTenantColumn},store,record_key` }));
+  if (error && String(error.message || '').toLowerCase().includes('no unique or exclusion constraint')) {
+    // Backward-compatible fallback for schemas that still use unique(store,record_key).
+    ({ error } = await supabaseClient
+      .from(SUPABASE_TABLE)
+      .upsert(writeRow, { onConflict: 'store,record_key' }));
+  }
   assertSupabaseSuccess(error, `Failed to upsert record "${safeStore}/${key}".`);
   return row;
 }
@@ -240,13 +332,14 @@ async function upsertStoreRecordSupabase(store = '', payload = null) {
  * @description Deletes one store record in Supabase by key.
  */
 
-async function deleteStoreRecordSupabase(store = '', key = '') {
+async function deleteStoreRecordSupabase(store = '', key = '', ownerId = '') {
   const safeStore = String(store || '').trim();
   const safeKey = String(key || '').trim();
-  if (!safeStore || !safeKey || !supabaseClient) return;
-  const { error } = await supabaseClient
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeStore || !safeKey || !safeOwnerId || !supabaseClient) return;
+  const { error } = await withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .delete()
+    .delete(), safeOwnerId)
     .eq('store', safeStore)
     .eq('record_key', safeKey);
   assertSupabaseSuccess(error, `Failed to delete record "${safeStore}/${safeKey}".`);
@@ -348,12 +441,13 @@ function normalizeStorePayloadRow(row, keyField = 'id') {
  * @description Returns exact record count for one store without loading payload rows.
  */
 
-async function queryStoreCountSupabase(store = '') {
+async function queryStoreCountSupabase(store = '', ownerId = '') {
   const safeStore = String(store || '').trim();
-  if (!safeStore || !supabaseClient) return 0;
-  const { count, error } = await supabaseClient
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeStore || !safeOwnerId || !supabaseClient) return 0;
+  const { count, error } = await withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .select('record_key', { head: true, count: 'exact' })
+    .select('record_key', { head: true, count: 'exact' }), safeOwnerId)
     .eq('store', safeStore);
   assertSupabaseSuccess(error, `Failed to count records for store "${safeStore}".`);
   return Number(count || 0);
@@ -364,7 +458,9 @@ async function queryStoreCountSupabase(store = '') {
  * @description Reads cards and applies API-compatible query filters.
  */
 
-async function queryCardsSupabase(searchParams) {
+async function queryCardsSupabase(searchParams, ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return [];
   const topicIds = parseApiFilterValues(searchParams, 'topicId');
   const cardIds = parseApiFilterValues(searchParams, 'cardId');
   const searchRaw = String(searchParams.get('search') || '').trim();
@@ -380,9 +476,9 @@ async function queryCardsSupabase(searchParams) {
   const lightweightFields = new Set(['id', 'topicId']);
   const useLightweightProjection = fields.length > 0 && fields.every(field => lightweightFields.has(field)) && !hasSearch;
 
-  let query = supabaseClient
+  let query = withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .select(useLightweightProjection ? 'record_key,topic_id' : 'record_key,payload,topic_id')
+    .select(useLightweightProjection ? 'record_key,topic_id' : 'record_key,payload,topic_id'), safeOwnerId)
     .eq('store', 'cards');
 
   if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
@@ -409,9 +505,9 @@ async function queryCardsSupabase(searchParams) {
       // Some user inputs still trigger PostgREST/DB parser errors.
       // Fallback: fetch scoped rows and match locally to keep search usable.
       console.warn('Card search fallback: DB-side search failed, switching to local match.', searchErr);
-      let fallbackQuery = supabaseClient
+      let fallbackQuery = withTenantScope(supabaseClient
         .from(SUPABASE_TABLE)
-        .select('record_key,payload,topic_id')
+        .select('record_key,payload,topic_id'), safeOwnerId)
         .eq('store', 'cards');
       if (cardIds.length === 1) fallbackQuery = fallbackQuery.eq('record_key', cardIds[0]);
       else if (cardIds.length > 1) fallbackQuery = fallbackQuery.in('record_key', cardIds);
@@ -455,11 +551,13 @@ async function queryCardsSupabase(searchParams) {
  * @description Reads progress records and applies API-compatible cardId filters.
  */
 
-async function queryProgressSupabase(searchParams) {
+async function queryProgressSupabase(searchParams, ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return [];
   const cardIds = parseApiFilterValues(searchParams, 'cardId');
-  let query = supabaseClient
+  let query = withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
-    .select('record_key,payload')
+    .select('record_key,payload'), safeOwnerId)
     .eq('store', 'progress');
   if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
   else if (cardIds.length > 1) query = query.in('record_key', cardIds);
@@ -474,10 +572,12 @@ async function queryProgressSupabase(searchParams) {
  * @description Reads topics and optionally augments with card counts.
  */
 
-async function queryTopicsSupabase(searchParams) {
+async function queryTopicsSupabase(searchParams, ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return [];
   const includeCounts = String(searchParams.get('includeCounts') || '') === '1';
   const subjectIds = parseApiFilterValues(searchParams, 'subjectId');
-  const rows = await listStoreRecordsSupabase('topics');
+  const rows = await listStoreRecordsSupabase('topics', safeOwnerId);
   const topics = subjectIds.length
     ? rows.filter(topic => subjectIds.includes(String(topic?.subjectId || '').trim()))
     : rows;
@@ -486,6 +586,7 @@ async function queryTopicsSupabase(searchParams) {
   const { data, error } = await supabaseClient
     .from(SUPABASE_TABLE)
     .select('topic_id')
+    .eq(supabaseTenantColumn, safeOwnerId)
     .eq('store', 'cards');
   assertSupabaseSuccess(error, 'Failed to load topic card counts.');
   const cards = Array.isArray(data) ? data : [];
@@ -509,11 +610,15 @@ async function queryTopicsSupabase(searchParams) {
  * @description Returns app stats from Supabase records.
  */
 
-async function queryStatsSupabase() {
+async function queryStatsSupabase(ownerId = '') {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) {
+    return { subjects: 0, topics: 0, cards: 0 };
+  }
   const [subjects, topics, cards] = await Promise.all([
-    queryStoreCountSupabase('subjects'),
-    queryStoreCountSupabase('topics'),
-    queryStoreCountSupabase('cards')
+    queryStoreCountSupabase('subjects', safeOwnerId),
+    queryStoreCountSupabase('topics', safeOwnerId),
+    queryStoreCountSupabase('cards', safeOwnerId)
   ]);
   return {
     subjects,
@@ -554,6 +659,8 @@ async function apiRequest(path, options = {}) {
 
   const { parts, searchParams } = parsed;
   const method = String(options?.method || 'GET').toUpperCase();
+  const needsOwnerScope = !(method === 'GET' && (!parts.length || parts[0] === 'health'));
+  const ownerId = needsOwnerScope ? await getSupabaseOwnerId() : '';
 
   try {
     if (method === 'GET') {
@@ -562,7 +669,7 @@ async function apiRequest(path, options = {}) {
         return { ok: true };
       }
       if (parts.length === 1 && parts[0] === 'stats') {
-        return await queryStatsSupabase();
+        return await queryStatsSupabase(ownerId);
       }
       if (parts.length === 1) {
         const store = parts[0];
@@ -571,10 +678,10 @@ async function apiRequest(path, options = {}) {
           error.status = 404;
           throw error;
         }
-        if (store === 'topics') return await queryTopicsSupabase(searchParams);
-        if (store === 'cards') return await queryCardsSupabase(searchParams);
-        if (store === 'progress') return await queryProgressSupabase(searchParams);
-        return await listStoreRecordsSupabase(store);
+        if (store === 'topics') return await queryTopicsSupabase(searchParams, ownerId);
+        if (store === 'cards') return await queryCardsSupabase(searchParams, ownerId);
+        if (store === 'progress') return await queryProgressSupabase(searchParams, ownerId);
+        return await listStoreRecordsSupabase(store, ownerId);
       }
       if (parts.length === 2) {
         const [store, key] = parts;
@@ -583,7 +690,7 @@ async function apiRequest(path, options = {}) {
           error.status = 404;
           throw error;
         }
-        const row = await getStoreRecordSupabase(store, key);
+        const row = await getStoreRecordSupabase(store, key, ownerId);
         if (!row) {
           const error = new Error('Request failed (404)');
           error.status = 404;
@@ -616,7 +723,7 @@ async function apiRequest(path, options = {}) {
         error.status = 400;
         throw error;
       }
-      return await upsertStoreRecordSupabase(store, payload);
+      return await upsertStoreRecordSupabase(store, payload, ownerId);
     }
 
     if (method === 'DELETE') {
@@ -633,7 +740,7 @@ async function apiRequest(path, options = {}) {
       }
       const key = String(keyRaw || '').trim();
       if (!key) return null;
-      await deleteStoreRecordSupabase(store, key);
+      await deleteStoreRecordSupabase(store, key, ownerId);
       return null;
     }
 

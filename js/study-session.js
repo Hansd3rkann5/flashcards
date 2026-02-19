@@ -231,6 +231,8 @@ async function startSession(options = {}) {
     setView(2);
     renderSessionPills();
     renderSessionCard();
+
+    setupSessionPillResizeObserver();
   } finally {
     sessionStartInFlight = false;
     setAppLoadingState(false);
@@ -765,6 +767,8 @@ async function renderSessionCard() {
     resetSessionImagePreloadCache();
     syncSidebarHiddenState();
     renderSessionPills();
+    pillBarResizeObserver?.disconnect();
+    pillBarResizeObserver = null;
     await openSessionCompleteDialog();
     if (selectedSubject) {
       // Refresh meta in background so the completion dialog appears immediately.
@@ -862,6 +866,24 @@ function renderSessionPills() {
     return;
   }
 
+  // 1. Berechnung der dynamischen Breite
+  const totalCards = session.activeQueue.length + session.mastered.length;
+  const bar = el('sessionPillBar');
+  const barWidth = bar.offsetWidth;
+  const availableWidth = barWidth * 0.7; // 80% der Breite
+  const gapSum = (totalCards - 1) * 4; // 4px Gap zwischen den Elementen
+  // Verfügbare Breite minus Gaps geteilt durch Anzahl der Karten
+  let dynamicWidth = (availableWidth - gapSum) / totalCards;
+
+  // Grenzen setzen (analog zu deinem clamp)
+  // dynamicWidth = Math.max(10, Math.min(dynamicWidth, 30));
+  console.log({ barWidth, availableWidth, gapSum, totalCards, dynamicWidth });
+
+  // 2. Den Wert als CSS-Variable an den Parent übergeben
+  // So müssen wir nicht jedes einzelne Element anfassen
+  bar.style.setProperty('--dynamic-pill-width', `${dynamicWidth}px`);
+  bar.style.setProperty('--dynamic-pill-height', `${dynamicWidth * 0.4}px`);
+
   const prev = new Map();
   document.querySelectorAll('.pill-dot').forEach(el => {
     prev.set(el.dataset.id, el.getBoundingClientRect());
@@ -910,52 +932,291 @@ function renderSessionPills() {
 }
 
 /**
+ * @function setupSessionPillResizeObserver
+ * @description Renders session pills on pill bar resize to keep the dynamic sizing in sync with available space.
+ */
+
+function setupSessionPillResizeObserver() {
+  const bar = el('sessionPillBar');
+  if (!bar) return;
+
+  // doppelte Observer verhindern
+  pillBarResizeObserver?.disconnect();
+
+  pillBarResizeObserver = new ResizeObserver(() => {
+    if (!session.active) return;
+
+    clearTimeout(pillResizeTimeout);
+
+    pillResizeTimeout = setTimeout(() => {
+      renderSessionPills();
+    }, 140); // 👈 sweet spot (120–180ms)
+  });
+
+  pillBarResizeObserver.observe(bar);
+}
+
+/**
  * @function wireSwipe
  * @description Wires swipe.
  */
 
+// function wireSwipe() {
+//   const card = el('flashcard');
+//   if (!card) return;
+//   const rotateLimit = 15;
+//   let dragging = false;
+//   let swipeDecisionPending = false;
+//   let startX = 0;
+//   let startY = 0;
+//   let dx = 0;
+//   let dy = 0;
+
+//   /**
+//    * @function clamp
+//    * @description Clamps state.
+//    */
+
+//   function clamp(value, min, max) {
+//     return Math.min(max, Math.max(min, value));
+//   }
+
+//   /**
+//    * @function swipeBaseTransform
+//    * @description Handles swipe base transform logic.
+//    */
+
+//   function swipeBaseTransform() {
+//     return card.classList.contains('flipped') ? ' rotateX(180deg)' : '';
+//   }
+
+//   /**
+//    * @function setSwipeTransform
+//    * @description Sets the swipe transform.
+//    */
+
+//   function setSwipeTransform(x = 0, y = 0, rotate = 0) {
+//     card.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)${swipeBaseTransform()}`;
+//   }
+
+//   /**
+//    * @function clearSwipeFeedback
+//    * @description Handles clear swipe feedback logic.
+//    */
+
+//   function clearSwipeFeedback() {
+//     card.classList.remove('swiping', 'swipe-correct', 'swipe-wrong', 'swipe-partial');
+//     card.style.removeProperty('--swipe-intensity');
+//     const badge = el('swipeBadge');
+//     if (badge) badge.textContent = '';
+//   }
+
+//   /**
+//    * @function resetSwipeDragState
+//    * @description Resets transient swipe drag styling/state so native scroll can take over.
+//    */
+
+//   function resetSwipeDragState() {
+//     dragging = false;
+//     swipeDecisionPending = false;
+//     card.style.transition = '';
+//     card.style.willChange = '';
+//     card.style.transform = '';
+//     clearSwipeFeedback();
+//   }
+
+//   /**
+//    * @function applySwipeFeedback
+//    * @description Applies swipe feedback.
+//    */
+
+//   function applySwipeFeedback(result, intensity) {
+//     clearSwipeFeedback();
+//     if (!result || intensity <= 0) return;
+//     const labels = {
+//       correct: 'Korrekt',
+//       wrong: 'Falsch',
+//       partial: 'Teilweise'
+//     };
+//     const cls = {
+//       correct: 'swipe-correct',
+//       wrong: 'swipe-wrong',
+//       partial: 'swipe-partial'
+//     }[result];
+//     card.classList.add('swiping', cls);
+//     card.style.setProperty('--swipe-intensity', String(clamp(intensity, 0, 1)));
+//     const badge = el('swipeBadge');
+//     if (badge) badge.textContent = labels[result] || '';
+//   }
+
+//   /**
+//    * @function getSwipeResult
+//    * @description Returns the swipe result.
+//    */
+
+//   function getSwipeResult() {
+//     const xThreshold = Math.max(card.clientWidth * 0.25, 60);
+//     const yThreshold = Math.max(card.clientHeight * 0.25, 80);
+//     if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > xThreshold) {
+//       return dx < 0 ? 'correct' : 'wrong';
+//     }
+//     if (dy > yThreshold) return 'partial';
+//     return null;
+//   }
+
+//   /**
+//    * @function snapBack
+//    * @description Handles snap back logic.
+//    */
+
+//   function snapBack() {
+//     card.style.transition = 'transform 380ms cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+//     applySwipeFeedback(null, 0);
+//     requestAnimationFrame(() => setSwipeTransform(0, 0, 0));
+//     setTimeout(() => {
+//       card.style.transition = '';
+//       card.style.willChange = '';
+//       card.style.transform = '';
+//       clearSwipeFeedback();
+//     }, 390);
+//   }
+
+//   /**
+//    * @function flyOut
+//    * @description Handles fly out logic.
+//    */
+
+//   function flyOut(result) {
+//     const width = Math.max(card.clientWidth, 1);
+//     let outX = dx;
+//     let outY = dy;
+//     let outRotate = clamp((dx / width) * rotateLimit, -rotateLimit, rotateLimit);
+
+//     if (result === 'correct') {
+//       outX = -window.innerWidth * 1.15;
+//       outY = dy * 0.15;
+//       outRotate = -rotateLimit;
+//     } else if (result === 'wrong') {
+//       outX = window.innerWidth * 1.15;
+//       outY = dy * 0.15;
+//       outRotate = rotateLimit;
+//     } else {
+//       outX = dx * 0.2;
+//       outY = window.innerHeight * 1.1;
+//       outRotate = clamp((dx / width) * 8, -8, 8);
+//     }
+
+//     card.style.transition = 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+//     applySwipeFeedback(result, 1);
+//     requestAnimationFrame(() => setSwipeTransform(outX, outY, outRotate));
+//     setTimeout(() => {
+//       gradeCard(result);
+//     }, 210);
+//   }
+
+//   card.addEventListener('touchstart', e => {
+//     if (card.dataset.type === 'mcq' || !session.active) return;
+//     if (!e.touches[0]) return;
+//     const startTarget = e.target instanceof Element ? e.target : null;
+//     const startFace = startTarget ? startTarget.closest('.face') : null;
+//     const faceCanScroll = !!startFace && (startFace.scrollHeight - startFace.clientHeight > 2);
+//     dragging = true;
+//     swipeDecisionPending = faceCanScroll;
+//     startX = e.touches[0].clientX;
+//     startY = e.touches[0].clientY;
+//     dx = 0;
+//     dy = 0;
+//     card.style.transition = 'none';
+//     card.style.willChange = 'transform';
+//     clearSwipeFeedback();
+//   }, { passive: true });
+
+//   card.addEventListener('touchmove', e => {
+//     if (!dragging || card.dataset.type === 'mcq') return;
+//     if (!e.touches[0]) return;
+//     dx = e.touches[0].clientX - startX;
+//     dy = e.touches[0].clientY - startY;
+
+//     // If content can scroll inside the card face, prefer native vertical scroll
+//     // and only commit to swipe once horizontal intent is clear.
+//     if (swipeDecisionPending) {
+//       const travel = Math.abs(dx) + Math.abs(dy);
+//       if (travel < 8) return;
+//       if (Math.abs(dy) > Math.abs(dx)) {
+//         resetSwipeDragState();
+//         return;
+//       }
+//       swipeDecisionPending = false;
+//     }
+
+//     if (Math.abs(dx) + Math.abs(dy) > 4) e.preventDefault();
+
+//     const width = Math.max(card.clientWidth, 1);
+//     const xThreshold = Math.max(width * 0.25, 60);
+//     const yThreshold = Math.max(card.clientHeight * 0.25, 80);
+//     const rotate = clamp((dx / width) * rotateLimit, -rotateLimit, rotateLimit);
+//     setSwipeTransform(dx, dy, rotate);
+
+//     let result = null;
+//     let intensity = 0;
+//     if (Math.abs(dx) >= Math.abs(dy)) {
+//       result = dx <= 0 ? 'correct' : 'wrong';
+//       intensity = Math.min(Math.abs(dx) / xThreshold, 1);
+//     } else if (dy > 0) {
+//       result = 'partial';
+//       intensity = Math.min(dy / yThreshold, 1);
+//     }
+//     applySwipeFeedback(result, intensity);
+//   }, { passive: false });
+
+//   const finishSwipe = () => {
+//     if (!dragging) return;
+//     dragging = false;
+//     swipeDecisionPending = false;
+//     if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+//       suppressFlashcardTapUntil = Date.now() + 260;
+//     }
+//     const result = getSwipeResult();
+//     if (result) {
+//       flyOut(result);
+//       return;
+//     }
+//     snapBack();
+//   };
+
+//   card.addEventListener('touchend', finishSwipe);
+//   card.addEventListener('touchcancel', finishSwipe);
+// }
+
 function wireSwipe() {
   const card = el('flashcard');
   if (!card) return;
+
   const rotateLimit = 15;
+  const ARC_RADIUS = Math.max(window.innerHeight * 1.4, 1200);
+
   let dragging = false;
   let swipeDecisionPending = false;
   let startX = 0;
   let startY = 0;
   let dx = 0;
   let dy = 0;
+  let cardCenterX = 0;
+  let cardCenterY = 0;
 
-  /**
-   * @function clamp
-   * @description Clamps state.
-   */
-
-  function clamp(value, min, max) {
-    return Math.min(max, Math.max(min, value));
+  function clamp(v, min, max) {
+    return Math.min(max, Math.max(min, v));
   }
-
-  /**
-   * @function swipeBaseTransform
-   * @description Handles swipe base transform logic.
-   */
 
   function swipeBaseTransform() {
     return card.classList.contains('flipped') ? ' rotateX(180deg)' : '';
   }
 
-  /**
-   * @function setSwipeTransform
-   * @description Sets the swipe transform.
-   */
-
-  function setSwipeTransform(x = 0, y = 0, rotate = 0) {
-    card.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)${swipeBaseTransform()}`;
+  function setTransform(x, y, rotate = 0) {
+    card.style.transform =
+      `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg)` +
+      swipeBaseTransform();
   }
-
-  /**
-   * @function clearSwipeFeedback
-   * @description Handles clear swipe feedback logic.
-   */
 
   function clearSwipeFeedback() {
     card.classList.remove('swiping', 'swipe-correct', 'swipe-wrong', 'swipe-partial');
@@ -963,11 +1224,6 @@ function wireSwipe() {
     const badge = el('swipeBadge');
     if (badge) badge.textContent = '';
   }
-
-  /**
-   * @function resetSwipeDragState
-   * @description Resets transient swipe drag styling/state so native scroll can take over.
-   */
 
   function resetSwipeDragState() {
     dragging = false;
@@ -978,107 +1234,76 @@ function wireSwipe() {
     clearSwipeFeedback();
   }
 
-  /**
-   * @function applySwipeFeedback
-   * @description Applies swipe feedback.
-   */
-
   function applySwipeFeedback(result, intensity) {
     clearSwipeFeedback();
     if (!result || intensity <= 0) return;
-    const labels = {
-      correct: 'Korrekt',
-      wrong: 'Falsch',
-      partial: 'Teilweise'
-    };
+
     const cls = {
       correct: 'swipe-correct',
       wrong: 'swipe-wrong',
       partial: 'swipe-partial'
     }[result];
+
     card.classList.add('swiping', cls);
     card.style.setProperty('--swipe-intensity', String(clamp(intensity, 0, 1)));
-    const badge = el('swipeBadge');
-    if (badge) badge.textContent = labels[result] || '';
   }
 
-  /**
-   * @function getSwipeResult
-   * @description Returns the swipe result.
-   */
-
   function getSwipeResult() {
-    const xThreshold = Math.max(card.clientWidth * 0.25, 60);
-    const yThreshold = Math.max(card.clientHeight * 0.25, 80);
-    if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > xThreshold) {
+    if (dy < 0) return null; // ⛔ up gesperrt
+
+    const xT = Math.max(card.clientWidth * 0.25, 60);
+    const yT = Math.max(card.clientHeight * 0.25, 80);
+
+    if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > xT) {
       return dx < 0 ? 'correct' : 'wrong';
     }
-    if (dy > yThreshold) return 'partial';
+    if (dy > yT) return 'partial';
     return null;
   }
 
-  /**
-   * @function snapBack
-   * @description Handles snap back logic.
-   */
+  function computeArcTransform(dx) {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight + ARC_RADIUS;
 
-  function snapBack() {
-    card.style.transition = 'transform 380ms cubic-bezier(0.18, 0.89, 0.32, 1.28)';
-    applySwipeFeedback(null, 0);
-    requestAnimationFrame(() => setSwipeTransform(0, 0, 0));
-    setTimeout(() => {
-      card.style.transition = '';
-      card.style.willChange = '';
-      card.style.transform = '';
-      clearSwipeFeedback();
-    }, 390);
-  }
+    const angle = clamp(dx / ARC_RADIUS, -0.6, 0.6);
 
-  /**
-   * @function flyOut
-   * @description Handles fly out logic.
-   */
+    const arcX = cx + ARC_RADIUS * Math.sin(angle);
+    const arcY = cy - ARC_RADIUS * Math.cos(angle);
 
-  function flyOut(result) {
-    const width = Math.max(card.clientWidth, 1);
-    let outX = dx;
-    let outY = dy;
-    let outRotate = clamp((dx / width) * rotateLimit, -rotateLimit, rotateLimit);
+    // 🔑 Referenz: Kreisposition bei angle = 0
+    const baseArcY = cy - ARC_RADIUS;
 
-    if (result === 'correct') {
-      outX = -window.innerWidth * 1.15;
-      outY = dy * 0.15;
-      outRotate = -rotateLimit;
-    } else if (result === 'wrong') {
-      outX = window.innerWidth * 1.15;
-      outY = dy * 0.15;
-      outRotate = rotateLimit;
-    } else {
-      outX = dx * 0.2;
-      outY = window.innerHeight * 1.1;
-      outRotate = clamp((dx / width) * 8, -8, 8);
-    }
-
-    card.style.transition = 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-    applySwipeFeedback(result, 1);
-    requestAnimationFrame(() => setSwipeTransform(outX, outY, outRotate));
-    setTimeout(() => {
-      gradeCard(result);
-    }, 210);
+    return {
+      x: arcX - cardCenterX,
+      y: arcY - baseArcY,          // ⭐ DAS ist der Fix
+      rotate: angle * rotateLimit * 1.4
+    };
   }
 
   card.addEventListener('touchstart', e => {
     if (card.dataset.type === 'mcq' || !session.active) return;
     if (!e.touches[0]) return;
-    const startTarget = e.target instanceof Element ? e.target : null;
-    const startFace = startTarget ? startTarget.closest('.face') : null;
-    const faceCanScroll = !!startFace && (startFace.scrollHeight - startFace.clientHeight > 2);
+
+    const startFace = e.target.closest?.('.face');
+    const faceCanScroll =
+      startFace && (startFace.scrollHeight - startFace.clientHeight > 2);
+
+    // Track swipe state
     dragging = true;
     swipeDecisionPending = faceCanScroll;
+
+    // Touch start position
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     dx = 0;
     dy = 0;
+
+    // 🔑 Capture card center at gesture start (single, consistent reference point)
+    const rect = card.getBoundingClientRect();
+    cardCenterX = rect.left + rect.width / 2;
+    cardCenterY = rect.top + rect.height / 2;
+
+    // Prepare for transform-based animation
     card.style.transition = 'none';
     card.style.willChange = 'transform';
     clearSwipeFeedback();
@@ -1087,11 +1312,16 @@ function wireSwipe() {
   card.addEventListener('touchmove', e => {
     if (!dragging || card.dataset.type === 'mcq') return;
     if (!e.touches[0]) return;
+
     dx = e.touches[0].clientX - startX;
     dy = e.touches[0].clientY - startY;
 
-    // If content can scroll inside the card face, prefer native vertical scroll
-    // and only commit to swipe once horizontal intent is clear.
+    // ⛔ Swipe nach oben sperren
+    if (dy < 0 && Math.abs(dy) > Math.abs(dx)) {
+      resetSwipeDragState();
+      return;
+    }
+
     if (swipeDecisionPending) {
       const travel = Math.abs(dx) + Math.abs(dy);
       if (travel < 8) return;
@@ -1104,21 +1334,27 @@ function wireSwipe() {
 
     if (Math.abs(dx) + Math.abs(dy) > 4) e.preventDefault();
 
-    const width = Math.max(card.clientWidth, 1);
-    const xThreshold = Math.max(width * 0.25, 60);
-    const yThreshold = Math.max(card.clientHeight * 0.25, 80);
-    const rotate = clamp((dx / width) * rotateLimit, -rotateLimit, rotateLimit);
-    setSwipeTransform(dx, dy, rotate);
+    let x = 0, y = 0, rotate = 0;
+    let result = null, intensity = 0;
 
-    let result = null;
-    let intensity = 0;
     if (Math.abs(dx) >= Math.abs(dy)) {
-      result = dx <= 0 ? 'correct' : 'wrong';
-      intensity = Math.min(Math.abs(dx) / xThreshold, 1);
+      const arc = computeArcTransform(dx);
+      x = arc.x;
+      y = arc.y;
+      rotate = arc.rotate;
+
+      result = dx < 0 ? 'correct' : 'wrong';
+      intensity = Math.min(Math.abs(dx) / (card.clientWidth * 0.25), 1);
     } else if (dy > 0) {
+      x = 0;
+      y = dy;
+      rotate = 0;
+
       result = 'partial';
-      intensity = Math.min(dy / yThreshold, 1);
+      intensity = Math.min(dy / (card.clientHeight * 0.25), 1);
     }
+
+    setTransform(x, y, rotate);
     applySwipeFeedback(result, intensity);
   }, { passive: false });
 
@@ -1126,15 +1362,26 @@ function wireSwipe() {
     if (!dragging) return;
     dragging = false;
     swipeDecisionPending = false;
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      suppressFlashcardTapUntil = Date.now() + 260;
-    }
+
     const result = getSwipeResult();
     if (result) {
-      flyOut(result);
+      card.style.transition = 'transform 240ms cubic-bezier(0.2,0.8,0.2,1)';
+      applySwipeFeedback(result, 1);
+      requestAnimationFrame(() => {
+        if (result === 'partial') {
+          setTransform(0, window.innerHeight * 1.1, 0);
+        } else {
+          const arc = computeArcTransform(dx * 3);
+          setTransform(arc.x, arc.y, arc.rotate);
+        }
+      });
+      setTimeout(() => gradeCard(result), 210);
       return;
     }
-    snapBack();
+
+    card.style.transition = 'transform 380ms cubic-bezier(0.18,0.89,0.32,1.28)';
+    requestAnimationFrame(() => setTransform(0, 0, 0));
+    setTimeout(resetSwipeDragState, 390);
   };
 
   card.addEventListener('touchend', finishSwipe);

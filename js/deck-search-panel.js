@@ -842,6 +842,64 @@ function buildTopicSearchResultCard(card, topicName = '') {
 }
 
 /**
+ * @function renderTopicSearchMatches
+ * @description Renders topic-search cards and summary text.
+ */
+
+function renderTopicSearchMatches(resultsEl, matches = [], topicNameById = {}) {
+  const results = resultsEl || el('topicSearchResults');
+  if (!results) return;
+  const rows = Array.isArray(matches) ? matches : [];
+  results.classList.remove('is-loading');
+  results.innerHTML = '';
+  if (!rows.length) {
+    results.innerHTML = '<div class="tiny">No matching cards found.</div>';
+    setTopicSearchMetaText('0 cards found.');
+    return;
+  }
+  rows.forEach(card => {
+    const topicName = topicNameById?.[card.topicId] || 'Unknown topic';
+    results.appendChild(buildTopicSearchResultCard(card, topicName));
+  });
+  const cardWord = rows.length === 1 ? 'card' : 'cards';
+  setTopicSearchMetaText(`${rows.length} ${cardWord} found.`);
+}
+
+/**
+ * @function loadLocalTopicSearchMatches
+ * @description Fallback search using local/cached full cards when DB-side text search fails.
+ */
+
+async function loadLocalTopicSearchMatches(topicIds = [], normalizedQuery = '', options = {}) {
+  const ids = Array.isArray(topicIds) ? topicIds : [];
+  const query = String(normalizedQuery || '').trim();
+  if (!ids.length || !query) return [];
+  const opts = (options && typeof options === 'object') ? options : {};
+  const byId = new Map();
+  for (const topicId of ids) {
+    try {
+      const topicCards = await getCardsByTopicIds([topicId], {
+        uiBlocking: false,
+        payloadLabel: `topic-search-fallback-${topicId}`,
+        force: !!opts.force
+      });
+      topicCards.forEach(card => {
+        const key = String(card?.id || '').trim();
+        if (!key) return;
+        byId.set(key, card);
+      });
+    } catch (err) {
+      // Keep fallback best-effort per topic; one failing topic should not fail whole search.
+      console.warn('Topic search fallback failed for topic:', topicId, err);
+    }
+  }
+  const cards = Array.from(byId.values());
+  const matches = cards.filter(card => getCardSearchHaystack(card).includes(query));
+  matches.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
+  return matches;
+}
+
+/**
  * @function runTopicSearch
  * @description Handles run topic search logic.
  */
@@ -872,8 +930,9 @@ async function runTopicSearch() {
   setTopicSearchLoading(true, 'Searching cards...');
   setTopicSearchMetaText('Searching...');
 
+  const topicIdList = [...topicIds];
   try {
-    const cardRefs = await searchCardRefsByTopicIds([...topicIds], rawQuery, {
+    const cardRefs = await searchCardRefsByTopicIds(topicIdList, rawQuery, {
       uiBlocking: false,
       payloadLabel: 'topic-search-refs'
     });
@@ -889,33 +948,31 @@ async function runTopicSearch() {
       return;
     }
 
-    const cards = await getCardsByCardIds(cardIds, {
-      uiBlocking: false,
-      payloadLabel: 'topic-search-cards-by-id'
-    });
+    let cards = [];
+    try {
+      cards = await getCardsByCardIds(cardIds, {
+        uiBlocking: false,
+        payloadLabel: 'topic-search-cards-by-id'
+      });
+    } catch (cardsErr) {
+      // Fall back to local/cached topic cards when loading matched IDs fails.
+      console.warn('Topic search card-id fetch failed, using local fallback.', cardsErr);
+      cards = await loadLocalTopicSearchMatches(topicIdList, query);
+    }
     if (searchRunId !== topicSearchRunId) return;
     const matches = cards.filter(card => topicIds.has(String(card?.topicId || '').trim()));
     matches.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
-
-    results.classList.remove('is-loading');
-    results.innerHTML = '';
-    if (!matches.length) {
-      results.innerHTML = '<div class="tiny">No matching cards found.</div>';
-      setTopicSearchMetaText('0 cards found.');
-      return;
-    }
-
-    matches.forEach(card => {
-      results.appendChild(buildTopicSearchResultCard(card, topicNameById[card.topicId] || 'Unknown topic'));
-    });
-    const cardWord = matches.length === 1 ? 'card' : 'cards';
-    setTopicSearchMetaText(`${matches.length} ${cardWord} found.`);
+    renderTopicSearchMatches(results, matches, topicNameById);
   } catch (err) {
     if (searchRunId !== topicSearchRunId) return;
-    results.classList.remove('is-loading');
-    results.innerHTML = '<div class="tiny">Search failed. Please try again.</div>';
-    setTopicSearchMetaText('Search failed due to a network/backend error.');
-    console.error('Topic search failed:', err);
+    // Final fallback path: full local/cached search per selected topic.
+    const fallbackMatches = await loadLocalTopicSearchMatches(topicIdList, query);
+    if (searchRunId !== topicSearchRunId) return;
+    renderTopicSearchMatches(results, fallbackMatches, topicNameById);
+    if (!fallbackMatches.length) {
+      setTopicSearchMetaText('0 cards found.');
+    }
+    console.warn('Topic search used local fallback due to backend search error:', err);
   }
 }
 
