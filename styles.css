@@ -941,6 +941,8 @@ body.app-loading {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  --home-pull-progress: 0;
 }
 
 #homePanel>.section {
@@ -948,6 +950,77 @@ body.app-loading {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.home-pull-refresh {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top) + 8px);
+  transform: translate(-50%, -12px);
+  width: min(260px, calc(100% - 44px));
+  padding: 8px 10px 7px;
+  /* border: 1px solid rgba(58, 79, 118, 0.7); */
+  border-radius: 12px;
+  /* background: linear-gradient(180deg, rgba(8, 14, 28, 0.94) 0%, rgba(12, 18, 34, 0.9) 100%); */
+  box-shadow: 0 8px 24px rgba(2, 8, 23, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+  transition: opacity 0.16s ease, transform 0.2s ease;
+}
+
+.home-pull-refresh-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 108, 160, 0.55);
+  background: rgba(22, 36, 65, 0.9);
+  overflow: hidden;
+}
+
+.home-pull-refresh-fill {
+  height: 100%;
+  width: calc(var(--home-pull-progress, 0) * 100%);
+  border-radius: inherit;
+  background: var(--button);
+  /* background: linear-gradient(90deg, rgba(56, 189, 248, 0.94) 0%, rgba(45, 212, 191, 0.96) 45%, rgba(34, 197, 94, 0.98) 100%); */
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.44);
+  transition: width 0.08s linear;
+}
+
+.home-pull-refresh-label {
+  margin-top: 6px;
+  text-align: center;
+  color: #d4e6ff;
+}
+
+#homePanel.pull-refresh-active .home-pull-refresh {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+#homePanel.pull-refresh-armed .home-pull-refresh {
+  border-color: rgba(74, 222, 128, 0.62);
+  box-shadow: 0 10px 30px rgba(4, 12, 28, 0.54), 0 0 0 1px rgba(74, 222, 128, 0.2);
+}
+
+#homePanel.pull-refresh-refreshing .home-pull-refresh-fill {
+  width: 100%;
+  animation: homePullRefreshPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes homePullRefreshPulse {
+  0% {
+    filter: saturate(0.9) brightness(0.94);
+  }
+
+  50% {
+    filter: saturate(1.15) brightness(1.08);
+  }
+
+  100% {
+    filter: saturate(0.9) brightness(0.94);
+  }
 }
 
 #topicPanel>.section {
