@@ -3474,60 +3474,29 @@ dialog.modal.content-exchange-dialog[open] {
   color: #dfe9ff;
 }
 
-.content-exchange-subject {
-  border: 1px solid #2e4068;
-  border-left: 6px solid var(--subject-accent, var(--accent));
-  border-radius: 10px;
-  background: linear-gradient(180deg, var(--subject-accent-bg, rgba(45, 212, 191, 0.16)) 0%, #17223b 72%);
-  box-shadow: inset 0 0 0 1px rgba(13, 22, 40, 0.35);
-  transition: border-color 0.24s ease, background 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
-}
-
+.content-exchange-subject,
 .content-exchange-topic {
-  border: 1px solid #2a3f66;
-  border-radius: 10px;
-  background: rgba(14, 23, 43, 0.72);
-  transition: border-color 0.24s ease, background 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
+  border: 1px solid var(--daily-review-subject-accent, var(--subject-accent, #2a3f66));
+  border-left-width: 4px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--daily-review-subject-accent-bg, var(--subject-accent-bg, rgba(12, 18, 34, 0.5))) 0%, rgba(12, 18, 34, 0.5) 74%);
+  box-shadow:
+    0 0 0 1px var(--daily-review-subject-accent-glow-soft, rgba(45, 212, 191, 0.2)),
+    0 0 14px var(--daily-review-subject-accent-glow-soft, rgba(45, 212, 191, 0.2));
+  transition: box-shadow 0.24s ease, transform 0.24s ease;
 }
 
-@media (hover: hover) and (pointer: fine) {
-
-  .content-exchange-subject>summary:hover,
-  .content-exchange-topic>summary:hover {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .content-exchange-user:hover {
-    border-color: #486b9e;
-    box-shadow: 0 8px 22px rgba(8, 14, 27, 0.34);
-    transform: translateY(-1px);
-  }
-
-  .content-exchange-subject:hover {
-    border-left-color: var(--subject-accent, var(--accent));
-    background: linear-gradient(180deg, var(--subject-accent-bg, rgba(45, 212, 191, 0.16)) 0%, rgba(255, 255, 255, 0.06) 100%);
-    box-shadow: 0 0 0 1px var(--subject-accent-glow, rgba(45, 212, 191, 0.34)), 0 0 14px var(--subject-accent-glow, rgba(45, 212, 191, 0.34));
-    transform: translateY(-1px);
-  }
-
-  .content-exchange-topic:hover {
-    border-color: #3d5d90;
-    background: rgba(20, 32, 58, 0.78);
-    box-shadow: 0 0 0 1px rgba(91, 127, 181, 0.2), 0 7px 18px rgba(7, 12, 25, 0.34);
-  }
+.content-exchange-subject[open],
+.content-exchange-topic[open] {
+  box-shadow:
+    0 0 0 1px var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.36)),
+    0 0 18px var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.36));
 }
 
 .content-exchange-subject>summary,
 .content-exchange-topic>summary {
   list-style: none;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 9px 10px;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
 }
 
 .content-exchange-subject>summary::-webkit-details-marker,
@@ -3535,21 +3504,22 @@ dialog.modal.content-exchange-dialog[open] {
   display: none;
 }
 
-/* Keep details-content in layout even when closed so CSS transitions can animate. */
-.content-exchange-subject:not([open])> :not(summary),
-.content-exchange-topic:not([open])> :not(summary) {
-  display: block;
-}
-
-/* .content-exchange-subject[open]>summary,
-.content-exchange-topic[open]>summary {
-  background: rgba(255, 255, 255, 0.05);
-} */
-
 .content-exchange-summary-main {
   min-width: 0;
   display: grid;
   gap: 3px;
+}
+
+.content-exchange-summary-title-row {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.content-exchange-summary-title-row .daily-review-subject-chevron {
+  flex: 0 0 auto;
+  font-size: 0.96rem;
 }
 
 .content-exchange-summary-title {
@@ -3558,8 +3528,53 @@ dialog.modal.content-exchange-dialog[open] {
   overflow-wrap: anywhere;
 }
 
+.content-exchange-summary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.content-exchange-subject[open]>summary .daily-review-subject-chevron,
+.content-exchange-topic[open]>summary .daily-review-subject-chevron {
+  transform: rotate(0deg);
+}
+
+.content-exchange-subject>.content-exchange-topic-list,
+.content-exchange-topic>.content-exchange-topic-body {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 10px 0 10px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.28s ease,
+    opacity 0.2s ease,
+    padding-top 0.28s ease,
+    padding-bottom 0.28s ease;
+}
+
+.content-exchange-subject[open]>.content-exchange-topic-list {
+  max-height: 56dvh;
+  opacity: 1;
+  padding-top: 2px;
+  padding-bottom: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.content-exchange-topic[open]>.content-exchange-topic-body {
+  max-height: 62dvh;
+  opacity: 1;
+  padding-top: 2px;
+  padding-bottom: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .content-exchange-topic-toolbar {
-  padding: 0 var(--space-2) var(--space-2);
+  padding: 0;
   display: grid;
   gap: 8px;
 }
@@ -3571,117 +3586,39 @@ dialog.modal.content-exchange-dialog[open] {
 }
 
 .content-exchange-topic-list {
-  padding: 0 var(--space-2) var(--space-2);
   display: grid;
   gap: 8px;
 }
 
 .content-exchange-card-list {
   --card-grid-min: 280px;
-  padding: 0 var(--space-2) var(--space-2);
+  padding: 0;
   gap: var(--space-2);
 }
 
 .content-exchange-card-list-empty {
-  padding: 0 var(--space-2) var(--space-2);
+  padding: 0;
 }
 
-.content-exchange-subject>.content-exchange-topic-list,
-.content-exchange-topic>.content-exchange-topic-toolbar,
-.content-exchange-topic>.content-exchange-card-list,
-.content-exchange-topic>.content-exchange-card-list-empty {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transform: translateY(-6px);
-  clip-path: inset(0 0 100% 0);
-  pointer-events: none;
-  will-change: max-height, opacity, transform, clip-path;
-  transition:
-    max-height 0.3s ease,
-    opacity 0.22s ease,
-    transform 0.22s ease,
-    clip-path 0.26s ease,
-    padding-top 0.22s ease,
-    padding-bottom 0.22s ease;
-}
+@media (hover: hover) and (pointer: fine) {
 
-.content-exchange-subject:not([open])>.content-exchange-topic-list {
-  display: grid;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.content-exchange-topic:not([open])>.content-exchange-topic-toolbar {
-  display: grid;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.content-exchange-topic:not([open])>.content-exchange-card-list {
-  display: grid;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.content-exchange-topic:not([open])>.content-exchange-card-list-empty {
-  display: block;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.content-exchange-subject[open]>.content-exchange-topic-list {
-  max-height: 10000px;
-  opacity: 1;
-  transform: translateY(0);
-  clip-path: inset(0 0 0 0);
-  pointer-events: auto;
-  padding-top: 0;
-  padding-bottom: var(--space-2);
-}
-
-.content-exchange-topic[open]>.content-exchange-topic-toolbar {
-  max-height: 220px;
-  opacity: 1;
-  transform: translateY(0);
-  clip-path: inset(0 0 0 0);
-  pointer-events: auto;
-  padding-top: 0;
-  padding-bottom: var(--space-2);
-}
-
-.content-exchange-topic[open]>.content-exchange-card-list,
-.content-exchange-topic[open]>.content-exchange-card-list-empty {
-  max-height: 10000px;
-  opacity: 1;
-  transform: translateY(0);
-  clip-path: inset(0 0 0 0);
-  pointer-events: auto;
-  padding-top: 0;
-  padding-bottom: var(--space-2);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-
-  .content-exchange-subject[open]>.content-exchange-topic-list,
-  .content-exchange-topic[open]>.content-exchange-topic-toolbar,
-  .content-exchange-topic[open]>.content-exchange-card-list,
-  .content-exchange-topic[open]>.content-exchange-card-list-empty {
-    animation: content-exchange-expand 0.26s cubic-bezier(0.2, 0.7, 0.2, 1);
-  }
-}
-
-@keyframes content-exchange-expand {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-    clip-path: inset(0 0 100% 0);
+  .content-exchange-user:hover {
+    border-color: #486b9e;
+    box-shadow: 0 8px 22px rgba(8, 14, 27, 0.34);
+    transform: translateY(-1px);
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    clip-path: inset(0 0 0 0);
+  .content-exchange-subject>summary.daily-review-subject-toggle:hover,
+  .content-exchange-topic>summary.daily-review-subject-toggle:hover {
+    transform: none;
+    background: rgba(27, 40, 72, 0.42);
+  }
+
+  .content-exchange-subject:hover,
+  .content-exchange-topic:hover {
+    box-shadow:
+      0 0 0 1px var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.36)),
+      0 0 18px var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.36));
   }
 }
 
@@ -3691,6 +3628,11 @@ dialog.modal.content-exchange-dialog[open] {
 
 .content-exchange-card-tile {
   user-select: none;
+  --accent: var(--subject-accent, var(--daily-review-subject-accent, #2dd4bf));
+  --tile-accent-bg: var(--daily-review-subject-accent-bg, var(--subject-accent-bg, rgba(45, 212, 191, 0.16)));
+  --accent-ring: var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.68));
+  --accent-glow-strong: var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.38));
+  --accent-glow-soft: var(--daily-review-subject-accent-glow-soft, rgba(45, 212, 191, 0.2));
 }
 
 .content-exchange-card-tile:hover {
@@ -5340,6 +5282,43 @@ dialog::backdrop {
     min-height: 28px;
     font-size: 0.68rem;
     padding: 4px 9px;
+  }
+
+  dialog.modal.content-exchange-dialog {
+    width: calc(100vw - 12px);
+    height: min(92dvh, 980px);
+    padding: var(--space-3);
+  }
+
+  .content-exchange-tree {
+    padding: 8px;
+  }
+
+  .content-exchange-topic-body,
+  .content-exchange-topic-list {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .content-exchange-card-list {
+    --card-grid-min: 0px;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .content-exchange-card-list .card-tile {
+    width: 100%;
+    max-width: 100%;
+    min-height: 148px;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .content-exchange-card-list .card-tile.selection-mode {
+    padding-top: calc(var(--space-2) + 18px);
   }
 
   #cardPrompt,
