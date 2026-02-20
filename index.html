@@ -561,22 +561,24 @@
     </div>
   </dialog>
 
-  <dialog id="subjectEditDialog" class="modal">
+  <dialog id="subjectEditDialog" class="modal subject-edit-modal">
     <h3>Edit Subject</h3>
-    <div class="grid two">
-      <div>
+    <div class="subject-edit-grid">
+      <div class="subject-edit-field">
         <label>Name</label>
         <input id="editSubjectName" placeholder="e.g., Fluid Mechanics" />
       </div>
-      <div>
+      <div class="subject-edit-field">
         <label>Accent Color</label>
         <input type="color" id="editSubjectColor" value="#2dd4bf" />
       </div>
     </div>
-    <div class="controls" style="margin-top:12px; margin-inline: 0">
+    <div class="controls subject-edit-actions">
       <button class="btn save-primary" id="saveSubjectEditBtn">Save</button>
-      <button class="btn delete" id="deleteSubjectBtn" style="width: 48%">Delete</button>
-      <button class="btn" id="cancelSubjectEditBtn" style="width: 46%">Cancel</button>
+      <div class="subject-edit-secondary-actions">
+        <button class="btn delete" id="deleteSubjectBtn">Delete</button>
+        <button class="btn" id="cancelSubjectEditBtn">Cancel</button>
+      </div>
     </div>
   </dialog>
 

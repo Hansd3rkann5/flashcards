@@ -3328,6 +3328,68 @@ dialog.modal[open] {
   margin: 0;
 }
 
+dialog.modal.subject-edit-modal {
+  width: min(520px, calc(100vw - (2 * var(--space-5))));
+  padding: var(--space-4);
+}
+
+#subjectEditDialog h3 {
+  margin: 0 0 var(--space-3);
+  text-align: center;
+}
+
+#subjectEditDialog .subject-edit-grid {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+#subjectEditDialog .subject-edit-field {
+  width: min(360px, 100%);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+#subjectEditDialog .subject-edit-field label {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+}
+
+#subjectEditDialog #editSubjectName,
+#subjectEditDialog #editSubjectColor {
+  width: 100%;
+  margin: 0;
+}
+
+#subjectEditDialog #editSubjectColor {
+  height: 46px;
+}
+
+#subjectEditDialog .subject-edit-actions {
+  width: 100%;
+  margin-top: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+#subjectEditDialog .subject-edit-actions #saveSubjectEditBtn {
+  width: min(360px, 100%);
+}
+
+#subjectEditDialog .subject-edit-secondary-actions {
+  width: min(360px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+#subjectEditDialog .subject-edit-secondary-actions .btn {
+  width: 100%;
+}
+
 .migration-log-meta {
   margin-top: var(--space-2);
 }
@@ -3429,6 +3491,7 @@ dialog.modal.content-exchange-dialog[open] {
 }
 
 @media (hover: hover) and (pointer: fine) {
+
   .content-exchange-subject>summary:hover,
   .content-exchange-topic>summary:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -3523,10 +3586,10 @@ dialog.modal.content-exchange-dialog[open] {
   padding: 0 var(--space-2) var(--space-2);
 }
 
-.content-exchange-subject> .content-exchange-topic-list,
-.content-exchange-topic> .content-exchange-topic-toolbar,
-.content-exchange-topic> .content-exchange-card-list,
-.content-exchange-topic> .content-exchange-card-list-empty {
+.content-exchange-subject>.content-exchange-topic-list,
+.content-exchange-topic>.content-exchange-topic-toolbar,
+.content-exchange-topic>.content-exchange-card-list,
+.content-exchange-topic>.content-exchange-card-list-empty {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
@@ -3543,31 +3606,31 @@ dialog.modal.content-exchange-dialog[open] {
     padding-bottom 0.22s ease;
 }
 
-.content-exchange-subject:not([open])> .content-exchange-topic-list {
+.content-exchange-subject:not([open])>.content-exchange-topic-list {
   display: grid;
   padding-top: 0;
   padding-bottom: 0;
 }
 
-.content-exchange-topic:not([open])> .content-exchange-topic-toolbar {
+.content-exchange-topic:not([open])>.content-exchange-topic-toolbar {
   display: grid;
   padding-top: 0;
   padding-bottom: 0;
 }
 
-.content-exchange-topic:not([open])> .content-exchange-card-list {
+.content-exchange-topic:not([open])>.content-exchange-card-list {
   display: grid;
   padding-top: 0;
   padding-bottom: 0;
 }
 
-.content-exchange-topic:not([open])> .content-exchange-card-list-empty {
+.content-exchange-topic:not([open])>.content-exchange-card-list-empty {
   display: block;
   padding-top: 0;
   padding-bottom: 0;
 }
 
-.content-exchange-subject[open]> .content-exchange-topic-list {
+.content-exchange-subject[open]>.content-exchange-topic-list {
   max-height: 10000px;
   opacity: 1;
   transform: translateY(0);
@@ -3577,7 +3640,7 @@ dialog.modal.content-exchange-dialog[open] {
   padding-bottom: var(--space-2);
 }
 
-.content-exchange-topic[open]> .content-exchange-topic-toolbar {
+.content-exchange-topic[open]>.content-exchange-topic-toolbar {
   max-height: 220px;
   opacity: 1;
   transform: translateY(0);
@@ -3587,8 +3650,8 @@ dialog.modal.content-exchange-dialog[open] {
   padding-bottom: var(--space-2);
 }
 
-.content-exchange-topic[open]> .content-exchange-card-list,
-.content-exchange-topic[open]> .content-exchange-card-list-empty {
+.content-exchange-topic[open]>.content-exchange-card-list,
+.content-exchange-topic[open]>.content-exchange-card-list-empty {
   max-height: 10000px;
   opacity: 1;
   transform: translateY(0);
@@ -3599,10 +3662,11 @@ dialog.modal.content-exchange-dialog[open] {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .content-exchange-subject[open]> .content-exchange-topic-list,
-  .content-exchange-topic[open]> .content-exchange-topic-toolbar,
-  .content-exchange-topic[open]> .content-exchange-card-list,
-  .content-exchange-topic[open]> .content-exchange-card-list-empty {
+
+  .content-exchange-subject[open]>.content-exchange-topic-list,
+  .content-exchange-topic[open]>.content-exchange-topic-toolbar,
+  .content-exchange-topic[open]>.content-exchange-card-list,
+  .content-exchange-topic[open]>.content-exchange-card-list-empty {
     animation: content-exchange-expand 0.26s cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 }
@@ -5291,7 +5355,7 @@ dialog::backdrop {
     transform: translateX(-110%);
     transition: transform 0.25s ease;
     border-right: 1px solid #26365f;
-    background: var(--button);
+    background: var(--background);
   }
 
   body.sidebar-open .sidebar {
