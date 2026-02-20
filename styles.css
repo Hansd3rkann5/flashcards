@@ -3419,7 +3419,7 @@ dialog.modal.subject-edit-modal {
 dialog.modal.content-exchange-dialog {
   width: min(1120px, 96vw);
   max-width: none;
-  height: min(90dvh, 940px);
+  /* height: min(90dvh, 940px); */
   display: none;
   flex-direction: column;
   gap: var(--space-2);
@@ -5285,8 +5285,8 @@ dialog::backdrop {
 
   dialog.modal.content-exchange-dialog {
     width: calc(100vw - 12px);
-    height: min(92dvh, 980px);
-    padding: var(--space-3);
+    /* height: min(92dvh, 980px); */
+    padding: var(--space-2);
   }
 
   .content-exchange-tree {
