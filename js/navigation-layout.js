@@ -43,12 +43,32 @@ function syncSidebarHiddenState(step = currentView) {
  */
 
 function setView(step = 0) {
-  currentView = step;
-  el('track').style.transform = `translateX(${-100 * step / 4}%)`;
-  if (step !== 3) {
+  const track = el('track');
+  if (!track) return;
+  const previousStep = Number.isFinite(Number(currentView)) ? Number(currentView) : 0;
+  const panelCount = Math.max(1, track.querySelectorAll(':scope > .panel').length || 1);
+  const safeStep = Math.max(0, Math.min(panelCount - 1, Number.isFinite(Number(step)) ? Number(step) : 0));
+  const shouldJumpWithoutSlide = safeStep === 4 || previousStep === 4;
+  document.body.classList.toggle('exchange-only-view', safeStep === 4);
+  if (shouldJumpWithoutSlide) track.classList.add('view-jump');
+  currentView = safeStep;
+  track.style.transform = `translateX(${-100 * safeStep / panelCount}%)`;
+  if (shouldJumpWithoutSlide) {
+    // Keep transition disabled for one painted frame so the browser cannot animate
+    // through intermediate panels when entering/leaving exchange view.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        track.classList.remove('view-jump');
+      });
+    });
+  }
+  if (safeStep !== 3) {
     document.querySelector('#editorPanel .editor-shell')?.classList.remove('sidebar-open');
   }
-  syncSidebarHiddenState(step);
+  if (safeStep !== 4) {
+    document.body.classList.remove('content-exchange-open');
+  }
+  syncSidebarHiddenState(safeStep);
 }
 
 // ============================================================================

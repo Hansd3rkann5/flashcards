@@ -46,6 +46,7 @@
   --counter-height: 48px;
   --counter-gap: 10px;
   --card-grid-min: 300px;
+  --track-panel-count: 5;
 }
 
 
@@ -823,23 +824,32 @@ body.app-loading {
 
 .track {
   display: flex;
-  width: 400%;
+  width: calc(var(--track-panel-count) * 100%);
   transform: translateX(0%);
   transition: transform 0.3s ease-in-out;
   min-height: 100vh;
   align-items: stretch;
 }
 
+.track.view-jump {
+  transition: none !important;
+}
+
 .panel {
-  flex: 0 0 25%;
-  width: 25%;
-  min-width: 25%;
-  max-width: 25%;
+  flex: 0 0 calc(100% / var(--track-panel-count));
+  width: calc(100% / var(--track-panel-count));
+  min-width: calc(100% / var(--track-panel-count));
+  max-width: calc(100% / var(--track-panel-count));
   padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom));
   min-height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 #editorPanel {
@@ -3427,21 +3437,39 @@ dialog.modal.subject-edit-modal {
   justify-content: flex-end;
 }
 
-dialog.modal.content-exchange-dialog {
-  width: 90%;
-  max-width: 90%;
-  height: 80%;
-  border-radius: var(--radius);
-  padding: var(--space-4);
-  display: none;
+#contentExchangePanel {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#contentExchangePanel>.content-exchange-section {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  display: flex;
   flex-direction: column;
   gap: var(--space-2);
   overflow: hidden;
-  overscroll-behavior: contain;
 }
 
-dialog.modal.content-exchange-dialog[open] {
-  display: flex;
+#contentExchangePanel .content-exchange-panel-header {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.content-exchange-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
 }
 
 .content-exchange-policy-hint {
@@ -3455,13 +3483,13 @@ dialog.modal.content-exchange-dialog[open] {
 }
 
 .content-exchange-tree {
-  flex: 1;
-  min-height: 220px;
-  overflow: auto;
+  flex: 0 0 auto;
+  overflow: visible;
   border: 1px solid #30476f;
   border-radius: var(--radius);
   background: #0d162b;
   padding: var(--space-2);
+  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
   display: grid;
   gap: var(--space-2);
   align-content: start;
@@ -3574,19 +3602,16 @@ dialog.modal.content-exchange-dialog[open] {
 .content-exchange-subject[open]>.content-exchange-topic-list {
   max-height: 56dvh;
   opacity: 1;
-  padding-top: 2px;
-  padding-bottom: 10px;
+  padding: var(--space-1);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
 .content-exchange-topic[open]>.content-exchange-topic-body {
-  max-height: 62dvh;
+  max-height: 10000px;
   opacity: 1;
-  padding-top: 2px;
-  padding-bottom: 10px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  padding: var(--space-1);
+  overflow: visible;
 }
 
 .content-exchange-topic-toolbar {
@@ -3609,7 +3634,12 @@ dialog.modal.content-exchange-dialog[open] {
 .content-exchange-card-list {
   --card-grid-min: 280px;
   padding: 0;
+  /* padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom)); */
   gap: var(--space-2);
+}
+
+.content-exchange-card-list .card-tile:last-child {
+  margin-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
 }
 
 .content-exchange-card-list-empty {
@@ -3649,6 +3679,10 @@ dialog.modal.content-exchange-dialog[open] {
   --accent-ring: var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.68));
   --accent-glow-strong: var(--daily-review-subject-accent-glow, rgba(45, 212, 191, 0.38));
   --accent-glow-soft: var(--daily-review-subject-accent-glow-soft, rgba(45, 212, 191, 0.2));
+}
+
+.content-exchange-card-tile.selection-mode {
+  padding-top: calc(var(--space-3) + 34px);
 }
 
 .content-exchange-card-tile:hover {
@@ -3747,11 +3781,25 @@ dialog.card-preview-dialog[open] {
 #cardPreviewDialog .flashcard:not(.mcq-mode) .face-content {
   width: calc(100% - (2 * var(--space-3)));
   height: calc(100% - (2 * var(--space-4)));
-  margin: var(--space-4) var(--space-3);
+  margin-top: var(--space-2);
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
+  padding-bottom: var(--space-3);
+  scroll-padding-top: clamp(52px, 7vh, 70px);
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+#cardPreviewDialog .flashcard:not(.mcq-mode) .face-content.is-overflowing {
+  justify-content: flex-start;
+}
+
+#cardPreviewDialog .flashcard:not(.mcq-mode) .face {
+  overflow: hidden;
 }
 
 #cardPreviewDialog .mcq-option {
@@ -3924,7 +3972,8 @@ dialog.modal-table-builder {
 @media (max-width: 430px) {
 
   #studySessionSection .card-corner-label,
-  #studySessionSection .card-edit-btn {
+  #studySessionSection .card-edit-btn,
+  #cardPreviewDialog .card-corner-label {
     padding: 6px 9px;
     border-radius: 11px;
     font-size: 0.78rem;
@@ -3942,7 +3991,15 @@ dialog.modal-table-builder {
     display: none;
   }
 
+  #cardPreviewDialog .session-label-full {
+    display: none;
+  }
+
   #studySessionSection .session-label-short {
+    display: inline;
+  }
+
+  #cardPreviewDialog .session-label-short {
     display: inline;
   }
 
@@ -5299,11 +5356,7 @@ dialog::backdrop {
     padding: 4px 9px;
   }
 
-  dialog.modal.content-exchange-dialog {
-    width: 90%;
-    max-width: 90%;
-    height: 80%;
-    border-radius: var(--radius);
+  #contentExchangePanel>.content-exchange-section {
     padding: var(--space-3);
   }
 
@@ -5335,7 +5388,11 @@ dialog::backdrop {
   }
 
   .content-exchange-card-list .card-tile.selection-mode {
-    padding-top: calc(var(--space-2) + 18px);
+    padding-top: calc(var(--space-2) + 34px);
+  }
+
+  .content-exchange-card-list .card-tile:last-child {
+    margin-bottom: calc(var(--space-9) + env(safe-area-inset-bottom));
   }
 
   #cardPrompt,
@@ -5446,6 +5503,7 @@ dialog::backdrop {
   .mcq-options.two-row-grid {
     width: 100%;
     grid-template-columns: repeat(var(--mcq-grid-cols, 1), minmax(0, 1fr));
+    box-sizing: border-box;
   }
 
   dialog.card-preview-dialog {
@@ -5810,7 +5868,7 @@ dialog::backdrop {
     height: 100%;
   }
 
-  /* 
+  /*
   .pill-row {
     width: 100%;
     gap: 4px;
