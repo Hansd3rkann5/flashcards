@@ -136,10 +136,24 @@ function wireHomePullToRefresh() {
   let startY = 0;
   let pullDistance = 0;
 
-  // Damping / easing for pull feel
-  const MAX_PULL_MULTIPLIER = 1.25;   // cap pull distance relative to threshold
-  const DAMPING_START = 0.35;         // when resistance starts (0–1 of threshold)
-  const DAMPING_POWER = 0.85;         // lower = softer, higher = stiffer
+  let visualPull = 0;
+  let rafId = null;
+
+  const renderPull = () => {
+    homeScroll.style.transform =
+      `translate3d(0, ${visualPull.toFixed(2)}px, 0)`;
+    rafId = null;
+  };
+
+  const scheduleRender = () => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(renderPull);
+  };
+
+  // iOS-first tuning (softer + earlier resistance)
+  const MAX_PULL_MULTIPLIER = 1.15;
+  const DAMPING_START = 0.25;
+  const DAMPING_POWER = 0.65;
   const DEBUG_PULL = true;            // set false to disable logs
 
   const getPullThresholdPx = () => {
@@ -182,6 +196,11 @@ function wireHomePullToRefresh() {
     startX = 0;
     startY = 0;
     pullDistance = 0;
+    visualPull = 0;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
     thresholdPulseSent = false;
     setIndicatorProgress(0);
     labelEl.textContent = LABEL_PULL;
@@ -296,7 +315,8 @@ function wireHomePullToRefresh() {
       progress: Number((pullDistance / thresholdPx).toFixed(2)),
       armed
     });
-    homeScroll.style.transform = `translate3d(0, ${pullDistance.toFixed(2)}px, 0)`;
+    visualPull = pullDistance;
+    scheduleRender();
     e.preventDefault();
   }, { passive: false });
 
@@ -319,7 +339,8 @@ function wireHomePullToRefresh() {
     setIndicatorProgress(1);
     setVisualState();
     homeScroll.style.transition = RELEASE_TRANSITION;
-    homeScroll.style.transform = `translate3d(0, ${SETTLE_DISTANCE_PX}px, 0)`;
+    visualPull = SETTLE_DISTANCE_PX;
+    scheduleRender();
     // Keep UX responsive: cache clear should not block indefinitely.
     await Promise.race([
       clearCachesBeforeReload(),
