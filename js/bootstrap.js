@@ -128,6 +128,47 @@ async function refreshAuthenticatedProfileName() {
 }
 
 /**
+ * @function syncAuthenticatedProfileNameRecord
+ * @description Mirrors the authenticated display name into a per-user settings/profile row for exchange listing.
+ */
+
+async function syncAuthenticatedProfileNameRecord() {
+  const safeOwnerId = String(supabaseOwnerId || '').trim();
+  const safeName = normalizeOnboardingProfileName(onboardingProfileName);
+  if (!safeOwnerId || !safeName) return;
+  try {
+    const existing = await getById('settings', 'profile', {
+      uiBlocking: false,
+      loadingLabel: ''
+    });
+    const existingName = normalizeOnboardingProfileName(
+      existing?.displayName || existing?.fullName || existing?.name || ''
+    );
+    if (existingName === safeName) return;
+    const nowIso = new Date().toISOString();
+    await put('settings', {
+      ...(existing && typeof existing === 'object' ? existing : {}),
+      id: 'profile',
+      uid: safeOwnerId,
+      displayName: safeName,
+      name: safeName,
+      fullName: safeName,
+      updatedAt: nowIso,
+      meta: {
+        ...((existing?.meta && typeof existing.meta === 'object') ? existing.meta : {}),
+        updatedAt: nowIso
+      }
+    }, {
+      uiBlocking: false,
+      loadingLabel: '',
+      invalidate: 'settings'
+    });
+  } catch (err) {
+    console.warn('Profile name sync failed:', err);
+  }
+}
+
+/**
  * @function setOnboardingNameMessage
  * @description Sets onboarding name validation/sync feedback.
  */
@@ -323,6 +364,7 @@ async function persistOnboardingNameFromInput() {
     onboardingNameRequired = false;
     nameInput.value = normalized;
     setOnboardingNameMessage('Name saved.', 'success');
+    void syncAuthenticatedProfileNameRecord();
     return true;
   } catch (err) {
     setOnboardingNameMessage(err?.message || 'Could not save your name. Please try again.', 'error');
@@ -779,6 +821,7 @@ async function boot() {
   }
   let showOnboardingTutorial = shouldShowOnboardingTutorial(supabaseOwnerId);
   await refreshAuthenticatedProfileName();
+  void syncAuthenticatedProfileNameRecord();
   onboardingNameOnlyMode = onboardingNameRequired && !showOnboardingTutorial;
   showOnboardingTutorial = showOnboardingTutorial || onboardingNameRequired;
   wireOnboardingTutorial();
@@ -849,6 +892,8 @@ async function boot() {
   if (exportJsonBtn) exportJsonBtn.onclick = exportJSON;
   const exportCsvBtn = el('exportCsvBtn');
   if (exportCsvBtn) exportCsvBtn.onclick = exportCSV;
+  const openContentExchangeBtn = el('openContentExchangeBtn');
+  if (openContentExchangeBtn) openContentExchangeBtn.onclick = () => { void openContentExchangeDialog(); };
   const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
   if (migrateImagesToStorageBtn) migrateImagesToStorageBtn.onclick = migrateImagesToStorage;
   const importInput = el('importInput');
@@ -1075,6 +1120,9 @@ async function boot() {
     const returnToHome = session.mode === 'daily-review';
     setView(returnToHome ? 0 : 1);
     if (returnToHome) void refreshDailyReviewHomePanel({ useExisting: false });
+    else if (selectedSubject && typeof refreshSubjectProgressPanel === 'function') {
+      void refreshSubjectProgressPanel({ topicsForSubject: currentSubjectTopics });
+    }
   };
   el('backToDeckBtn').onclick = () => {
     setView(2);

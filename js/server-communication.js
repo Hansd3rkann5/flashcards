@@ -161,7 +161,7 @@ function isMissingColumnError(error) {
  */
 
 async function resolveSupabaseTenantColumn() {
-  if (supabaseTenantColumn) return supabaseTenantColumn;
+  if (supabaseTenantColumn === 'uid') return supabaseTenantColumn;
   const candidates = ['uid', 'UID', 'owner_id'];
   for (const column of candidates) {
     const { error } = await supabaseClient
@@ -314,14 +314,36 @@ async function upsertStoreRecordSupabase(store = '', payload = null, ownerId = '
     updated_at: new Date().toISOString()
   }, safeOwnerId);
   let error = null;
-  ({ error } = await supabaseClient
-    .from(SUPABASE_TABLE)
-    .upsert(writeRow, { onConflict: `${supabaseTenantColumn},store,record_key` }));
-  if (error && String(error.message || '').toLowerCase().includes('no unique or exclusion constraint')) {
-    // Backward-compatible fallback for schemas that still use unique(store,record_key).
-    ({ error } = await supabaseClient
+  const tryUpsertByTenantConflict = async () => {
+    const conflict = `${supabaseTenantColumn},store,record_key`;
+    const result = await supabaseClient
       .from(SUPABASE_TABLE)
-      .upsert(writeRow, { onConflict: 'store,record_key' }));
+      .upsert(writeRow, { onConflict: conflict });
+    return {
+      error: result?.error || null,
+      conflict
+    };
+  };
+
+  let upsertAttempt = await tryUpsertByTenantConflict();
+  error = upsertAttempt.error;
+  if (error && String(error.message || '').toLowerCase().includes('no unique or exclusion constraint')) {
+    const previousTenantColumn = supabaseTenantColumn;
+    // Re-resolve once in case schema changed while app stayed open.
+    supabaseTenantColumn = '';
+    await resolveSupabaseTenantColumn();
+    if (supabaseTenantColumn !== previousTenantColumn) {
+      upsertAttempt = await tryUpsertByTenantConflict();
+      error = upsertAttempt.error;
+    }
+    if (error && String(error.message || '').toLowerCase().includes('no unique or exclusion constraint')) {
+      const schemaErr = new Error(
+        `Failed to upsert record "${safeStore}/${key}". Missing unique constraint for onConflict (${upsertAttempt.conflict}).`
+      );
+      schemaErr.code = 'SCHEMA_MISMATCH';
+      schemaErr.hint = 'Ensure primary key/unique index includes (uid, store, record_key).';
+      throw schemaErr;
+    }
   }
   assertSupabaseSuccess(error, `Failed to upsert record "${safeStore}/${key}".`);
   return row;

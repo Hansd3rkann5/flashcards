@@ -126,6 +126,19 @@
             Start a short review based on your latest saved card status.
           </div>
           <div class="tiny daily-review-today-stats" id="dailyReviewTodayStats"></div>
+          <div class="daily-overview-stats-grid" id="dailyOverviewStatsGrid">
+            <article class="daily-overview-stat-card">
+              <div class="tiny daily-overview-stat-title">Learning State</div>
+              <div class="daily-overview-segment-bar" id="dailyOverviewStateBar" role="img"
+                aria-label="Mastered, partially answered, and wrong ratio"></div>
+              <div class="tiny daily-overview-segment-legend" id="dailyOverviewStateLegend"></div>
+            </article>
+            <article class="daily-overview-stat-card daily-overview-streak-card">
+              <div class="tiny daily-overview-stat-title">Current Streak</div>
+              <div class="daily-overview-streak-value"><strong id="dailyOverviewStreakDays">0</strong> days</div>
+              <div class="tiny daily-overview-streak-meta" id="dailyOverviewStreakMeta"></div>
+            </article>
+          </div>
           <!-- <div class="daily-review-analytics-header">
             <div class="tiny">Analytics</div>
             <button class="btn daily-review-analytics-toggle" id="toggleDailyReviewAnalyticsBtn" type="button"
@@ -203,6 +216,17 @@
               </button>
               <h2 id="topicTitle" style="margin:0;">Subject</h2>
             </div>
+          </div>
+          <div class="subject-progress-panel hidden" id="subjectProgressPanel">
+            <div class="subject-progress-header">
+              <h3 class="subject-progress-title">Subject Progress</h3>
+              <span class="tiny subject-progress-meta" id="subjectProgressMeta">0 cards</span>
+            </div>
+            <div class="subject-progress-bar-wrap">
+              <div class="daily-overview-segment-bar subject-progress-segment-bar" id="subjectProgressBar" role="img"
+                aria-label="Subject ratio for mastered, partially answered, wrong, and not answered yet"></div>
+            </div>
+            <div class="tiny daily-overview-segment-legend" id="subjectProgressLegend"></div>
           </div>
           <div class="study-selection section">
             <h3>Study Session</h3>
@@ -787,6 +811,7 @@
       <button class="btn" id="exportJsonBtn" type="button">Export JSON</button>
       <button class="btn" id="exportCsvBtn" type="button">Export CSV</button>
       <button class="btn" id="openProgressCheckFromSettingsBtn" type="button">✓ Check Status</button>
+      <button class="btn" id="openContentExchangeBtn" type="button">Content Exchange</button>
       <button class="btn" id="migrateImagesToStorageBtn" type="button">Migrate Images</button>
       <label class="btn" for="importInput">Import JSON</label>
       <input id="importInput" type="file" accept="application/json" class="hidden" />
@@ -807,6 +832,23 @@
     <div class="controls migration-log-actions">
       <button class="btn" id="doneImageMigrationLogBtn" type="button">Close</button>
     </div>
+  </dialog>
+
+  <dialog id="contentExchangeDialog" class="modal modal-wide content-exchange-dialog">
+    <div class="editor-header">
+      <h3>Content Exchange</h3>
+      <button class="btn close-icon-btn" id="closeContentExchangeBtn" type="button"
+        aria-label="Close content exchange dialog" title="Close">
+        <img src="icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+    <div class="tiny" id="contentExchangeStatus">Load user datasets and import selected content.</div>
+    <div class="tiny content-exchange-policy-hint" id="contentExchangePolicyHint"></div>
+    <div class="controls content-exchange-actions">
+      <button class="btn" id="reloadContentExchangeBtn" type="button">Reload Users</button>
+    </div>
+    <div id="contentExchangeTree" class="content-exchange-tree"></div>
+    <pre id="contentExchangeLogOutput" class="content-exchange-log-output" aria-live="polite"></pre>
   </dialog>
 
   <dialog id="editCardDialog" class="modal modal-wide">

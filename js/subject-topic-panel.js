@@ -1,6 +1,121 @@
 // ============================================================================
 // SubjectView + TopicView + Study Selection
 // ============================================================================
+let subjectProgressRefreshRunId = 0;
+
+/**
+ * @function refreshSubjectProgressPanel
+ * @description Renders the subject-level stacked progress bar (Mastered/Partially/Wrong/Not answered yet).
+ */
+
+async function refreshSubjectProgressPanel(options = {}) {
+  const panel = el('subjectProgressPanel');
+  const bar = el('subjectProgressBar');
+  const legend = el('subjectProgressLegend');
+  const meta = el('subjectProgressMeta');
+  if (!panel || !bar || !legend || !meta) return;
+
+  if (!selectedSubject) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  const opts = options && typeof options === 'object' ? options : {};
+  const runId = ++subjectProgressRefreshRunId;
+  const subjectId = String(selectedSubject?.id || '').trim();
+  if (!subjectId) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  const presetTopics = Array.isArray(opts.topicsForSubject) ? opts.topicsForSubject : null;
+  const canReusePresetTopics = Array.isArray(presetTopics)
+    && (currentSubjectTopicsSubjectId === subjectId || !currentSubjectTopicsSubjectId);
+  const topics = canReusePresetTopics
+    ? presetTopics
+    : await getTopicsBySubject(subjectId, { uiBlocking: false });
+
+  if (runId !== subjectProgressRefreshRunId) return;
+  if (!selectedSubject || String(selectedSubject.id || '').trim() !== subjectId) return;
+
+  const topicIds = (Array.isArray(topics) ? topics : [])
+    .map(topic => String(topic?.id || '').trim())
+    .filter(Boolean);
+  if (!topicIds.length) {
+    meta.textContent = '0 cards';
+    renderOverviewSegmentBar(bar, legend, [
+      { key: 'mastered', label: 'Mastered', value: 0, color: '#14b8a6' },
+      { key: 'partial', label: 'Partially', value: 0, color: '#f59e0b' },
+      { key: 'wrong', label: 'Wrong', value: 0, color: '#ef4444' },
+      { key: 'not-answered', label: 'Not answered yet', value: 0, color: '#64748b' }
+    ], {
+      emptyLabel: 'No cards in this subject yet.',
+      emptyLegendText: 'No cards in this subject yet.'
+    });
+    return;
+  }
+
+  const refs = await getCardRefsByTopicIds(topicIds, {
+    uiBlocking: false,
+    payloadLabel: `subject-progress-refs-${topicIds.length}`
+  });
+  if (runId !== subjectProgressRefreshRunId) return;
+  if (!selectedSubject || String(selectedSubject.id || '').trim() !== subjectId) return;
+
+  const cardIds = Array.from(new Set(
+    (Array.isArray(refs) ? refs : [])
+      .map(card => String(card?.id || '').trim())
+      .filter(Boolean)
+  ));
+  if (!cardIds.length) {
+    meta.textContent = '0 cards';
+    renderOverviewSegmentBar(bar, legend, [
+      { key: 'mastered', label: 'Mastered', value: 0, color: '#14b8a6' },
+      { key: 'partial', label: 'Partially', value: 0, color: '#f59e0b' },
+      { key: 'wrong', label: 'Wrong', value: 0, color: '#ef4444' },
+      { key: 'not-answered', label: 'Not answered yet', value: 0, color: '#64748b' }
+    ], {
+      emptyLabel: 'No cards in this subject yet.',
+      emptyLegendText: 'No cards in this subject yet.'
+    });
+    return;
+  }
+
+  await ensureProgressForCardIds(cardIds, {
+    uiBlocking: false,
+    payloadLabel: `subject-progress-state-${cardIds.length}`
+  });
+  if (runId !== subjectProgressRefreshRunId) return;
+  if (!selectedSubject || String(selectedSubject.id || '').trim() !== subjectId) return;
+
+  let mastered = 0;
+  let partial = 0;
+  let wrong = 0;
+  let notAnsweredYet = 0;
+  cardIds.forEach(cardId => {
+    const record = progressByCardId.get(cardId) || null;
+    const state = getCurrentProgressState(record, cardId);
+    const key = normalizeDailyReviewLatestStateKey(state.key);
+    if (key === 'mastered') mastered += 1;
+    else if (key === 'wrong') wrong += 1;
+    else if (key === 'notAnswered') notAnsweredYet += 1;
+    else partial += 1;
+  });
+
+  const cardWord = cardIds.length === 1 ? 'card' : 'cards';
+  meta.textContent = `${cardIds.length} ${cardWord}`;
+  renderOverviewSegmentBar(bar, legend, [
+    { key: 'mastered', label: 'Mastered', value: mastered, color: '#14b8a6' },
+    { key: 'partial', label: 'Partially', value: partial, color: '#f59e0b' },
+    { key: 'wrong', label: 'Wrong', value: wrong, color: '#ef4444' },
+    { key: 'not-answered', label: 'Not answered yet', value: notAnsweredYet, color: '#64748b' }
+  ], {
+    emptyLabel: 'No cards in this subject yet.',
+    emptyLegendText: 'No cards in this subject yet.'
+  });
+}
+
 /**
 * @function refreshTopicSessionMeta
  * @description Refreshes topic session meta.
@@ -248,6 +363,7 @@ async function loadTopics(options = {}) {
   if (!topics.length) list.innerHTML = '<div class="tiny">No topics yet.</div>';
   updateTopicSelectionUi();
   updateSelectAllSessionTopicsButton(topics);
+  void refreshSubjectProgressPanel({ topicsForSubject: topics });
   if (opts.skipSessionMeta !== true) {
     await refreshTopicSessionMeta(topics);
   }
