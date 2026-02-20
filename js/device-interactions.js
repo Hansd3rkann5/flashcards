@@ -119,8 +119,11 @@ function wireHomePullToRefresh() {
   const supportsTouch = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
   if (!supportsTouch) return;
 
-  const PULL_THRESHOLD_PX = 92;
-  const MAX_PULL_PX = 150;
+  const PULL_DEAD_ZONE_PX = 10;
+  const PULL_DAMPING = 0.46;
+  const PULL_THRESHOLD_PX = 116;
+  const PULL_OVERFLOW_SOFTNESS_PX = 84;
+  const MAX_PULL_PX = 170;
   const RELEASE_TRANSITION = 'transform 220ms cubic-bezier(0.22, 0.85, 0.26, 1)';
   const SETTLE_DISTANCE_PX = 66;
   const LABEL_PULL = 'Pull to refresh';
@@ -249,11 +252,15 @@ function wireHomePullToRefresh() {
       return;
     }
 
-    // Keep drag responsive but damped so long pulls feel controlled.
-    const damped = dy * 0.58;
-    const eased = damped <= PULL_THRESHOLD_PX
-      ? damped
-      : PULL_THRESHOLD_PX + Math.sqrt(damped - PULL_THRESHOLD_PX) * 12;
+    // Smooth pull curve without hard kinks: less sensitive and more predictable on touch.
+    const rawPull = Math.max(0, dy - PULL_DEAD_ZONE_PX);
+    const damped = rawPull * PULL_DAMPING;
+    let eased = damped;
+    if (damped > PULL_THRESHOLD_PX) {
+      const overflow = damped - PULL_THRESHOLD_PX;
+      const softenedOverflow = overflow / (1 + (overflow / PULL_OVERFLOW_SOFTNESS_PX));
+      eased = PULL_THRESHOLD_PX + softenedOverflow;
+    }
     pullDistance = Math.min(MAX_PULL_PX, eased);
     const wasArmed = armed;
     armed = pullDistance >= PULL_THRESHOLD_PX;
@@ -262,7 +269,9 @@ function wireHomePullToRefresh() {
       triggerHaptic('medium');
     }
     labelEl.textContent = armed ? LABEL_RELEASE : LABEL_PULL;
-    setIndicatorProgress(pullDistance / PULL_THRESHOLD_PX);
+    const rawProgress = Math.max(0, Math.min(1, pullDistance / PULL_THRESHOLD_PX));
+    const easedProgress = Math.pow(rawProgress, 1.35);
+    setIndicatorProgress(easedProgress);
     setVisualState();
     homeScroll.style.transform = `translate3d(0, ${pullDistance.toFixed(2)}px, 0)`;
     e.preventDefault();
