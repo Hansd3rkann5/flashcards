@@ -106,7 +106,7 @@ async function refreshSubjectProgressPanel(options = {}) {
   const cardWord = cardIds.length === 1 ? 'card' : 'cards';
   meta.textContent = `${cardIds.length} ${cardWord}`;
   renderOverviewSegmentBar(bar, legend, [
-    { key: 'mastered', label: 'Mastered', value: mastered, color: '#14b8a6' },
+    { key: 'mastered', label: 'Mastered', value: mastered, color: '#22c55e' },
     { key: 'partial', label: 'Partially', value: partial, color: '#f59e0b' },
     { key: 'wrong', label: 'Wrong', value: wrong, color: '#ef4444' },
     { key: 'not-answered', label: 'Not answered yet', value: notAnsweredYet, color: '#64748b' }
