@@ -842,6 +842,7 @@ async function boot() {
   wireNoZoomGuards();
   wireSwipe();
   wireHapticFeedback();
+  wireHomePullToRefresh();
   wireSidebarSwipeGesture();
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;

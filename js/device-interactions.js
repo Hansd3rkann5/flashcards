@@ -104,6 +104,175 @@ function wireNoZoomGuards() {
   });
 }
 
+/**
+ * @function wireHomePullToRefresh
+ * @description Adds pull-to-refresh for Home view with a fill animation and release threshold.
+ */
+
+function wireHomePullToRefresh() {
+  const homePanel = el('homePanel');
+  const homeScroll = el('dailyReviewHomePanel');
+  const indicator = el('homePullToRefresh');
+  const labelEl = el('homePullToRefreshLabel');
+  if (!homePanel || !homeScroll || !indicator || !labelEl) return;
+
+  const supportsTouch = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+  if (!supportsTouch) return;
+
+  const PULL_THRESHOLD_PX = 92;
+  const MAX_PULL_PX = 150;
+  const RELEASE_TRANSITION = 'transform 220ms cubic-bezier(0.22, 0.85, 0.26, 1)';
+  const SETTLE_DISTANCE_PX = 66;
+  const LABEL_PULL = 'Pull to refresh';
+  const LABEL_RELEASE = 'Release to refresh';
+  const LABEL_REFRESH = 'Refreshing...';
+  let tracking = false;
+  let pulling = false;
+  let armed = false;
+  let refreshing = false;
+  let thresholdPulseSent = false;
+  let startX = 0;
+  let startY = 0;
+  let pullDistance = 0;
+
+  const setIndicatorProgress = value => {
+    const clamped = Math.max(0, Math.min(1, Number(value) || 0));
+    homePanel.style.setProperty('--home-pull-progress', clamped.toFixed(3));
+  };
+
+  const setVisualState = () => {
+    homePanel.classList.toggle('pull-refresh-active', pulling || refreshing);
+    homePanel.classList.toggle('pull-refresh-armed', armed && !refreshing);
+    homePanel.classList.toggle('pull-refresh-refreshing', refreshing);
+  };
+
+  const resetPullState = (immediate = false) => {
+    tracking = false;
+    pulling = false;
+    armed = false;
+    refreshing = false;
+    startX = 0;
+    startY = 0;
+    pullDistance = 0;
+    thresholdPulseSent = false;
+    setIndicatorProgress(0);
+    labelEl.textContent = LABEL_PULL;
+    setVisualState();
+    if (immediate) {
+      homeScroll.style.transition = '';
+      homeScroll.style.transform = '';
+      return;
+    }
+    homeScroll.style.transition = RELEASE_TRANSITION;
+    homeScroll.style.transform = '';
+    window.setTimeout(() => {
+      if (!refreshing) homeScroll.style.transition = '';
+    }, 240);
+  };
+
+  document.addEventListener('touchstart', e => {
+    if (refreshing) return;
+    if (currentView !== 0) return;
+    if (document.querySelector('dialog[open]')) return;
+    if (!e.touches || e.touches.length !== 1) return;
+    if (homeScroll.scrollTop > 0) return;
+    const target = e.target instanceof Element ? e.target : null;
+    if (!target?.closest('#homePanel')) return;
+    if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+    tracking = true;
+    pulling = false;
+    armed = false;
+    pullDistance = 0;
+    thresholdPulseSent = false;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    homeScroll.style.transition = '';
+    labelEl.textContent = LABEL_PULL;
+    setIndicatorProgress(0);
+    setVisualState();
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!tracking || refreshing) return;
+    if (currentView !== 0) {
+      resetPullState(true);
+      return;
+    }
+    if (!e.touches || !e.touches.length) return;
+
+    const touch = e.touches[0];
+    const dy = touch.clientY - startY;
+    const dx = touch.clientX - startX;
+
+    if (!pulling) {
+      if (dy <= 0) return;
+      if (Math.abs(dx) > Math.abs(dy) + 4) {
+        tracking = false;
+        return;
+      }
+      if (homeScroll.scrollTop > 0) {
+        tracking = false;
+        return;
+      }
+      pulling = true;
+    }
+
+    if (dy <= 0) {
+      resetPullState(false);
+      return;
+    }
+    if (homeScroll.scrollTop > 0) {
+      resetPullState(false);
+      return;
+    }
+
+    // Keep drag responsive but damped so long pulls feel controlled.
+    const damped = dy * 0.58;
+    const eased = damped <= PULL_THRESHOLD_PX
+      ? damped
+      : PULL_THRESHOLD_PX + Math.sqrt(damped - PULL_THRESHOLD_PX) * 12;
+    pullDistance = Math.min(MAX_PULL_PX, eased);
+    const wasArmed = armed;
+    armed = pullDistance >= PULL_THRESHOLD_PX;
+    if (armed && !wasArmed && !thresholdPulseSent) {
+      thresholdPulseSent = true;
+      triggerHaptic('medium');
+    }
+    labelEl.textContent = armed ? LABEL_RELEASE : LABEL_PULL;
+    setIndicatorProgress(pullDistance / PULL_THRESHOLD_PX);
+    setVisualState();
+    homeScroll.style.transform = `translate3d(0, ${pullDistance.toFixed(2)}px, 0)`;
+    e.preventDefault();
+  }, { passive: false });
+
+  const handleTouchEnd = () => {
+    if (!tracking && !pulling) return;
+    tracking = false;
+    if (!pulling) {
+      resetPullState(false);
+      return;
+    }
+    if (!armed) {
+      resetPullState(false);
+      return;
+    }
+    refreshing = true;
+    pulling = false;
+    armed = false;
+    labelEl.textContent = LABEL_REFRESH;
+    setIndicatorProgress(1);
+    setVisualState();
+    homeScroll.style.transition = RELEASE_TRANSITION;
+    homeScroll.style.transform = `translate3d(0, ${SETTLE_DISTANCE_PX}px, 0)`;
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 260);
+  };
+
+  document.addEventListener('touchend', handleTouchEnd);
+  document.addEventListener('touchcancel', handleTouchEnd);
+}
+
 const uid = () => {
   if (window.crypto && typeof window.crypto.randomUUID === 'function') {
     return window.crypto.randomUUID();
