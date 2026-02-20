@@ -35,6 +35,7 @@ let contentExchangeLoading = false;
 let contentExchangeImporting = false;
 let contentExchangeLastLoadToken = 0;
 let contentExchangeSelectedCardIdsByTopicKey = new Map();
+let contentExchangeReturnView = 0;
 
 /**
  * @function setContentExchangeModalOpenState
@@ -601,15 +602,15 @@ function appendContentExchangeLogLine(message = '') {
 
 function setContentExchangeBusyState() {
   const busy = contentExchangeLoading || contentExchangeImporting;
-  const dialog = el('contentExchangeDialog');
+  const panel = el('contentExchangePanel');
   const closeBtn = el('closeContentExchangeBtn');
   const reloadBtn = el('reloadContentExchangeBtn');
-  if (dialog) dialog.dataset.busy = busy ? '1' : '0';
+  if (panel) panel.dataset.busy = busy ? '1' : '0';
   if (closeBtn) closeBtn.disabled = busy;
   if (reloadBtn) reloadBtn.disabled = busy;
-  if (dialog) {
-    dialog.querySelectorAll('.exchange-import-btn').forEach(btn => { btn.disabled = busy; });
-    dialog.querySelectorAll('.exchange-select-all-btn, .exchange-clear-selection-btn, .exchange-import-selected-btn, .content-exchange-card-check')
+  if (panel) {
+    panel.querySelectorAll('.exchange-import-btn').forEach(btn => { btn.disabled = busy; });
+    panel.querySelectorAll('.exchange-select-all-btn, .exchange-clear-selection-btn, .exchange-import-selected-btn, .content-exchange-card-check')
       .forEach(node => { node.disabled = busy; });
   }
   if (!busy) refreshAllContentExchangeTopicSelectionUi();
@@ -621,11 +622,15 @@ function setContentExchangeBusyState() {
  */
 
 function closeContentExchangeDialog() {
-  const dialog = el('contentExchangeDialog');
-  if (!dialog) return;
-  if (dialog.dataset.busy === '1') return;
+  const panel = el('contentExchangePanel');
+  if (!panel) return;
+  if (panel.dataset.busy === '1') return;
   setContentExchangeModalOpenState(false);
-  closeDialog(dialog);
+  const fallbackView = currentView === 4 ? 0 : currentView;
+  const returnView = Number.isFinite(Number(contentExchangeReturnView))
+    ? Math.trunc(Number(contentExchangeReturnView))
+    : fallbackView;
+  setView(returnView === 4 ? 0 : returnView);
 }
 
 /**
@@ -715,6 +720,17 @@ function buildContentExchangeCardTile(card = null, ownerId = '', topicId = '', s
   tile.dataset.topicId = safeTopicId;
   tile.dataset.cardId = safeCardId;
   tile.classList.toggle('selected-for-bulk', !!selected);
+
+  const previewBtn = document.createElement('button');
+  previewBtn.className = 'btn card-preview-btn content-exchange-card-preview-btn';
+  previewBtn.type = 'button';
+  previewBtn.textContent = 'Preview';
+  previewBtn.setAttribute('aria-label', 'Open card preview');
+  previewBtn.addEventListener('click', event => {
+    event.stopPropagation();
+    if (typeof openCardPreviewDialog === 'function') openCardPreviewDialog(safeCard);
+  });
+  tile.appendChild(previewBtn);
 
   const selectWrap = document.createElement('label');
   selectWrap.className = 'card-select-control';
@@ -1779,9 +1795,9 @@ function handleContentExchangeTreeChange(event) {
  */
 
 function wireContentExchangeDialog() {
-  const dialog = el('contentExchangeDialog');
-  if (!dialog || dialog.dataset.wired === '1') return;
-  dialog.dataset.wired = '1';
+  const panel = el('contentExchangePanel');
+  if (!panel || panel.dataset.wired === '1') return;
+  panel.dataset.wired = '1';
   const closeBtn = el('closeContentExchangeBtn');
   const reloadBtn = el('reloadContentExchangeBtn');
   const tree = el('contentExchangeTree');
@@ -1790,24 +1806,6 @@ function wireContentExchangeDialog() {
   if (reloadBtn) reloadBtn.onclick = () => { void reloadContentExchangeTree(); };
   if (tree) tree.addEventListener('click', handleContentExchangeTreeClick);
   if (tree) tree.addEventListener('change', handleContentExchangeTreeChange);
-
-  dialog.addEventListener('click', event => {
-    if (event.target !== dialog) return;
-    closeContentExchangeDialog();
-  });
-  dialog.addEventListener('cancel', event => {
-    if (dialog.dataset.busy !== '1') return;
-    event.preventDefault();
-  });
-  dialog.addEventListener('close', () => {
-    setContentExchangeModalOpenState(false);
-  });
-  dialog.addEventListener('wheel', event => {
-    if (event.target === dialog) event.preventDefault();
-  }, { passive: false });
-  dialog.addEventListener('touchmove', event => {
-    if (event.target === dialog) event.preventDefault();
-  }, { passive: false });
 }
 
 /**
@@ -1817,11 +1815,14 @@ function wireContentExchangeDialog() {
 
 async function openContentExchangeDialog() {
   wireContentExchangeDialog();
-  const dialog = el('contentExchangeDialog');
+  const panel = el('contentExchangePanel');
   const settingsDialog = el('settingsDialog');
   if (settingsDialog?.open) closeDialog(settingsDialog);
-  if (dialog) {
-    showDialog(dialog);
+  if (panel) {
+    if (currentView !== 4) {
+      contentExchangeReturnView = currentView;
+    }
+    setView(4);
     setContentExchangeModalOpenState(true);
   }
   await reloadContentExchangeTree({ preserveLog: false });

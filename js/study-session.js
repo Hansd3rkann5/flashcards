@@ -469,6 +469,66 @@ function renderPreviewTopicPills(card) {
 }
 
 /**
+ * @function applyPreviewCardTheme
+ * @description Applies the same per-card accent variables used by study session to the preview dialog.
+ */
+
+function applyPreviewCardTheme(card) {
+  const dialog = el('cardPreviewDialog');
+  if (!dialog) return;
+  const accent = (typeof resolveCardSubjectAccent === 'function')
+    ? resolveCardSubjectAccent(card)
+    : '#2dd4bf';
+  const rgba = a => (typeof hexToRgba === 'function' ? hexToRgba(accent, a) : `rgba(45, 212, 191, ${a})`);
+  dialog.style.setProperty('--accent', accent);
+  dialog.style.setProperty('--accent-glow', rgba(0.35));
+  dialog.style.setProperty('--accent-ring', rgba(0.9));
+  dialog.style.setProperty('--accent-glow-strong', rgba(0.6));
+  dialog.style.setProperty('--accent-glow-soft', rgba(0.35));
+  dialog.style.setProperty('--panel-accent', rgba(0.12));
+  dialog.style.setProperty('--tile-accent-bg', rgba(0.18));
+  dialog.style.setProperty('--face-accent', rgba(0.14));
+}
+
+/**
+ * @function syncPreviewFaceOverflowState
+ * @description Mirrors study-session overflow behavior for preview front/back faces.
+ */
+
+function syncPreviewFaceOverflowState() {
+  const flashcard = el('previewFlashcard');
+  const isMcq = !!flashcard?.classList.contains('mcq-mode');
+  ['previewFrontContent', 'previewBackContent'].forEach(id => {
+    const content = el(id);
+    if (!content) return;
+    if (isMcq) {
+      content.classList.remove('is-overflowing');
+      content.scrollTop = 0;
+      return;
+    }
+    content.classList.remove('is-overflowing');
+    const isOverflowing = content.scrollHeight > (content.clientHeight + 2);
+    if (isOverflowing) {
+      content.classList.add('is-overflowing');
+      content.scrollTop = 0;
+    }
+  });
+}
+
+/**
+ * @function queuePreviewFaceOverflowSync
+ * @description Defers preview overflow sync by two frames to account for layout/image updates.
+ */
+
+function queuePreviewFaceOverflowSync() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      syncPreviewFaceOverflowState();
+    });
+  });
+}
+
+/**
  * @function renderCardPreviewContent
  * @description Renders card preview content.
  */
@@ -478,6 +538,7 @@ function renderCardPreviewContent(card) {
   const front = el('previewFrontContent');
   const back = el('previewBackContent');
   if (!flashcardEl || !front || !back || !card) return;
+  applyPreviewCardTheme(card);
   renderPreviewTopicPills(card);
 
   const isMcq = card.type === 'mcq' && (card.options || []).length > 1;
@@ -540,6 +601,7 @@ function renderCardPreviewContent(card) {
     });
   }
   appendSessionImages(back, aImages, 'Answer image');
+  queuePreviewFaceOverflowSync();
 }
 
 /**
@@ -553,6 +615,7 @@ function openCardPreviewDialog(card) {
   if (!dialog) return;
   renderCardPreviewContent(card);
   showDialog(dialog);
+  queuePreviewFaceOverflowSync();
 }
 
 function getSwipeThresholds() {
