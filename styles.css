@@ -259,15 +259,24 @@ body.content-exchange-open #cardsOverviewSection {
 
 .onboarding-card {
   width: min(680px, 100%);
-  max-height: min(82vh, 640px);
-  overflow-y: auto;
+  height: min(82vh, 640px);
   padding: 24px 22px 18px;
   border-radius: 20px;
   border: 1px solid #35558c;
   background: linear-gradient(180deg, rgba(14, 22, 40, 0.98) 0%, rgba(10, 16, 32, 0.98) 100%);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.52);
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.onboarding-main {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+  display: grid;
+  align-content: start;
   gap: 12px;
 }
 
@@ -276,21 +285,24 @@ body.content-exchange-open #cardsOverviewSection {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .onboarding-card h2 {
   margin: 0;
-  font-size: clamp(1.25rem, 1.1vw + 1rem, 1.7rem);
+  font-size: clamp(1.45rem, 1.2vw + 1.05rem, 1.95rem);
 }
 
 .onboarding-card p {
   margin: 0;
   color: #deebff;
-  line-height: 1.55;
+  font-size: 1.08rem;
+  line-height: 1.62;
 }
 
 .onboarding-shortcuts {
   color: var(--muted);
+  font-size: 0.96rem;
 }
 
 .onboarding-name-block {
@@ -300,7 +312,7 @@ body.content-exchange-open #cardsOverviewSection {
 }
 
 .onboarding-name-block label {
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #dbe6ff;
 }
@@ -312,6 +324,7 @@ body.content-exchange-open #cardsOverviewSection {
 .onboarding-name-message {
   min-height: 1.2em;
   color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .onboarding-name-message.error {
@@ -323,7 +336,7 @@ body.content-exchange-open #cardsOverviewSection {
 }
 
 .onboarding-controls {
-  margin-top: var(--space-2);
+  margin-top: 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -382,27 +395,41 @@ body.tutorial-open {
 
 .editor-intro-card {
   width: min(840px, 100%);
-  max-height: min(86vh, 760px);
-  overflow-y: auto;
+  height: min(86vh, 760px);
   padding: 20px 20px 16px;
   border-radius: 18px;
   border: 1px solid #335486;
   background: linear-gradient(180deg, rgba(14, 22, 40, 0.98) 0%, rgba(10, 16, 32, 0.98) 100%);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.52);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.editor-intro-main {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+  display: grid;
+  align-content: start;
+  gap: 10px;
 }
 
 .editor-intro-card h2 {
-  margin: 0 0 8px;
+  margin: 0;
+  font-size: clamp(1.45rem, 1.15vw + 1.05rem, 1.9rem);
 }
 
 .editor-intro-card p {
   margin: 0;
   color: #dfe9ff;
-  line-height: 1.5;
+  font-size: 1.04rem;
+  line-height: 1.6;
 }
 
 .editor-intro-shortcuts {
-  margin-top: 14px;
+  margin-top: 0;
   display: grid;
   gap: 8px;
 }
@@ -435,20 +462,21 @@ body.tutorial-open {
   border-radius: 8px;
   background: rgba(31, 46, 76, 0.95);
   color: #e9f0ff;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 700;
   line-height: 1.1;
 }
 
 .editor-intro-shortcut-desc {
   color: #deebff;
-  font-size: 0.9rem;
+  font-size: 0.98rem;
   line-height: 1.35;
 }
 
 .editor-intro-footnote {
   margin-top: 10px;
   color: var(--muted);
+  font-size: 0.94rem;
 }
 
 body.editor-intro-open {
@@ -1654,6 +1682,7 @@ textarea:focus-visible {
   pointer-events: none;
   border-radius: var(--radius);
   opacity: 0;
+  display: none;
   transition: opacity 0.12s linear;
 }
 
@@ -1730,6 +1759,32 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.12s linear;
+}
+
+.flashcard.swipe-correct .face::after {
+  background: radial-gradient(circle at 70% 40%, rgba(34, 197, 94, 0.52), rgba(34, 197, 94, 0.1) 62%, transparent 100%);
+  opacity: var(--swipe-intensity, 0);
+}
+
+.flashcard.swipe-wrong .face::after {
+  background: radial-gradient(circle at 30% 40%, rgba(239, 68, 68, 0.52), rgba(239, 68, 68, 0.1) 62%, transparent 100%);
+  opacity: var(--swipe-intensity, 0);
+}
+
+.flashcard.swipe-partial .face::after {
+  background: radial-gradient(circle at 50% 80%, rgba(245, 158, 11, 0.52), rgba(245, 158, 11, 0.1) 62%, transparent 100%);
+  opacity: var(--swipe-intensity, 0);
 }
 
 .face-content {
@@ -5378,6 +5433,19 @@ dialog::backdrop {
     border-radius: 16px;
   }
 
+  .onboarding-step-meta {
+    font-size: 0.84rem;
+  }
+
+  .onboarding-card h2 {
+    font-size: clamp(1.3rem, 1.3vw + 0.98rem, 1.62rem);
+  }
+
+  .onboarding-card p {
+    font-size: 1rem;
+    line-height: 1.56;
+  }
+
   .onboarding-nav-btn {
     width: 44px;
     min-width: 44px;
@@ -5389,6 +5457,15 @@ dialog::backdrop {
     border-radius: 14px;
   }
 
+  .editor-intro-card h2 {
+    font-size: 1.28rem;
+  }
+
+  .editor-intro-card p {
+    font-size: 0.98rem;
+    line-height: 1.52;
+  }
+
   .editor-intro-shortcut {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -5396,7 +5473,7 @@ dialog::backdrop {
   }
 
   .editor-intro-shortcut-desc {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .daily-review-status-list {

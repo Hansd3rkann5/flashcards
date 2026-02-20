@@ -49,18 +49,20 @@
   <div id="onboardingTutorial" class="onboarding-tutorial hidden" aria-hidden="true">
     <div class="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboardingTutorialTitle"
       aria-describedby="onboardingTutorialBody">
-      <div class="tiny onboarding-step-meta" id="onboardingTutorialStepMeta">Step 1 of 5</div>
-      <h2 id="onboardingTutorialTitle">Welcome to Engineering Flashcards</h2>
-      <p id="onboardingTutorialBody">
-        Build your first study flow by creating a subject, then adding topics and cards.
-      </p>
-      <div id="onboardingNameBlock" class="onboarding-name-block hidden">
-        <label for="onboardingNameInput">Your name</label>
-        <input id="onboardingNameInput" class="input" type="text" maxlength="80" autocomplete="name"
-          placeholder="Enter your name" />
-        <div id="onboardingNameMessage" class="tiny onboarding-name-message" aria-live="polite"></div>
+      <div id="onboardingTutorialMain" class="onboarding-main">
+        <div class="tiny onboarding-step-meta" id="onboardingTutorialStepMeta">Step 1 of 6</div>
+        <h2 id="onboardingTutorialTitle">Welcome to Engineering Flashcards</h2>
+        <p id="onboardingTutorialBody">
+          Build your first study flow by creating a subject, then adding topics and cards.
+        </p>
+        <div id="onboardingNameBlock" class="onboarding-name-block hidden">
+          <label for="onboardingNameInput">Your name</label>
+          <input id="onboardingNameInput" class="input" type="text" maxlength="80" autocomplete="name"
+            placeholder="Enter your name" />
+          <div id="onboardingNameMessage" class="tiny onboarding-name-message" aria-live="polite"></div>
+        </div>
+        <div class="tiny onboarding-shortcuts">Use Left and Right Arrow keys to continue.</div>
       </div>
-      <div class="tiny onboarding-shortcuts">Use Left and Right Arrow keys to continue.</div>
       <div class="onboarding-controls">
         <button class="btn onboarding-nav-btn" id="onboardingTutorialPrevBtn" type="button"
           aria-label="Previous step">←</button>
@@ -74,13 +76,15 @@
   <div id="editorIntro" class="editor-intro hidden" aria-hidden="true">
     <div class="editor-intro-card" role="dialog" aria-modal="true" aria-labelledby="editorIntroTitle"
       aria-describedby="editorIntroBody">
-      <h2 id="editorIntroTitle">Editor Quick Intro</h2>
-      <p id="editorIntroBody">
-        This panel is optimized for quick card creation. Here are the available keyboard shortcuts and key-driven
-        behaviors.
-      </p>
-      <div id="editorIntroShortcutList" class="editor-intro-shortcuts"></div>
-      <div class="tiny editor-intro-footnote">Use the shortcuts directly in Question, Answer, and MCQ option fields.</div>
+      <div id="editorIntroMain" class="editor-intro-main">
+        <h2 id="editorIntroTitle">Editor Quick Intro</h2>
+        <p id="editorIntroBody">
+          This panel is optimized for quick card creation. Here are the available keyboard shortcuts and key-driven
+          behaviors.
+        </p>
+        <div id="editorIntroShortcutList" class="editor-intro-shortcuts"></div>
+        <div class="tiny editor-intro-footnote">Use the shortcuts directly in Question, Answer, and MCQ option fields.</div>
+      </div>
       <div class="controls" style="margin-top:12px; margin-inline:0;">
         <button class="btn save-primary" id="editorIntroCloseBtn" type="button">Start Editing</button>
       </div>
@@ -860,6 +864,7 @@
         <div class="settings-actions settings-actions-grid">
           <button class="btn" id="openProgressCheckFromSettingsBtn" type="button">✓ Check Status</button>
           <button class="btn" id="openContentExchangeBtn" type="button">Content Exchange</button>
+          <button class="btn" id="openIntroFromSettingsBtn" type="button">Open Intro</button>
         </div>
       </section>
 

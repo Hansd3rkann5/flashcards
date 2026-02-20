@@ -1277,9 +1277,13 @@ function wireSwipe() {
   const rotateLimit = 15;
   const ARC_RADIUS = Math.max(window.innerHeight * 1.4, 1200);
   const ARC_COMMIT_ANGLE = 0.55;
+  const SIDE_SWIPE_RATIO = 0.72;
+  const UP_CANCEL_RATIO = 1.25;
+  const UP_CANCEL_MIN_PX = 26;
 
   let dragging = false;
   let swipeDecisionPending = false;
+  let swipeIntent = '';
   let startX = 0;
   let startY = 0;
   let dx = 0;
@@ -1311,6 +1315,7 @@ function wireSwipe() {
   function resetSwipeDragState() {
     dragging = false;
     swipeDecisionPending = false;
+    swipeIntent = '';
     card.style.transition = '';
     card.style.willChange = '';
     card.style.transform = '';
@@ -1332,15 +1337,18 @@ function wireSwipe() {
   }
 
   function getSwipeResult() {
-    if (dy < 0) return null; // ⛔ up gesperrt
+    if (dy < 0 && Math.abs(dy) > UP_CANCEL_MIN_PX && Math.abs(dy) > Math.abs(dx) * UP_CANCEL_RATIO) return null;
 
-    const xT = Math.max(card.clientWidth * 0.18, 50);
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const xT = Math.max(card.clientWidth * 0.15, 42);
     const yT = Math.max(card.clientHeight * 0.25, 80);
 
-    if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > xT) {
+    const horizontalSwipe = absX > xT && (swipeIntent === 'horizontal' || absX >= absY * SIDE_SWIPE_RATIO);
+    if (horizontalSwipe) {
       return dx < 0 ? 'correct' : 'wrong';
     }
-    if (dy > yT) return 'partial';
+    if (dy > yT && (swipeIntent === 'vertical' || absY >= absX)) return 'partial';
     return null;
   }
 
@@ -1389,6 +1397,7 @@ function wireSwipe() {
     // Track swipe state
     dragging = true;
     swipeDecisionPending = faceCanScroll;
+    swipeIntent = '';
 
     // Touch start position
     startX = e.touches[0].clientX;
@@ -1415,7 +1424,7 @@ function wireSwipe() {
     dy = e.touches[0].clientY - startY;
 
     // ⛔ Swipe nach oben sperren
-    if (dy < 0 && Math.abs(dy) > Math.abs(dx)) {
+    if (dy < -UP_CANCEL_MIN_PX && Math.abs(dy) > Math.abs(dx) * UP_CANCEL_RATIO) {
       resetSwipeDragState();
       return;
     }
@@ -1423,7 +1432,7 @@ function wireSwipe() {
     if (swipeDecisionPending) {
       const travel = Math.abs(dx) + Math.abs(dy);
       if (travel < 8) return;
-      if (Math.abs(dy) > Math.abs(dx)) {
+      if (Math.abs(dy) > Math.abs(dx) * 1.2) {
         resetSwipeDragState();
         return;
       }
@@ -1432,17 +1441,24 @@ function wireSwipe() {
 
     if (Math.abs(dx) + Math.abs(dy) > 4) e.preventDefault();
 
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    if (!swipeIntent) {
+      if (absX >= 12 && absX >= absY * SIDE_SWIPE_RATIO) swipeIntent = 'horizontal';
+      else if (dy > 0 && absY >= 12 && absY > absX * 1.1) swipeIntent = 'vertical';
+    }
+
     let x = 0, y = 0, rotate = 0;
     let result = null, intensity = 0;
 
-    if (Math.abs(dx) >= Math.abs(dy)) {
+    if (swipeIntent === 'horizontal' || absX >= absY * SIDE_SWIPE_RATIO) {
       const arc = computeArcTransform(dx);
       x = arc.x;
       y = arc.y;
       rotate = arc.rotate;
 
       result = dx < 0 ? 'correct' : 'wrong';
-      intensity = Math.min(Math.abs(dx) / (card.clientWidth * 0.25), 1);
+      intensity = Math.min(absX / (card.clientWidth * 0.22), 1);
     } else if (dy > 0) {
       x = 0;
       y = dy;
