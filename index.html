@@ -509,17 +509,20 @@
         <div class="section content-exchange-section">
           <div class="editor-header content-exchange-panel-header">
             <h3>Content Exchange</h3>
-            <button class="btn close-icon-btn" id="closeContentExchangeBtn" type="button"
-              aria-label="Close content exchange panel" title="Close">
-              <img src="icons/close.svg" alt="" aria-hidden="true" />
-            </button>
+            <div class="panel-header-actions">
+              <button class="btn refresh-icon-btn" id="reloadContentExchangeBtn" type="button"
+                aria-label="Reload content exchange data" title="Reload users">
+                <img src="icons/refresh.svg" alt="" aria-hidden="true" />
+              </button>
+              <button class="btn close-icon-btn" id="closeContentExchangeBtn" type="button"
+                aria-label="Close content exchange panel" title="Close">
+                <img src="icons/close.svg" alt="" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <div class="content-exchange-scroll">
             <div class="tiny" id="contentExchangeStatus">Load user datasets and import selected content.</div>
             <div class="tiny content-exchange-policy-hint" id="contentExchangePolicyHint"></div>
-            <div class="controls content-exchange-actions">
-              <button class="btn" id="reloadContentExchangeBtn" type="button">Reload Users</button>
-            </div>
             <div id="contentExchangeTree" class="content-exchange-tree"></div>
           </div>
           <!-- <pre id="contentExchangeLogOutput" class="content-exchange-log-output" aria-live="polite"></pre> -->
@@ -657,14 +660,19 @@
     <div class="topic-search-sticky-head progress-check-sticky-head">
       <div class="editor-header">
         <h3>Cards Status Check</h3>
-        <button class="btn close-icon-btn" id="closeProgressCheckBtn" type="button"
-          aria-label="Close progress check dialog" title="Close">
-          <img src="icons/close.svg" alt="" aria-hidden="true" />
-        </button>
+        <div class="panel-header-actions">
+          <button class="btn refresh-icon-btn" id="refreshProgressCheckBtn" type="button"
+            aria-label="Refresh status table" title="Refresh">
+            <img src="icons/refresh.svg" alt="" aria-hidden="true" />
+          </button>
+          <button class="btn close-icon-btn" id="closeProgressCheckBtn" type="button"
+            aria-label="Close progress check dialog" title="Close">
+            <img src="icons/close.svg" alt="" aria-hidden="true" />
+          </button>
+        </div>
       </div>
-      <div class="controls" style="margin:0; margin-top:8px; justify-content: space-between; width: 100%; align-items: center;">
+      <div class="controls" style="margin:0; margin-top:8px; width: 100%; align-items: center;">
         <div class="tiny" id="progressCheckMeta">Loading...</div>
-        <button class="btn" id="refreshProgressCheckBtn" type="button">Refresh</button>
       </div>
     </div>
     <div class="progress-check-table-wrap">
@@ -835,16 +843,32 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" />
       </button>
     </div>
-    <p class="tiny">Export and import your shared server dataset.</p>
-    <div class="controls">
-      <button class="btn" id="exportJsonBtn" type="button">Export JSON</button>
-      <button class="btn" id="exportCsvBtn" type="button">Export CSV</button>
-      <button class="btn" id="openProgressCheckFromSettingsBtn" type="button">✓ Check Status</button>
-      <button class="btn" id="openContentExchangeBtn" type="button">Content Exchange</button>
-      <button class="btn" id="migrateImagesToStorageBtn" type="button">Migrate Images</button>
-      <label class="btn" for="importInput">Import JSON</label>
-      <input id="importInput" type="file" accept="application/json" class="hidden" />
-      <button class="btn" id="signOutBtn" type="button">Sign Out</button>
+    <p class="tiny settings-intro">Manage backups, diagnostics, and account actions.</p>
+    <div class="settings-layout">
+      <section class="settings-card">
+        <h4 class="settings-card-title">Backup</h4>
+        <div class="settings-actions settings-actions-grid">
+          <button class="btn" id="exportJsonBtn" type="button">Export JSON</button>
+          <button class="btn" id="exportCsvBtn" type="button">Export CSV</button>
+          <button class="btn" id="importJsonBtn" type="button">Import JSON</button>
+          <input id="importInput" type="file" accept="application/json" class="hidden" />
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h4 class="settings-card-title">Tools</h4>
+        <div class="settings-actions settings-actions-grid">
+          <button class="btn" id="openProgressCheckFromSettingsBtn" type="button">✓ Check Status</button>
+          <button class="btn" id="openContentExchangeBtn" type="button">Content Exchange</button>
+        </div>
+      </section>
+
+      <section class="settings-card settings-card-account">
+        <h4 class="settings-card-title">Account</h4>
+        <div class="settings-actions">
+          <button class="btn delete" id="signOutBtn" type="button">Sign Out</button>
+        </div>
+      </section>
     </div>
   </dialog>
 
