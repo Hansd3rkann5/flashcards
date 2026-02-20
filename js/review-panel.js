@@ -119,7 +119,9 @@ function resetDailyReviewState() {
     statusFilter: { ...DAILY_REVIEW_STATUS_FILTER_DEFAULT },
     todayStats: createEmptyDailyReviewTodayStats(),
     totalCards: 0,
-    size: 0
+    size: 0,
+    activityStreakDays: 0,
+    activityDaysTotal: 0
   };
 }
 
@@ -1552,6 +1554,147 @@ function buildDailyReviewTodayStats(progressRecords = [], todayKey = getTodayKey
 }
 
 /**
+ * @function buildProgressActivityDayKeySet
+ * @description Returns all day keys where the user recorded at least one answer across all progress rows.
+ */
+
+function buildProgressActivityDayKeySet(progressRecords = []) {
+  const rows = Array.isArray(progressRecords) ? progressRecords : [];
+  const dayKeys = new Set();
+  rows.forEach(row => {
+    const cardId = String(row?.cardId || '').trim();
+    if (!cardId) return;
+    const record = normalizeProgressRecord(row, cardId);
+    Object.keys(record.byDay || {}).forEach(dayKey => {
+      const day = normalizeDayProgress(record.byDay[dayKey]);
+      const attempts = toCounterInt(day.correct) + toCounterInt(day.partial) + toCounterInt(day.wrong);
+      if (attempts <= 0) return;
+      const normalizedDay = normalizeDailyReviewDayKey(dayKey || day.lastAnsweredAt);
+      if (normalizedDay) dayKeys.add(normalizedDay);
+    });
+  });
+  return dayKeys;
+}
+
+/**
+ * @function computeCurrentActivityStreakDays
+ * @description Computes the number of consecutive active days ending today.
+ */
+
+function computeCurrentActivityStreakDays(activityDayKeys = new Set(), referenceDayKey = getTodayKey()) {
+  const keys = activityDayKeys instanceof Set ? activityDayKeys : new Set();
+  if (!keys.size) return 0;
+  const startDay = normalizeDailyReviewDayKey(referenceDayKey);
+  if (!startDay) return 0;
+  let streak = 0;
+  let cursor = new Date(`${startDay}T00:00:00`);
+  if (!Number.isFinite(cursor.getTime())) return 0;
+  while (true) {
+    const key = getTodayKey(cursor);
+    if (!keys.has(key)) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+/**
+ * @function renderOverviewSegmentBar
+ * @description Renders a single stacked-ratio bar with optional legend text.
+ */
+
+function renderOverviewSegmentBar(barEl, legendEl, segments = [], options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const rows = Array.isArray(segments)
+    ? segments
+      .map(seg => ({
+        key: String(seg?.key || '').trim() || 'segment',
+        label: String(seg?.label || '').trim() || 'Segment',
+        value: toCounterInt(seg?.value),
+        color: String(seg?.color || '#64748b')
+      }))
+      .filter(seg => seg.label.length > 0)
+    : [];
+  const total = rows.reduce((sum, seg) => sum + seg.value, 0);
+
+  if (barEl) {
+    if (total <= 0) {
+      barEl.innerHTML = '<span class="daily-overview-segment-bar-empty">No answered cards yet.</span>';
+      barEl.classList.add('is-empty');
+      barEl.setAttribute('aria-label', String(opts.emptyLabel || 'No answered cards yet.'));
+    } else {
+      barEl.classList.remove('is-empty');
+      const nonZeroRows = rows.filter(seg => seg.value > 0);
+      barEl.innerHTML = nonZeroRows.map((seg, idx) => {
+        const ratio = (seg.value / total) * 100;
+        const isLast = idx === nonZeroRows.length - 1;
+        return `
+          <span class="daily-overview-segment daily-overview-segment-${escapeHTML(seg.key)}${isLast ? ' is-last' : ''}"
+            style="width:${ratio.toFixed(3)}%;background:${escapeHTML(seg.color)};"
+            title="${escapeHTML(seg.label)}: ${seg.value}"></span>
+        `;
+      }).join('');
+      const ariaLabel = rows.map(seg => `${seg.label}: ${seg.value}`).join(', ');
+      barEl.setAttribute('aria-label', ariaLabel);
+    }
+  }
+
+  if (legendEl) {
+    if (total <= 0) {
+      legendEl.textContent = String(opts.emptyLegendText || 'No data yet.');
+    } else {
+      legendEl.innerHTML = rows.map(seg => `
+        <span class="daily-overview-legend-item">
+          <span class="daily-overview-legend-dot" style="background:${escapeHTML(seg.color)};"></span>
+          <span>${escapeHTML(seg.label)}: ${seg.value}</span>
+        </span>
+      `).join('');
+    }
+  }
+}
+
+/**
+ * @function renderDailyOverviewStatsCards
+ * @description Renders the new two-field stats cards (state bar + current activity streak) on Home.
+ */
+
+function renderDailyOverviewStatsCards() {
+  const grid = el('dailyOverviewStatsGrid');
+  const bar = el('dailyOverviewStateBar');
+  const legend = el('dailyOverviewStateLegend');
+  const streakDaysEl = el('dailyOverviewStreakDays');
+  const streakMetaEl = el('dailyOverviewStreakMeta');
+  if (!grid || !bar || !legend || !streakDaysEl || !streakMetaEl) return;
+  const latest = dailyReviewState.latestStateCounts || createEmptyDailyReviewLatestStateCounts();
+  const mastered = toCounterInt(latest.mastered);
+  const partially = toCounterInt(latest.correct) + toCounterInt(latest.partial) + toCounterInt(latest.inProgress);
+  const wrong = toCounterInt(latest.wrong);
+  const answeredTotal = mastered + partially + wrong;
+  renderOverviewSegmentBar(bar, legend, [
+    { key: 'mastered', label: 'Mastered', value: mastered, color: '#22c55e' },
+    { key: 'partial', label: 'Partially', value: partially, color: '#f59e0b' },
+    { key: 'wrong', label: 'Wrong', value: wrong, color: '#ef4444' }
+  ], {
+    emptyLabel: 'No answered cards yet.',
+    emptyLegendText: 'No answered cards yet.'
+  });
+  const streakDays = toCounterInt(dailyReviewState.activityStreakDays);
+  const activeDaysTotal = toCounterInt(dailyReviewState.activityDaysTotal);
+  streakDaysEl.textContent = String(streakDays);
+  if (streakDays > 0) {
+    const dayWord = streakDays === 1 ? 'day' : 'days';
+    streakMetaEl.textContent = `Active for ${streakDays} ${dayWord} in a row.`;
+  } else if (activeDaysTotal > 0) {
+    streakMetaEl.textContent = 'No active streak right now. Answer one card to restart it.';
+  } else if (answeredTotal > 0) {
+    const cardWord = answeredTotal === 1 ? 'card' : 'cards';
+    streakMetaEl.textContent = `${answeredTotal} answered ${cardWord} so far. Your streak starts with today.`;
+  } else {
+    streakMetaEl.textContent = 'No streak yet. Answer your first card to start one.';
+  }
+}
+
+/**
  * @function renderDailyReviewPanelSummary
  * @description Renders daily review panel summary.
  */
@@ -1584,6 +1727,7 @@ function renderDailyReviewPanelSummary() {
   }
   if (cardsEl) cardsEl.textContent = String(dailyReviewState.totalCards);
   if (topicsEl) topicsEl.textContent = String(dailyReviewState.topics.length);
+  renderDailyOverviewStatsCards();
   fillDailyReviewStatusFilterControls();
   syncDailyReviewDateKeysFromStatus();
   renderDailyReviewDateSlider();
@@ -1617,6 +1761,8 @@ async function prepareDailyReviewState(options = {}) {
   }
   const rows = Array.isArray(progressRecords) ? progressRecords : [];
   const todayStats = buildDailyReviewTodayStats(rows, todayKey);
+  const activityDayKeys = buildProgressActivityDayKeySet(rows);
+  const activityStreakDays = computeCurrentActivityStreakDays(activityDayKeys, todayKey);
 
   const answeredCardIds = [];
   const statusByCardId = new Map();
@@ -1751,7 +1897,9 @@ async function prepareDailyReviewState(options = {}) {
     statusFilter: { ...DAILY_REVIEW_STATUS_FILTER_DEFAULT },
     todayStats,
     totalCards,
-    size: totalCards > 0 ? Math.min(DAILY_REVIEW_DEFAULT_SIZE, totalCards) : 0
+    size: totalCards > 0 ? Math.min(DAILY_REVIEW_DEFAULT_SIZE, totalCards) : 0,
+    activityStreakDays,
+    activityDaysTotal: activityDayKeys.size
   };
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'state-ready', traceStartedAt, {

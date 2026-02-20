@@ -165,7 +165,9 @@ let dailyReviewState = {
     wrong: 0
   },
   totalCards: 0,
-  size: 0
+  size: 0,
+  activityStreakDays: 0,
+  activityDaysTotal: 0
 };
 const PROGRESS_CHECK_COLUMN_KEYS = Object.freeze([
   'subject',

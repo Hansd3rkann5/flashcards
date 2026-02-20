@@ -206,6 +206,18 @@ async function startSession(options = {}) {
         if (status === 'yellow') initialGradeMap[card.id] = 'partial';
         else if (status === 'red') initialGradeMap[card.id] = 'wrong';
       });
+    } else if (typeof ensureProgressForCardIds === 'function' && typeof getCurrentProgressState === 'function') {
+      await ensureProgressForCardIds(selectedCardIds, {
+        payloadLabel: 'session-initial-progress',
+        uiBlocking: false
+      });
+      sessionCards.forEach(card => {
+        const state = getCurrentProgressState(progressByCardId.get(card.id), card.id);
+        const stateKey = String(state?.key || '').trim();
+        if (stateKey === 'wrong') initialGradeMap[card.id] = 'wrong';
+        else if (stateKey === 'partial' || stateKey === 'in-progress') initialGradeMap[card.id] = 'partial';
+        else if (stateKey === 'correct' || stateKey === 'mastered') initialGradeMap[card.id] = 'correct';
+      });
     }
     session = {
       active: true,
