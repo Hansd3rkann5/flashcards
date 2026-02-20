@@ -136,10 +136,31 @@ function wireHomePullToRefresh() {
   let startY = 0;
   let pullDistance = 0;
 
+  // Damping / easing for pull feel
+  const MAX_PULL_MULTIPLIER = 1.25;   // cap pull distance relative to threshold
+  const DAMPING_START = 0.35;         // when resistance starts (0–1 of threshold)
+  const DAMPING_POWER = 0.85;         // lower = softer, higher = stiffer
+  const DEBUG_PULL = true;            // set false to disable logs
+
   const getPullThresholdPx = () => {
     const viewportHeight = Math.max(0, window.innerHeight || 0);
     const byViewport = viewportHeight / PULL_THRESHOLD_VIEWPORT_FRACTION;
     return Math.max(MIN_PULL_THRESHOLD_PX, Math.round(byViewport));
+  };
+
+  const applyDamping = (raw, thresholdPx) => {
+    const maxPull = thresholdPx * MAX_PULL_MULTIPLIER;
+    if (raw <= thresholdPx * DAMPING_START) return raw;
+
+    const excess = raw - thresholdPx * DAMPING_START;
+    const range = maxPull - thresholdPx * DAMPING_START;
+    const damped = thresholdPx * DAMPING_START + range * Math.pow(excess / range, DAMPING_POWER);
+    return Math.min(maxPull, damped);
+  };
+
+  const debug = (data) => {
+    if (!DEBUG_PULL) return;
+    console.log('[PTR]', data);
   };
 
   const setIndicatorProgress = value => {
@@ -256,9 +277,8 @@ function wireHomePullToRefresh() {
     }
 
     const thresholdPx = getPullThresholdPx();
-    const maxPullPx = Math.round(thresholdPx * 1.5);
     const rawPull = Math.max(0, dy);
-    pullDistance = Math.min(maxPullPx, rawPull);
+    pullDistance = applyDamping(rawPull, thresholdPx);
     const wasArmed = armed;
     armed = rawPull >= thresholdPx;
     if (armed && !wasArmed && !thresholdPulseSent) {
@@ -266,14 +286,22 @@ function wireHomePullToRefresh() {
       triggerHaptic('medium');
     }
     labelEl.textContent = armed ? LABEL_RELEASE : LABEL_PULL;
-    const linearProgress = Math.max(0, Math.min(1, rawPull / thresholdPx));
-    setIndicatorProgress(linearProgress);
+    const easedProgress = Math.max(0, Math.min(1, pullDistance / thresholdPx));
+    setIndicatorProgress(easedProgress);
     setVisualState();
+    debug({
+      rawPull: Math.round(rawPull),
+      pullDistance: Math.round(pullDistance),
+      thresholdPx,
+      progress: Number((pullDistance / thresholdPx).toFixed(2)),
+      armed
+    });
     homeScroll.style.transform = `translate3d(0, ${pullDistance.toFixed(2)}px, 0)`;
     e.preventDefault();
   }, { passive: false });
 
   const handleTouchEnd = async () => {
+    debug({ event: 'touchend', armed, refreshing });
     if (!tracking && !pulling) return;
     tracking = false;
     if (!pulling) {
