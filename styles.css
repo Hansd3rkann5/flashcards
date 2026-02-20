@@ -169,6 +169,16 @@ body.sidebar-hidden .main {
   width: 100%;
 }
 
+body.content-exchange-open {
+  overscroll-behavior: none;
+}
+
+body.content-exchange-open #homePanel>.section,
+body.content-exchange-open #topicPanel>.section,
+body.content-exchange-open #cardsOverviewSection {
+  overflow: hidden !important;
+}
+
 .sidebar-overlay {
   position: fixed;
   inset: 0;
@@ -606,6 +616,7 @@ body.app-loading {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background-color: #ff00005d
 }
 
 .close-icon-btn img {
@@ -3417,12 +3428,16 @@ dialog.modal.subject-edit-modal {
 }
 
 dialog.modal.content-exchange-dialog {
-  width: min(1120px, 96vw);
-  max-width: none;
-  /* height: min(90dvh, 940px); */
+  width: 90%;
+  max-width: 90%;
+  height: 80%;
+  border-radius: var(--radius);
+  padding: var(--space-4);
   display: none;
   flex-direction: column;
   gap: var(--space-2);
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 dialog.modal.content-exchange-dialog[open] {
@@ -3444,12 +3459,13 @@ dialog.modal.content-exchange-dialog[open] {
   min-height: 220px;
   overflow: auto;
   border: 1px solid #30476f;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: #0d162b;
   padding: var(--space-2);
   display: grid;
   gap: var(--space-2);
   align-content: start;
+  overscroll-behavior: contain;
 }
 
 .content-exchange-user {
@@ -5284,10 +5300,11 @@ dialog::backdrop {
   }
 
   dialog.modal.content-exchange-dialog {
-    width: calc(100vw - 12px);
-    /* height: min(92dvh, 980px); */
-    padding: var(--space-2);
-    margin-top: var(--space-3);
+    width: 90%;
+    max-width: 90%;
+    height: 80%;
+    border-radius: var(--radius);
+    padding: var(--space-3);
   }
 
   .content-exchange-tree {
