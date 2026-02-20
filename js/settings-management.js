@@ -37,6 +37,15 @@ let contentExchangeLastLoadToken = 0;
 let contentExchangeSelectedCardIdsByTopicKey = new Map();
 
 /**
+ * @function setContentExchangeModalOpenState
+ * @description Locks/unlocks background panel scrolling while the exchange dialog is open.
+ */
+
+function setContentExchangeModalOpenState(open = false) {
+  document.body.classList.toggle('content-exchange-open', !!open);
+}
+
+/**
  * @function exportJSON
  * @description Exports JSON.
  */
@@ -615,6 +624,7 @@ function closeContentExchangeDialog() {
   const dialog = el('contentExchangeDialog');
   if (!dialog) return;
   if (dialog.dataset.busy === '1') return;
+  setContentExchangeModalOpenState(false);
   closeDialog(dialog);
 }
 
@@ -1789,6 +1799,15 @@ function wireContentExchangeDialog() {
     if (dialog.dataset.busy !== '1') return;
     event.preventDefault();
   });
+  dialog.addEventListener('close', () => {
+    setContentExchangeModalOpenState(false);
+  });
+  dialog.addEventListener('wheel', event => {
+    if (event.target === dialog) event.preventDefault();
+  }, { passive: false });
+  dialog.addEventListener('touchmove', event => {
+    if (event.target === dialog) event.preventDefault();
+  }, { passive: false });
 }
 
 /**
@@ -1801,7 +1820,10 @@ async function openContentExchangeDialog() {
   const dialog = el('contentExchangeDialog');
   const settingsDialog = el('settingsDialog');
   if (settingsDialog?.open) closeDialog(settingsDialog);
-  if (dialog) showDialog(dialog);
+  if (dialog) {
+    showDialog(dialog);
+    setContentExchangeModalOpenState(true);
+  }
   await reloadContentExchangeTree({ preserveLog: false });
 }
 
