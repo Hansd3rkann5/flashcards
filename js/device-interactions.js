@@ -125,6 +125,7 @@ function wireHomePullToRefresh() {
   const SETTLE_DISTANCE_PX = 66;
   const LABEL_PULL = 'Pull to refresh';
   const LABEL_RELEASE = 'Release to refresh';
+  const LABEL_CLEARING = 'Clearing cache...';
   const LABEL_REFRESH = 'Refreshing...';
   let tracking = false;
   let pulling = false;
@@ -168,6 +169,28 @@ function wireHomePullToRefresh() {
     window.setTimeout(() => {
       if (!refreshing) homeScroll.style.transition = '';
     }, 240);
+  };
+
+  const clearCachesBeforeReload = async () => {
+    if (typeof invalidateApiStoreCache === 'function') {
+      try {
+        invalidateApiStoreCache();
+      } catch (_) { }
+    }
+    if (!('caches' in window)) return;
+    let cacheNames = [];
+    try {
+      cacheNames = await caches.keys();
+    } catch (_) {
+      return;
+    }
+    const appCacheNames = cacheNames.filter(name => String(name || '').startsWith('flashcards-'));
+    if (!appCacheNames.length) return;
+    await Promise.all(appCacheNames.map(async cacheName => {
+      try {
+        await caches.delete(cacheName);
+      } catch (_) { }
+    }));
   };
 
   document.addEventListener('touchstart', e => {
@@ -245,7 +268,7 @@ function wireHomePullToRefresh() {
     e.preventDefault();
   }, { passive: false });
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = async () => {
     if (!tracking && !pulling) return;
     tracking = false;
     if (!pulling) {
@@ -259,14 +282,20 @@ function wireHomePullToRefresh() {
     refreshing = true;
     pulling = false;
     armed = false;
-    labelEl.textContent = LABEL_REFRESH;
+    labelEl.textContent = LABEL_CLEARING;
     setIndicatorProgress(1);
     setVisualState();
     homeScroll.style.transition = RELEASE_TRANSITION;
     homeScroll.style.transform = `translate3d(0, ${SETTLE_DISTANCE_PX}px, 0)`;
+    // Keep UX responsive: cache clear should not block indefinitely.
+    await Promise.race([
+      clearCachesBeforeReload(),
+      new Promise(resolve => window.setTimeout(resolve, 1600))
+    ]);
+    labelEl.textContent = LABEL_REFRESH;
     window.setTimeout(() => {
       window.location.reload();
-    }, 260);
+    }, 120);
   };
 
   document.addEventListener('touchend', handleTouchEnd);
