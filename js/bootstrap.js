@@ -49,20 +49,24 @@ const ONBOARDING_TUTORIAL_STEPS = Object.freeze([
     body: 'Create your first Subject to define what you want to learn. Start by adding your name below so your profile is complete.'
   }),
   Object.freeze({
-    title: 'Add Topics Inside a Subject',
-    body: 'Each Subject can contain multiple Topics. Use Topics to split large subjects into focused study areas.'
+    title: 'Build a Clean Learning Structure',
+    body: 'Use Subject -> Topic -> Cards to stay organized. Subjects hold your big area, topics split it into focused units.'
   }),
   Object.freeze({
-    title: 'Start a Study Session',
-    body: 'Select one or more Topics, choose your Session Size, then press Start Session to build a mixed card queue.'
+    title: 'Use the Editor Efficiently',
+    body: 'Open a topic and create cards quickly in the editor. Use the Shortcuts button in the editor header to see all key actions.'
   }),
   Object.freeze({
-    title: 'Review Cards Efficiently',
-    body: 'Flip cards with Space, grade them as Correct, Not quite, or Wrong, and use keys 1/2/3 for faster progress.'
+    title: 'Start and Run Study Sessions',
+    body: 'Select topics, choose your session size, and start. Flip with Space and grade using Correct / Not quite / Wrong (or keys 1/2/3).'
   }),
   Object.freeze({
-    title: 'Track Progress and Repeat Daily',
-    body: 'Use Home for Daily Review, adjust filters when needed, and open Settings to export, import, or sign out.'
+    title: 'Check Status and Filter Details',
+    body: 'In Settings, open Check Status to inspect all cards. Use the column filter toggles to sort and narrow your result list.'
+  }),
+  Object.freeze({
+    title: 'Share via Content Exchange',
+    body: 'Open Settings -> Content Exchange to browse other users, inspect their subject/topic/card tree, and import selected content into your account.'
   })
 ]);
 
@@ -274,6 +278,7 @@ function renderOnboardingTutorialStep() {
   const dotsWrap = el('onboardingTutorialDots');
   const nameBlock = el('onboardingNameBlock');
   const nameInput = el('onboardingNameInput');
+  const main = el('onboardingTutorialMain');
   const isFirstStep = safeIndex === 0;
   const isLastStep = safeIndex >= totalSteps - 1;
   if (titleEl) titleEl.textContent = step.title;
@@ -302,6 +307,7 @@ function renderOnboardingTutorialStep() {
       dotsWrap.appendChild(dot);
     }
   }
+  if (main) main.scrollTop = 0;
 }
 
 /**
@@ -464,6 +470,8 @@ function openOnboardingTutorial() {
   }
   setOnboardingNameMessage('');
   setOnboardingTutorialVisibility(true);
+  const main = el('onboardingTutorialMain');
+  if (main) main.scrollTop = 0;
   if (onboardingNameRequired && nameInput instanceof HTMLInputElement) {
     nameInput.focus({ preventScroll: true });
     nameInput.select();
@@ -656,14 +664,17 @@ function openEditorIntro() {
   if (!overlay) return;
   renderEditorIntroShortcutList();
   const card = overlay.querySelector('.editor-intro-card');
+  const main = el('editorIntroMain');
   const shortcutList = el('editorIntroShortcutList');
   if (card) card.scrollTop = 0;
+  if (main) main.scrollTop = 0;
   if (shortcutList) shortcutList.scrollTop = 0;
   overlay.scrollTop = 0;
   editorIntroOpen = true;
   setEditorIntroVisibility(true);
   requestAnimationFrame(() => {
     if (card) card.scrollTop = 0;
+    if (main) main.scrollTop = 0;
     overlay.scrollTop = 0;
   });
   const closeBtn = el('editorIntroCloseBtn');
@@ -927,6 +938,14 @@ async function boot() {
   }
   const openProgressCheckBtn = el('openProgressCheckBtn');
   if (openProgressCheckBtn) openProgressCheckBtn.onclick = openProgressCheckDialog;
+  const openIntroFromSettingsBtn = el('openIntroFromSettingsBtn');
+  if (openIntroFromSettingsBtn) {
+    openIntroFromSettingsBtn.onclick = () => {
+      const settingsDialog = el('settingsDialog');
+      if (settingsDialog?.open) closeDialog(settingsDialog);
+      openOnboardingTutorial();
+    };
+  }
   const openProgressCheckFromSettingsBtn = el('openProgressCheckFromSettingsBtn');
   if (openProgressCheckFromSettingsBtn) {
     openProgressCheckFromSettingsBtn.onclick = async () => {
