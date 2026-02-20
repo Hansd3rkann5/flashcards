@@ -627,6 +627,31 @@ body.app-loading {
   filter: brightness(0) invert(1);
 }
 
+.panel-header-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.refresh-icon-btn {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+}
+
+.refresh-icon-btn img {
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
 .deck-actions {
   display: inline-flex;
   align-items: center;
@@ -3354,6 +3379,63 @@ dialog.modal.subject-edit-modal {
   padding: var(--space-4);
 }
 
+#settingsDialog {
+  width: min(760px, calc(100vw - (2 * var(--space-6))));
+}
+
+#settingsDialog .settings-intro {
+  margin: 0 0 var(--space-3);
+  color: #c5d6f5;
+}
+
+#settingsDialog .settings-layout {
+  display: grid;
+  gap: var(--space-3);
+}
+
+#settingsDialog .settings-card {
+  border: 1px solid #30476f;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(19, 30, 52, 0.95) 0%, rgba(13, 23, 43, 0.95) 100%);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+#settingsDialog .settings-card-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #dce8ff;
+  letter-spacing: 0.01em;
+}
+
+#settingsDialog .settings-actions {
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+}
+
+#settingsDialog .settings-actions-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#settingsDialog .settings-actions-grid>.btn,
+#settingsDialog .settings-actions-grid>label.btn,
+#settingsDialog .settings-actions>.btn,
+#settingsDialog .settings-actions>label.btn {
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#settingsDialog .settings-card-account {
+  border-color: #435479;
+}
+
 #subjectEditDialog h3 {
   margin: 0 0 var(--space-3);
   text-align: center;
@@ -4119,6 +4201,8 @@ dialog.modal-table-builder {
   flex-direction: column;
   gap: var(--space-2);
   overflow: hidden;
+  position: relative;
+  overscroll-behavior: none;
 }
 
 .progress-check-dialog[open] {
@@ -4168,9 +4252,10 @@ dialog.modal-table-builder {
 }
 
 .progress-check-header-menu {
-  position: fixed;
+  position: absolute;
   z-index: 99;
-  width: min(320px, calc(100vw - 16px));
+  width: min(320px, calc(100% - 16px));
+  max-width: calc(100% - 16px);
   max-height: min(72vh, 560px);
   display: flex;
   flex-direction: column;
@@ -4244,10 +4329,14 @@ dialog.modal-table-builder {
 .progress-check-table-wrap {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   border: 1px solid #2c4168;
   border-radius: 12px;
   background: rgba(10, 17, 32, 0.55);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .progress-check-table {
@@ -5393,6 +5482,22 @@ dialog::backdrop {
 
   .content-exchange-card-list .card-tile:last-child {
     margin-bottom: calc(var(--space-9) + env(safe-area-inset-bottom));
+  }
+
+  .progress-check-header-menu {
+    width: calc(100% - 12px);
+    max-width: calc(100% - 12px);
+    border-radius: 11px;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+
+  #settingsDialog {
+    width: min(96vw, 96vw);
+  }
+
+  #settingsDialog .settings-actions-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   #cardPrompt,

@@ -2472,17 +2472,21 @@ function closeProgressCheckHeaderMenu() {
 function positionProgressCheckHeaderMenu() {
   const menu = el('progressCheckHeaderMenu');
   const trigger = progressCheckHeaderMenuState.trigger;
-  if (!menu || !trigger) return;
-  const rect = trigger.getBoundingClientRect();
+  const dialog = el('progressCheckDialog');
+  if (!menu || !trigger || !dialog) return;
+  const triggerRect = trigger.getBoundingClientRect();
+  const dialogRect = dialog.getBoundingClientRect();
   const spacing = 6;
   const menuRect = menu.getBoundingClientRect();
-  let left = rect.left;
-  let top = rect.bottom + spacing;
-  if (left + menuRect.width > window.innerWidth - spacing) {
-    left = Math.max(spacing, window.innerWidth - menuRect.width - spacing);
+  const dialogWidth = Math.max(0, dialogRect.width);
+  const dialogHeight = Math.max(0, dialogRect.height);
+  let left = triggerRect.left - dialogRect.left;
+  let top = (triggerRect.bottom - dialogRect.top) + spacing;
+  if (left + menuRect.width > dialogWidth - spacing) {
+    left = Math.max(spacing, dialogWidth - menuRect.width - spacing);
   }
-  if (top + menuRect.height > window.innerHeight - spacing) {
-    top = Math.max(spacing, rect.top - menuRect.height - spacing);
+  if (top + menuRect.height > dialogHeight - spacing) {
+    top = Math.max(spacing, (triggerRect.top - dialogRect.top) - menuRect.height - spacing);
   }
   menu.style.left = `${Math.round(left)}px`;
   menu.style.top = `${Math.round(top)}px`;
@@ -2751,6 +2755,7 @@ async function openProgressCheckDialog() {
 function wireProgressCheckHeaderMenus() {
   const table = el('progressCheckTable');
   const menu = el('progressCheckHeaderMenu');
+  const tableWrap = document.querySelector('#progressCheckDialog .progress-check-table-wrap');
   const valueSearch = el('progressCheckValueSearch');
   const selectAll = el('progressCheckSelectAllValues');
   const sortAscBtn = el('progressCheckSortAscBtn');
@@ -2847,6 +2852,40 @@ function wireProgressCheckHeaderMenus() {
   window.addEventListener('resize', () => {
     if (!menu.classList.contains('hidden')) positionProgressCheckHeaderMenu();
   });
+  if (tableWrap) {
+    tableWrap.addEventListener('scroll', () => {
+      if (!menu.classList.contains('hidden')) positionProgressCheckHeaderMenu();
+    }, { passive: true });
+    if (tableWrap.dataset.touchLockWired !== '1') {
+      tableWrap.dataset.touchLockWired = '1';
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      tableWrap.addEventListener('touchstart', event => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+      }, { passive: true });
+
+      // Prevent edge rubber-band dragging of the entire table container on touch devices.
+      tableWrap.addEventListener('touchmove', event => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        const atTop = tableWrap.scrollTop <= 0;
+        const atBottom = (tableWrap.scrollTop + tableWrap.clientHeight) >= (tableWrap.scrollHeight - 1);
+        const atLeft = tableWrap.scrollLeft <= 0;
+        const atRight = (tableWrap.scrollLeft + tableWrap.clientWidth) >= (tableWrap.scrollWidth - 1);
+        const blockVertical = (atTop && dy > 0) || (atBottom && dy < 0);
+        const blockHorizontal = (atLeft && dx > 0) || (atRight && dx < 0);
+        if (blockVertical || blockHorizontal) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+    }
+  }
 }
 
 /**

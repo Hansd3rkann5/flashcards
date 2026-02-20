@@ -858,7 +858,13 @@ async function boot() {
     document.body.classList.remove('sidebar-open');
     void refreshDailyReviewHomePanel({ useExisting: false });
   };
-  el('settingsBtn').onclick = () => document.getElementById('settingsDialog').showModal();
+  el('settingsBtn').onclick = () => {
+    const settingsDialog = el('settingsDialog');
+    if (!settingsDialog) return;
+    // Modal interactions should not keep the background sidebar state alive.
+    document.body.classList.remove('sidebar-open');
+    showDialog(settingsDialog);
+  };
   const closeSettingsBtn = el('closeSettingsBtn');
   if (closeSettingsBtn) closeSettingsBtn.onclick = () => closeDialog(el('settingsDialog'));
   const signOutBtn = el('signOutBtn');
@@ -893,6 +899,20 @@ async function boot() {
   if (exportJsonBtn) exportJsonBtn.onclick = exportJSON;
   const exportCsvBtn = el('exportCsvBtn');
   if (exportCsvBtn) exportCsvBtn.onclick = exportCSV;
+  const importJsonBtn = el('importJsonBtn');
+  if (importJsonBtn) {
+    importJsonBtn.onclick = () => {
+      const input = el('importInput');
+      if (!input) return;
+      // Allow re-importing the same file by clearing previous selection first.
+      input.value = '';
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+        return;
+      }
+      input.click();
+    };
+  }
   const openContentExchangeBtn = el('openContentExchangeBtn');
   if (openContentExchangeBtn) openContentExchangeBtn.onclick = () => { void openContentExchangeDialog(); };
   const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
@@ -1460,6 +1480,7 @@ async function boot() {
     if (!document.body.classList.contains('sidebar-open')) return;
     const target = e.target;
     if (!(target instanceof Element)) return;
+    if (target.closest('dialog[open]')) return;
     if (sidebarToggleButtons.some(toggleBtn => toggleBtn.contains(target))) return;
     if (sidebar && sidebar.contains(target)) return;
     document.body.classList.remove('sidebar-open');
