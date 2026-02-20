@@ -1179,7 +1179,11 @@ function renderContentExchangeTree() {
         const subjectStyle = [
           `--subject-accent:${accent}`,
           `--subject-accent-bg:${hexToRgba(accent, 0.18)}`,
-          `--subject-accent-glow:${hexToRgba(accent, 0.34)}`
+          `--subject-accent-glow:${hexToRgba(accent, 0.34)}`,
+          `--daily-review-subject-accent:${accent}`,
+          `--daily-review-subject-accent-bg:${hexToRgba(accent, 0.14)}`,
+          `--daily-review-subject-accent-glow:${hexToRgba(accent, 0.36)}`,
+          `--daily-review-subject-accent-glow-soft:${hexToRgba(accent, 0.2)}`
         ].join(';');
 
         const topicHtml = topics.length
@@ -1202,57 +1206,69 @@ function renderContentExchangeTree() {
               : '<div class="tiny content-exchange-card-list-empty">No cards in this topic.</div>';
 
             return `
-              <details class="content-exchange-topic">
-                <summary>
-                  <div class="content-exchange-summary-main">
-                    <div class="content-exchange-summary-title">${escapeHTML(topic.name || 'Untitled topic')}</div>
+              <details class="content-exchange-topic daily-review-subject-group">
+                <summary class="daily-review-subject-toggle">
+                  <div class="daily-review-subject-title-wrap content-exchange-summary-main">
+                    <div class="content-exchange-summary-title-row">
+                      <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
+                      <div class="daily-review-subject-title content-exchange-summary-title">${escapeHTML(topic.name || 'Untitled topic')}</div>
+                    </div>
                     <div class="tiny">${cards.length} ${cards.length === 1 ? 'card' : 'cards'}</div>
                   </div>
-                  <button class="btn btn-small exchange-import-btn"
-                    data-level="topic"
-                    data-owner-id="${ownerEsc}"
-                    data-id="${topicEsc}"
-                    type="button">Import Topic</button>
-                </summary>
-                <div class="content-exchange-topic-toolbar">
-                  <div class="tiny content-exchange-topic-selection-meta"
-                    data-owner-id="${ownerEsc}"
-                    data-topic-id="${topicEsc}">${selectedCount} / ${cards.length} selected</div>
-                  <div class="content-exchange-topic-selection-actions">
-                    <button class="btn btn-small exchange-select-all-btn"
+                  <div class="content-exchange-summary-actions">
+                    <button class="btn btn-small exchange-import-btn"
+                      data-level="topic"
                       data-owner-id="${ownerEsc}"
-                      data-topic-id="${topicEsc}"
-                      type="button">Select all</button>
-                    <button class="btn btn-small exchange-clear-selection-btn"
-                      data-owner-id="${ownerEsc}"
-                      data-topic-id="${topicEsc}"
-                      type="button">Clear</button>
-                    <button class="btn btn-small exchange-import-selected-btn"
-                      data-owner-id="${ownerEsc}"
-                      data-topic-id="${topicEsc}"
-                      type="button">Import selected</button>
+                      data-id="${topicEsc}"
+                      type="button">Import Topic</button>
                   </div>
+                </summary>
+                <div class="content-exchange-topic-body daily-review-subject-topics">
+                  <div class="content-exchange-topic-toolbar">
+                    <div class="tiny content-exchange-topic-selection-meta"
+                      data-owner-id="${ownerEsc}"
+                      data-topic-id="${topicEsc}">${selectedCount} / ${cards.length} selected</div>
+                    <div class="content-exchange-topic-selection-actions">
+                      <button class="btn btn-small exchange-select-all-btn"
+                        data-owner-id="${ownerEsc}"
+                        data-topic-id="${topicEsc}"
+                        type="button">Select all</button>
+                      <button class="btn btn-small exchange-clear-selection-btn"
+                        data-owner-id="${ownerEsc}"
+                        data-topic-id="${topicEsc}"
+                        type="button">Clear</button>
+                      <button class="btn btn-small exchange-import-selected-btn"
+                        data-owner-id="${ownerEsc}"
+                        data-topic-id="${topicEsc}"
+                        type="button">Import selected</button>
+                    </div>
+                  </div>
+                  ${cardHtml}
                 </div>
-                ${cardHtml}
               </details>
             `;
           }).join('')
           : '<div class="tiny">No topics in this subject.</div>';
 
         return `
-          <details class="content-exchange-subject" style="${subjectStyle}">
-            <summary>
-              <div class="content-exchange-summary-main">
-                <div class="content-exchange-summary-title">${escapeHTML(subject.name || 'Untitled subject')}</div>
+          <details class="content-exchange-subject daily-review-subject-group" style="${subjectStyle}">
+            <summary class="daily-review-subject-toggle">
+              <div class="daily-review-subject-title-wrap content-exchange-summary-main">
+                <div class="content-exchange-summary-title-row">
+                  <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
+                  <div class="daily-review-subject-title content-exchange-summary-title">${escapeHTML(subject.name || 'Untitled subject')}</div>
+                </div>
                 <div class="tiny">${topics.length} ${topics.length === 1 ? 'topic' : 'topics'} • ${subjectCardCount} ${subjectCardCount === 1 ? 'card' : 'cards'}</div>
               </div>
-              <button class="btn btn-small exchange-import-btn"
-                data-level="subject"
-                data-owner-id="${escapeHTML(user.uid)}"
-                data-id="${escapeHTML(subject.id)}"
-                type="button">Import Subject</button>
+              <div class="content-exchange-summary-actions">
+                <button class="btn btn-small exchange-import-btn"
+                  data-level="subject"
+                  data-owner-id="${escapeHTML(user.uid)}"
+                  data-id="${escapeHTML(subject.id)}"
+                  type="button">Import Subject</button>
+              </div>
             </summary>
-            <div class="content-exchange-topic-list">${topicHtml}</div>
+            <div class="content-exchange-topic-list daily-review-subject-topics">${topicHtml}</div>
           </details>
         `;
       }).join('')
