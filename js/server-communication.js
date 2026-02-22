@@ -55,6 +55,9 @@ async function initSupabaseBackend() {
   }
 }
 
+let localSnapshotStore = null;
+let localSnapshotLoadPromise = null;
+
 /**
  * @function toNetworkError
  * @description Normalizes Supabase/network errors into app-level network errors.
@@ -112,6 +115,316 @@ function parseApiBody(raw = null) {
   }
   if (typeof raw === 'object') return raw;
   return null;
+}
+
+/**
+ * @function normalizeLocalSnapshotPayload
+ * @description Normalizes imported snapshot JSON into mutable store arrays.
+ */
+
+function normalizeLocalSnapshotPayload(payload = null) {
+  const safe = (payload && typeof payload === 'object') ? payload : {};
+  const stores = ['subjects', 'topics', 'cards', 'progress', 'settings', 'cardbank'];
+  const normalized = {};
+  stores.forEach(store => {
+    normalized[store] = Array.isArray(safe[store])
+      ? safe[store].map(row => ((row && typeof row === 'object') ? { ...row } : row)).filter(row => row && typeof row === 'object')
+      : [];
+  });
+  return normalized;
+}
+
+/**
+ * @function ensureLocalSnapshotLoaded
+ * @description Loads the configured local JSON snapshot once and keeps it in memory.
+ */
+
+async function ensureLocalSnapshotLoaded() {
+  if (!isLocalSnapshotModeEnabled()) return null;
+  if (localSnapshotStore) return localSnapshotStore;
+  if (localSnapshotLoadPromise) return localSnapshotLoadPromise;
+  localSnapshotLoadPromise = (async () => {
+    const path = String(LOCAL_SNAPSHOT_PATH || '').trim() || 'flashcards-export.json';
+    const response = await fetch(path, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Failed to load local snapshot (${response.status}). Expected file: ${path}`);
+    }
+    const json = await response.json();
+    localSnapshotStore = normalizeLocalSnapshotPayload(json);
+    return localSnapshotStore;
+  })();
+  try {
+    return await localSnapshotLoadPromise;
+  } finally {
+    localSnapshotLoadPromise = null;
+  }
+}
+
+/**
+ * @function getLocalSnapshotStoreRows
+ * @description Returns one mutable store array from the local snapshot backend.
+ */
+
+function getLocalSnapshotStoreRows(store = '') {
+  const safeStore = String(store || '').trim();
+  if (!localSnapshotStore || !safeStore || !Array.isArray(localSnapshotStore[safeStore])) return [];
+  return localSnapshotStore[safeStore];
+}
+
+/**
+ * @function getLocalSnapshotCardRows
+ * @description Returns cards filtered by API-style card/topic/search query params.
+ */
+
+function getLocalSnapshotCardRows(searchParams) {
+  const rows = getLocalSnapshotStoreRows('cards');
+  const topicIds = parseApiFilterValues(searchParams, 'topicId');
+  const cardIds = parseApiFilterValues(searchParams, 'cardId');
+  const searchRaw = String(searchParams.get('search') || '').trim();
+  let next = rows;
+  if (cardIds.length) {
+    const set = new Set(cardIds);
+    next = next.filter(card => set.has(String(card?.id || '').trim()));
+  }
+  if (topicIds.length) {
+    const set = new Set(topicIds);
+    next = next.filter(card => set.has(String(card?.topicId || '').trim()));
+  }
+  if (searchRaw) {
+    next = next.filter(card => cardPayloadMatchesSearch(card, searchRaw));
+  }
+  return next;
+}
+
+/**
+ * @function mapLocalSnapshotCardsByFields
+ * @description Projects card rows to selected fields when `fields=` is provided.
+ */
+
+function mapLocalSnapshotCardsByFields(cards = [], fields = []) {
+  if (!Array.isArray(fields) || !fields.length) return cards.map(card => ({ ...card }));
+  return cards.map(card => {
+    const scoped = {};
+    fields.forEach(field => {
+      if (field in card) scoped[field] = card[field];
+    });
+    return scoped;
+  });
+}
+
+/**
+ * @function queryCardsLocalSnapshot
+ * @description Implements `/api/cards` against the in-memory snapshot store.
+ */
+
+function queryCardsLocalSnapshot(searchParams) {
+  const fieldsRaw = String(searchParams.get('fields') || '').trim();
+  const fields = fieldsRaw
+    .split(',')
+    .map(field => field.trim())
+    .filter(Boolean);
+  const rows = getLocalSnapshotCardRows(searchParams);
+  return mapLocalSnapshotCardsByFields(rows, fields);
+}
+
+/**
+ * @function queryProgressLocalSnapshot
+ * @description Implements `/api/progress` against the in-memory snapshot store.
+ */
+
+function queryProgressLocalSnapshot(searchParams) {
+  const cardIds = parseApiFilterValues(searchParams, 'cardId');
+  const rows = getLocalSnapshotStoreRows('progress');
+  if (!cardIds.length) return rows.map(row => ({ ...row }));
+  const set = new Set(cardIds);
+  return rows
+    .filter(row => set.has(String(row?.cardId || '').trim()))
+    .map(row => ({ ...row }));
+}
+
+/**
+ * @function queryTopicsLocalSnapshot
+ * @description Implements `/api/topics` against the in-memory snapshot store.
+ */
+
+function queryTopicsLocalSnapshot(searchParams) {
+  const includeCounts = String(searchParams.get('includeCounts') || '') === '1';
+  const subjectIds = parseApiFilterValues(searchParams, 'subjectId');
+  let topics = getLocalSnapshotStoreRows('topics').map(row => ({ ...row }));
+  if (subjectIds.length) {
+    const set = new Set(subjectIds);
+    topics = topics.filter(topic => set.has(String(topic?.subjectId || '').trim()));
+  }
+  if (!includeCounts) return topics;
+  const cards = getLocalSnapshotStoreRows('cards');
+  const counts = new Map();
+  cards.forEach(card => {
+    const topicId = String(card?.topicId || '').trim();
+    if (!topicId) return;
+    counts.set(topicId, (counts.get(topicId) || 0) + 1);
+  });
+  return topics.map(topic => {
+    const topicId = String(topic?.id || '').trim();
+    return {
+      ...topic,
+      cardCount: counts.get(topicId) || 0
+    };
+  });
+}
+
+/**
+ * @function queryStatsLocalSnapshot
+ * @description Implements `/api/stats` against the in-memory snapshot store.
+ */
+
+function queryStatsLocalSnapshot() {
+  return {
+    subjects: getLocalSnapshotStoreRows('subjects').length,
+    topics: getLocalSnapshotStoreRows('topics').length,
+    cards: getLocalSnapshotStoreRows('cards').length
+  };
+}
+
+/**
+ * @function getStoreRecordLocalSnapshot
+ * @description Reads one keyed record from the in-memory snapshot store.
+ */
+
+function getStoreRecordLocalSnapshot(store = '', key = '') {
+  const safeStore = String(store || '').trim();
+  const safeKey = String(key || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  if (!safeStore || !safeKey || !keyField) return null;
+  const rows = getLocalSnapshotStoreRows(safeStore);
+  const row = rows.find(entry => String(entry?.[keyField] ?? '').trim() === safeKey);
+  return row ? { ...row } : null;
+}
+
+/**
+ * @function upsertStoreRecordLocalSnapshot
+ * @description Inserts or updates one record in the in-memory snapshot store.
+ */
+
+function upsertStoreRecordLocalSnapshot(store = '', payload = null) {
+  const safeStore = String(store || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  const row = (payload && typeof payload === 'object') ? { ...payload } : null;
+  const key = String(row?.[keyField] ?? '').trim();
+  if (!safeStore || !keyField || !row || !key) {
+    const err = new Error(`Missing key "${keyField}" for store "${safeStore}"`);
+    err.status = 400;
+    throw err;
+  }
+  const rows = getLocalSnapshotStoreRows(safeStore);
+  const idx = rows.findIndex(entry => String(entry?.[keyField] ?? '').trim() === key);
+  if (idx >= 0) rows[idx] = row;
+  else rows.push(row);
+  return row;
+}
+
+/**
+ * @function deleteStoreRecordLocalSnapshot
+ * @description Deletes one keyed record from the in-memory snapshot store.
+ */
+
+function deleteStoreRecordLocalSnapshot(store = '', key = '') {
+  const safeStore = String(store || '').trim();
+  const safeKey = String(key || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  if (!safeStore || !safeKey || !keyField) return;
+  const rows = getLocalSnapshotStoreRows(safeStore);
+  const idx = rows.findIndex(entry => String(entry?.[keyField] ?? '').trim() === safeKey);
+  if (idx >= 0) rows.splice(idx, 1);
+}
+
+/**
+ * @function listStoreRecordsLocalSnapshot
+ * @description Lists all records for one store from in-memory snapshot state.
+ */
+
+function listStoreRecordsLocalSnapshot(store = '') {
+  const safeStore = String(store || '').trim();
+  return getLocalSnapshotStoreRows(safeStore).map(row => ({ ...row }));
+}
+
+/**
+ * @function apiRequestLocalSnapshot
+ * @description Handles `/api/*` requests in local snapshot mode (no Supabase).
+ */
+
+function apiRequestLocalSnapshot(parts = [], searchParams, method = 'GET', options = {}) {
+  if (method === 'GET') {
+    if (!parts.length || parts[0] === 'health') return { ok: true };
+    if (parts.length === 1 && parts[0] === 'stats') return queryStatsLocalSnapshot();
+    if (parts.length === 1) {
+      const store = parts[0];
+      if (!getStoreKeyField(store)) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      if (store === 'topics') return queryTopicsLocalSnapshot(searchParams);
+      if (store === 'cards') return queryCardsLocalSnapshot(searchParams);
+      if (store === 'progress') return queryProgressLocalSnapshot(searchParams);
+      return listStoreRecordsLocalSnapshot(store);
+    }
+    if (parts.length === 2) {
+      const [store, key] = parts;
+      if (!getStoreKeyField(store)) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      const row = getStoreRecordLocalSnapshot(store, key);
+      if (!row) {
+        const error = new Error('Request failed (404)');
+        error.status = 404;
+        throw error;
+      }
+      return row;
+    }
+    const error = new Error('Request failed (404)');
+    error.status = 404;
+    throw error;
+  }
+
+  if (method === 'PUT') {
+    if (parts.length !== 1) {
+      const error = new Error('Request failed (404)');
+      error.status = 404;
+      throw error;
+    }
+    const store = parts[0];
+    if (!getStoreKeyField(store)) {
+      const error = new Error('Request failed (404)');
+      error.status = 404;
+      throw error;
+    }
+    const payload = parseApiBody(options?.body);
+    return upsertStoreRecordLocalSnapshot(store, payload);
+  }
+
+  if (method === 'DELETE') {
+    if (parts.length !== 2) {
+      const error = new Error('Request failed (404)');
+      error.status = 404;
+      throw error;
+    }
+    const [store, keyRaw] = parts;
+    if (!getStoreKeyField(store)) {
+      const error = new Error('Request failed (404)');
+      error.status = 404;
+      throw error;
+    }
+    const key = String(keyRaw || '').trim();
+    if (!key) return null;
+    deleteStoreRecordLocalSnapshot(store, key);
+    return null;
+  }
+
+  const error = new Error('Request failed (405)');
+  error.status = 405;
+  throw error;
 }
 
 /**
@@ -721,9 +1034,15 @@ async function apiRequest(path, options = {}) {
       setAppLoadingState(true, loadingLabel);
     }, 140);
   }
+  const localSnapshotMode = isLocalSnapshotModeEnabled();
   try {
-    await initSupabaseBackend();
+    if (localSnapshotMode) {
+      await ensureLocalSnapshotLoaded();
+    } else {
+      await initSupabaseBackend();
+    }
   } catch (err) {
+    if (localSnapshotMode) throw err;
     throw toNetworkError(err, 'Network error: Supabase unavailable.');
   }
 
@@ -736,6 +1055,14 @@ async function apiRequest(path, options = {}) {
 
   const { parts, searchParams } = parsed;
   const method = String(options?.method || 'GET').toUpperCase();
+  if (localSnapshotMode) {
+    try {
+      return apiRequestLocalSnapshot(parts, searchParams, method, options);
+    } finally {
+      if (loadingTimer) clearTimeout(loadingTimer);
+      if (loadingShown) setAppLoadingState(false);
+    }
+  }
   const needsOwnerScope = !(method === 'GET' && (!parts.length || parts[0] === 'health'));
   const ownerId = needsOwnerScope ? await getSupabaseOwnerId() : '';
 
