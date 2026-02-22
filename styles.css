@@ -2512,10 +2512,13 @@ textarea:focus-visible {
 
 .card-thumb {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  height: auto;
   max-height: 120px;
-  object-fit: cover;
-  margin-top: 8px;
+  object-fit: contain;
+  object-position: center center;
+  margin: 8px auto 0;
   border-radius: 10px;
   border: 1px solid #2a3f66;
 }
