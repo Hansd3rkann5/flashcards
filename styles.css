@@ -2935,7 +2935,7 @@ body.session-image-open {
 }
 
 .editor-input-media-row {
-  --editor-input-media-height: 152px;
+  --editor-input-media-height: 200px;
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 34%);
@@ -4418,6 +4418,7 @@ dialog.modal-table-builder {
   border-radius: var(--space-3);
   overflow: visible;
   height: 100%;
+  max-width: 500px;
 }
 
 .topic-search-result-topic {

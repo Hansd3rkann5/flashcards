@@ -405,27 +405,61 @@ async function moveSelectedDeckCards() {
     alert('Bitte waehle ein Ziel-Topic aus.');
     return;
   }
-  const sourceSubjectId = selectedSubject?.id || '';
-  const targetSubjectId = (await getById('topics', targetTopicId))?.subjectId || '';
-  const sourceTopicCards = selectedTopic?.id
-    ? await getCardsByTopicIds([selectedTopic.id], { force: true })
-    : await getAll('cards');
-  const selectedCards = sourceTopicCards.filter(card => deckSelectedCardIds.has(card.id));
-  for (const card of selectedCards) {
-    if (card.topicId === targetTopicId) continue;
-    const updated = { ...card, topicId: targetTopicId };
-    await put('cards', updated);
-    await putCardBank(updated);
-    syncSessionCard(updated);
+
+  try {
+    const sourceSubjectId = selectedSubject?.id || '';
+    const targetTopic = await getById('topics', targetTopicId);
+    if (!targetTopic) {
+      alert('Das Ziel-Topic konnte nicht geladen werden.');
+      return;
+    }
+    const targetSubjectId = String(targetTopic.subjectId || '').trim();
+
+    // Always resolve selected cards by ID, not via the currently open topic list.
+    const selectedCards = await getCardsByCardIds(ids, {
+      force: true,
+      payloadLabel: `bulk-move-${ids.length}`
+    });
+    if (!selectedCards.length) {
+      alert('Die ausgewaehlten Karten konnten nicht geladen werden. Bitte Seite neu laden und erneut versuchen.');
+      return;
+    }
+
+    const loadedCardIds = new Set(
+      selectedCards.map(card => String(card?.id || '').trim()).filter(Boolean)
+    );
+    const missingCount = ids.filter(id => !loadedCardIds.has(String(id || '').trim())).length;
+    let movedCount = 0;
+
+    for (const card of selectedCards) {
+      if (card.topicId === targetTopicId) continue;
+      const updated = { ...card, topicId: targetTopicId };
+      await put('cards', updated);
+      await putCardBank(updated);
+      syncSessionCard(updated);
+      movedCount += 1;
+    }
+
+    if (!movedCount) {
+      const msg = missingCount
+        ? `Es wurden keine Karten verschoben (${missingCount} Karten konnten nicht geladen werden).`
+        : 'Es wurden keine Karten verschoben.';
+      alert(msg);
+      return;
+    }
+
+    if (sourceSubjectId) await touchSubject(sourceSubjectId);
+    if (targetSubjectId && targetSubjectId !== sourceSubjectId) await touchSubject(targetSubjectId);
+    closeDialog(el('moveCardsDialog'));
+    setDeckSelectionMode(false);
+    await loadDeck();
+    await loadEditorCards();
+    await refreshSidebar();
+    if (selectedSubject) await refreshTopicSessionMeta();
+  } catch (err) {
+    console.error('moveSelectedDeckCards failed:', err);
+    alert(`Verschieben fehlgeschlagen: ${err?.message || err}`);
   }
-  if (sourceSubjectId) await touchSubject(sourceSubjectId);
-  if (targetSubjectId && targetSubjectId !== sourceSubjectId) await touchSubject(targetSubjectId);
-  closeDialog(el('moveCardsDialog'));
-  setDeckSelectionMode(false);
-  await loadDeck();
-  await loadEditorCards();
-  await refreshSidebar();
-  if (selectedSubject) await refreshTopicSessionMeta();
 }
 
 /**
