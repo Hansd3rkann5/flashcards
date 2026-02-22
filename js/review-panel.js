@@ -1424,8 +1424,8 @@ function renderDailyReviewTopicList() {
   if (!dailyReviewState.ready || !dailyReviewState.topics.length) {
     const todayAnswered = Number(dailyReviewState.todayStats?.answeredCards || 0);
     listEl.innerHTML = todayAnswered > 0
-      ? '<div class="tiny">No cards are due from yesterday. Nice progress today.</div>'
-      : '<div class="tiny">No answered cards from yesterday are available for review yet.</div>';
+      ? '<div class="tiny">No cards match the current review filters.</div>'
+      : '<div class="tiny">No answered cards are available for review yet.</div>';
     updateDailyReviewSizeCounter();
     return;
   }
@@ -1664,6 +1664,7 @@ function renderDailyOverviewStatsCards() {
   const legend = el('dailyOverviewStateLegend');
   const streakDaysEl = el('dailyOverviewStreakDays');
   const streakMetaEl = el('dailyOverviewStreakMeta');
+  const currentStreak = el('currentStreak');
   if (!grid || !bar || !legend || !streakDaysEl || !streakMetaEl) return;
   const latest = dailyReviewState.latestStateCounts || createEmptyDailyReviewLatestStateCounts();
   const mastered = toCounterInt(latest.mastered);
@@ -1683,9 +1684,10 @@ function renderDailyOverviewStatsCards() {
   streakDaysEl.textContent = String(streakDays);
   if (streakDays > 0) {
     const dayWord = streakDays === 1 ? 'day' : 'days';
+    currentStreak.textContent = 'Current streak:';
     streakMetaEl.textContent = `Active for ${streakDays} ${dayWord} in a row.`;
   } else if (activeDaysTotal > 0) {
-    streakMetaEl.textContent = 'No active streak right now. Answer one card to restart it.';
+    streakMetaEl.textContent = 'No active streak right now.';
   } else if (answeredTotal > 0) {
     const cardWord = answeredTotal === 1 ? 'card' : 'cards';
     streakMetaEl.textContent = `${answeredTotal} answered ${cardWord} so far. Your streak starts with today.`;
@@ -1706,13 +1708,12 @@ function renderDailyReviewPanelSummary() {
   const topicsEl = el('dailyReviewTotalTopics');
   const cardWord = dailyReviewState.totalCards === 1 ? 'card' : 'cards';
   if (messageEl) {
-    const dayLabel = formatDailyReviewDayLabel(dailyReviewState.yesterdayKey);
     if (dailyReviewState.totalCards > 0) {
-      messageEl.textContent = `You have ${dailyReviewState.totalCards} answered ${cardWord} from ${dayLabel}. Select status and topics for review.`;
+      messageEl.textContent = `You have ${dailyReviewState.totalCards} answered ${cardWord} across your saved history. Select status, date range, and topics for review.`;
     } else if ((dailyReviewState.todayStats?.answeredCards || 0) > 0) {
-      messageEl.textContent = 'Great work today. There are no cards left to review from yesterday.';
+      messageEl.textContent = 'Great work today. No cards match your current review filters.';
     } else {
-      messageEl.textContent = `No cards from ${dayLabel} are available for review yet.`;
+      messageEl.textContent = 'No answered cards are available for review yet.';
     }
   }
   if (todayStatsEl) {
@@ -1786,8 +1787,6 @@ async function prepareDailyReviewState(options = {}) {
       || row?.lastAnsweredAt
     );
     if (!latestDayKey) return;
-    // Daily review is based on cards whose latest saved state is from yesterday.
-    if (latestDayKey !== yesterdayKey) return;
     let status = '';
     if (state.key === 'mastered' || state.key === 'correct') {
       status = 'green';
@@ -2925,7 +2924,7 @@ function updateSessionRepeatCounter() {
 
 /**
  * @function getSessionCompleteConfettiEmitter
- * @description Returns a canvas-confetti emitter bound to the session-complete dialog canvas.
+ * @description Returns a canvas-confetti emitter bound to the global session-complete confetti canvas layer.
  */
 
 function getSessionCompleteConfettiEmitter() {
@@ -2943,20 +2942,26 @@ function getSessionCompleteConfettiEmitter() {
 
 /**
  * @function playSessionCompleteConfetti
- * @description Plays a short confetti burst from bottom-center on the session-complete dialog layer.
+ * @description Plays a short confetti burst from bottom-center on the global session-complete confetti canvas layer.
  */
 
 function playSessionCompleteConfetti() {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.body.classList.remove('session-complete-confetti-active');
     return;
   }
+  document.body.classList.add('session-complete-confetti-active');
   const emit = getSessionCompleteConfettiEmitter();
-  if (!emit) return;
+  if (!emit) {
+    document.body.classList.remove('session-complete-confetti-active');
+    return;
+  }
 
   if (typeof emit.reset === 'function') emit.reset();
 
   const vw = Math.max(window.innerWidth, 320);
   const BASE_WIDTH = 1200;
+  // const scale = 1;
   const scale = Math.min(1.2, Math.max(0.6, vw / BASE_WIDTH));
 
   const origin = { x: 0.5, y: 1.02 };
@@ -3064,6 +3069,7 @@ function dismissSessionCompleteDialog() {
   if (sessionCompleteConfettiEmitter && typeof sessionCompleteConfettiEmitter.reset === 'function') {
     sessionCompleteConfettiEmitter.reset();
   }
+  document.body.classList.remove('session-complete-confetti-active');
   closeDialog(el('sessionCompleteDialog'));
   closeStudyImageLightbox();
   setDeckSelectionMode(false);

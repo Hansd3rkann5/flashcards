@@ -115,6 +115,11 @@ function extractOnboardingProfileNameFromUser(user = null) {
  */
 
 async function refreshAuthenticatedProfileName() {
+  if (isLocalSnapshotModeEnabled()) {
+    onboardingProfileName = '';
+    onboardingNameRequired = false;
+    return;
+  }
   let user = authenticatedSupabaseUser;
   try {
     const { data, error } = await supabaseClient.auth.getUser();
@@ -731,6 +736,13 @@ function wireEditorIntro() {
  */
 
 async function ensureAuthenticatedSession() {
+  if (isLocalSnapshotModeEnabled()) {
+    authenticatedSupabaseUser = null;
+    supabaseOwnerId = 'offline-snapshot-user';
+    setAuthMessage('');
+    setAuthGateVisibility(false);
+    return true;
+  }
   await initSupabaseBackend();
   const { data, error } = await supabaseClient.auth.getSession();
   if (error) throw error;
@@ -852,6 +864,7 @@ async function boot() {
   }
   wireNoZoomGuards();
   wireSwipe();
+  wireSessionScaleDebugControls();
   wireHapticFeedback();
   wireHomePullToRefresh();
   wireSidebarSwipeGesture();
@@ -880,6 +893,9 @@ async function boot() {
   if (closeSettingsBtn) closeSettingsBtn.onclick = () => closeDialog(el('settingsDialog'));
   const signOutBtn = el('signOutBtn');
   if (signOutBtn) {
+    if (isLocalSnapshotModeEnabled()) {
+      signOutBtn.classList.add('hidden');
+    }
     signOutBtn.onclick = async () => {
       if (!confirm('Sign out from this device?')) return;
       signOutBtn.disabled = true;
@@ -925,7 +941,13 @@ async function boot() {
     };
   }
   const openContentExchangeBtn = el('openContentExchangeBtn');
-  if (openContentExchangeBtn) openContentExchangeBtn.onclick = () => { void openContentExchangeDialog(); };
+  if (openContentExchangeBtn) {
+    if (isLocalSnapshotModeEnabled()) {
+      openContentExchangeBtn.classList.add('hidden');
+    } else {
+      openContentExchangeBtn.onclick = () => { void openContentExchangeDialog(); };
+    }
+  }
   const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
   if (migrateImagesToStorageBtn) migrateImagesToStorageBtn.onclick = migrateImagesToStorage;
   const importInput = el('importInput');
@@ -1017,6 +1039,7 @@ async function boot() {
       if (sessionCompleteConfettiEmitter && typeof sessionCompleteConfettiEmitter.reset === 'function') {
         sessionCompleteConfettiEmitter.reset();
       }
+      document.body.classList.remove('session-complete-confetti-active');
     });
     sessionCompleteDialog.addEventListener('cancel', e => {
       e.preventDefault();

@@ -7,6 +7,8 @@ const SUPABASE_URL = String(window.__SUPABASE_URL__ || '').trim();
 const SUPABASE_ANON_KEY = String(window.__SUPABASE_ANON_KEY__ || '').trim();
 const SUPABASE_PICTURES_BUCKET = String(window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures').trim() || 'Pictures';
 const SUPABASE_TABLE = 'records';
+const LOCAL_SNAPSHOT_MODE = window.__LOCAL_SNAPSHOT_MODE__ === false;
+const LOCAL_SNAPSHOT_PATH = String(window.__LOCAL_SNAPSHOT_PATH__ || '').trim();
 const STORE_KEYS = {
   subjects: 'id',
   topics: 'id',
@@ -260,6 +262,10 @@ let supabaseInitPromise = null;
 let supabaseClient = null;
 let supabaseOwnerId = '';
 let supabaseTenantColumn = '';
+
+function isLocalSnapshotModeEnabled() {
+  return LOCAL_SNAPSHOT_MODE;
+}
 const progressPersistInFlightByCardId = new Map();
 let appLoadingOverlayCount = 0;
 let appLoadingDebugPinned = false;

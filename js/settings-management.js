@@ -1234,11 +1234,8 @@ function renderContentExchangeTree() {
             return `
               <details class="content-exchange-topic daily-review-subject-group">
                 <summary class="daily-review-subject-toggle">
-                  <div class="daily-review-subject-title-wrap content-exchange-summary-main">
-                    <div class="content-exchange-summary-title-row">
-                      <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
-                      <div class="daily-review-subject-title content-exchange-summary-title">${escapeHTML(topic.name || 'Untitled topic')}</div>
-                    </div>
+                  <div class="daily-review-subject-title-wrap">
+                    <div class="daily-review-subject-title">${escapeHTML(topic.name || 'Untitled topic')}</div>
                     <div class="tiny">${cards.length} ${cards.length === 1 ? 'card' : 'cards'}</div>
                   </div>
                   <div class="content-exchange-summary-actions">
@@ -1247,6 +1244,7 @@ function renderContentExchangeTree() {
                       data-owner-id="${ownerEsc}"
                       data-id="${topicEsc}"
                       type="button">Import Topic</button>
+                    <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
                   </div>
                 </summary>
                 <div class="content-exchange-topic-body daily-review-subject-topics">
@@ -1279,11 +1277,8 @@ function renderContentExchangeTree() {
         return `
           <details class="content-exchange-subject daily-review-subject-group" style="${subjectStyle}">
             <summary class="daily-review-subject-toggle">
-              <div class="daily-review-subject-title-wrap content-exchange-summary-main">
-                <div class="content-exchange-summary-title-row">
-                  <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
-                  <div class="daily-review-subject-title content-exchange-summary-title">${escapeHTML(subject.name || 'Untitled subject')}</div>
-                </div>
+              <div class="daily-review-subject-title-wrap">
+                <div class="daily-review-subject-title">${escapeHTML(subject.name || 'Untitled subject')}</div>
                 <div class="tiny">${topics.length} ${topics.length === 1 ? 'topic' : 'topics'} • ${subjectCardCount} ${subjectCardCount === 1 ? 'card' : 'cards'}</div>
               </div>
               <div class="content-exchange-summary-actions">
@@ -1292,6 +1287,7 @@ function renderContentExchangeTree() {
                   data-owner-id="${escapeHTML(user.uid)}"
                   data-id="${escapeHTML(subject.id)}"
                   type="button">Import Subject</button>
+                <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
               </div>
             </summary>
             <div class="content-exchange-topic-list daily-review-subject-topics">${topicHtml}</div>

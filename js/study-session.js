@@ -88,6 +88,272 @@ function interleaveCardsByTopic(cards = []) {
   return mixed.length === list.length ? mixed : list;
 }
 
+const SESSION_NEXT_CARD_SCALE_DEFAULTS = Object.freeze({
+  revealStartFractionH: 0.44,
+  revealEndFractionH: 2,
+  revealStartFractionV: 0.7,
+  revealEndFractionV: 1.62,
+  sideSwipeRatio: 0.72,
+  commitXFraction: 0.45,
+  commitXMin: 42,
+  commitYFraction: 0.6,
+  commitYMin: 106,
+  scaleMin: 0,
+  scaleMax: 1,
+  depthStart: -280,
+  depthEnd: 0,
+  tiltStart: 13,
+  tiltEnd: 0
+});
+
+const sessionNextCardScaleConfig = {
+  ...SESSION_NEXT_CARD_SCALE_DEFAULTS
+};
+
+let sessionScaleDebugControlsWired = false;
+
+function clampSessionScaleNumber(value, min, max, fallback = 0) {
+  const numeric = Number(value);
+  const safe = Number.isFinite(numeric) ? numeric : fallback;
+  return Math.min(max, Math.max(min, safe));
+}
+
+function normalizeSessionNextCardScaleConfig() {
+  sessionNextCardScaleConfig.revealStartFractionH = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.revealStartFractionH,
+    0,
+    0.95,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.revealStartFractionH
+  );
+  sessionNextCardScaleConfig.revealEndFractionH = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.revealEndFractionH,
+    0.05,
+    2,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.revealEndFractionH
+  );
+  if (sessionNextCardScaleConfig.revealEndFractionH <= sessionNextCardScaleConfig.revealStartFractionH) {
+    sessionNextCardScaleConfig.revealEndFractionH = Math.min(2, sessionNextCardScaleConfig.revealStartFractionH + 0.01);
+  }
+
+  sessionNextCardScaleConfig.revealStartFractionV = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.revealStartFractionV,
+    0,
+    0.95,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.revealStartFractionV
+  );
+  sessionNextCardScaleConfig.revealEndFractionV = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.revealEndFractionV,
+    0.05,
+    2,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.revealEndFractionV
+  );
+  if (sessionNextCardScaleConfig.revealEndFractionV <= sessionNextCardScaleConfig.revealStartFractionV) {
+    sessionNextCardScaleConfig.revealEndFractionV = Math.min(2, sessionNextCardScaleConfig.revealStartFractionV + 0.01);
+  }
+
+  sessionNextCardScaleConfig.sideSwipeRatio = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.sideSwipeRatio,
+    0.4,
+    1.4,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.sideSwipeRatio
+  );
+
+  sessionNextCardScaleConfig.commitXFraction = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.commitXFraction,
+    0.05,
+    0.45,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.commitXFraction
+  );
+  sessionNextCardScaleConfig.commitXMin = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.commitXMin,
+    8,
+    200,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.commitXMin
+  );
+  sessionNextCardScaleConfig.commitYFraction = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.commitYFraction,
+    0.1,
+    0.6,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.commitYFraction
+  );
+  sessionNextCardScaleConfig.commitYMin = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.commitYMin,
+    20,
+    320,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.commitYMin
+  );
+  sessionNextCardScaleConfig.scaleMin = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.scaleMin,
+    0,
+    2,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.scaleMin
+  );
+  sessionNextCardScaleConfig.scaleMax = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.scaleMax,
+    0,
+    2.5,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.scaleMax
+  );
+  if (sessionNextCardScaleConfig.scaleMax < sessionNextCardScaleConfig.scaleMin) {
+    sessionNextCardScaleConfig.scaleMax = sessionNextCardScaleConfig.scaleMin;
+  }
+  sessionNextCardScaleConfig.depthStart = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.depthStart,
+    -1600,
+    600,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.depthStart
+  );
+  sessionNextCardScaleConfig.depthEnd = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.depthEnd,
+    -1600,
+    800,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.depthEnd
+  );
+  sessionNextCardScaleConfig.tiltStart = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.tiltStart,
+    -35,
+    35,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.tiltStart
+  );
+  sessionNextCardScaleConfig.tiltEnd = clampSessionScaleNumber(
+    sessionNextCardScaleConfig.tiltEnd,
+    -35,
+    35,
+    SESSION_NEXT_CARD_SCALE_DEFAULTS.tiltEnd
+  );
+}
+
+function applySessionNextCardScaleConfig() {
+  normalizeSessionNextCardScaleConfig();
+  const section = el('studySessionSection');
+  if (!section) return;
+  section.style.setProperty('--next-card-scale-min', String(sessionNextCardScaleConfig.scaleMin));
+  section.style.setProperty('--next-card-scale-max', String(sessionNextCardScaleConfig.scaleMax));
+  section.style.setProperty('--next-card-depth-start', `${sessionNextCardScaleConfig.depthStart}px`);
+  section.style.setProperty('--next-card-depth-end', `${sessionNextCardScaleConfig.depthEnd}px`);
+  section.style.setProperty('--next-card-tilt-start', `${sessionNextCardScaleConfig.tiltStart}deg`);
+  section.style.setProperty('--next-card-tilt-end', `${sessionNextCardScaleConfig.tiltEnd}deg`);
+}
+
+function formatSessionScaleDebugExportFilename(date = new Date()) {
+  const safeDate = date instanceof Date ? date : new Date();
+  const year = String(safeDate.getFullYear());
+  const month = String(safeDate.getMonth() + 1).padStart(2, '0');
+  const day = String(safeDate.getDate()).padStart(2, '0');
+  const hours = String(safeDate.getHours()).padStart(2, '0');
+  const minutes = String(safeDate.getMinutes()).padStart(2, '0');
+  const seconds = String(safeDate.getSeconds()).padStart(2, '0');
+  return `study-session-scale-debug-${year}-${month}-${day}_${hours}-${minutes}-${seconds}.json`;
+}
+
+function exportSessionScaleDebugValues() {
+  normalizeSessionNextCardScaleConfig();
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    source: 'study-session-scale-debug',
+    values: { ...sessionNextCardScaleConfig },
+    defaults: { ...SESSION_NEXT_CARD_SCALE_DEFAULTS }
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const download = document.createElement('a');
+  download.href = URL.createObjectURL(blob);
+  download.download = formatSessionScaleDebugExportFilename();
+  download.click();
+  URL.revokeObjectURL(download.href);
+}
+
+function wireSessionScaleDebugControls() {
+  if (sessionScaleDebugControlsWired) return;
+  const toggleBtn = el('sessionScaleDebugBtn');
+  const panel = el('sessionScaleDebugPanel');
+  if (!toggleBtn || !panel) return;
+  sessionScaleDebugControlsWired = true;
+
+  const fields = [
+    { id: 'sessionScaleDebugRevealStartH', key: 'revealStartFractionH', min: 0, max: 0.95, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugRevealEndH', key: 'revealEndFractionH', min: 0.05, max: 2, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugRevealStartV', key: 'revealStartFractionV', min: 0, max: 0.95, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugRevealEndV', key: 'revealEndFractionV', min: 0.05, max: 2, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugSideRatio', key: 'sideSwipeRatio', min: 0.4, max: 1.4, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugCommitXFraction', key: 'commitXFraction', min: 0.05, max: 0.45, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugCommitXMin', key: 'commitXMin', min: 8, max: 200, step: 1, decimals: 0 },
+    { id: 'sessionScaleDebugCommitYFraction', key: 'commitYFraction', min: 0.1, max: 0.6, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugCommitYMin', key: 'commitYMin', min: 20, max: 320, step: 1, decimals: 0 },
+    { id: 'sessionScaleDebugScaleMin', key: 'scaleMin', min: 0, max: 2, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugScaleMax', key: 'scaleMax', min: 0, max: 2.5, step: 0.01, decimals: 2 },
+    { id: 'sessionScaleDebugDepthStart', key: 'depthStart', min: -1600, max: 600, step: 10, decimals: 0 },
+    { id: 'sessionScaleDebugDepthEnd', key: 'depthEnd', min: -1600, max: 800, step: 10, decimals: 0 },
+    { id: 'sessionScaleDebugTiltStart', key: 'tiltStart', min: -35, max: 35, step: 0.1, decimals: 1 },
+    { id: 'sessionScaleDebugTiltEnd', key: 'tiltEnd', min: -35, max: 35, step: 0.1, decimals: 1 }
+  ];
+
+  const inputMap = new Map();
+  fields.forEach(field => {
+    const input = el(field.id);
+    if (!input) return;
+    inputMap.set(field.key, { ...field, input });
+    input.min = String(field.min);
+    input.max = String(field.max);
+    input.step = String(field.step);
+  });
+
+  const syncInputsFromConfig = () => {
+    normalizeSessionNextCardScaleConfig();
+    inputMap.forEach(meta => {
+      const value = sessionNextCardScaleConfig[meta.key];
+      meta.input.value = Number(value).toFixed(meta.decimals);
+    });
+  };
+
+  const applyKeyFromInput = key => {
+    const meta = inputMap.get(key);
+    if (!meta) return;
+    sessionNextCardScaleConfig[key] = clampSessionScaleNumber(
+      meta.input.value,
+      meta.min,
+      meta.max,
+      SESSION_NEXT_CARD_SCALE_DEFAULTS[key]
+    );
+    normalizeSessionNextCardScaleConfig();
+    syncInputsFromConfig();
+    applySessionNextCardScaleConfig();
+  };
+
+  inputMap.forEach((meta, key) => {
+    meta.input.addEventListener('input', () => applyKeyFromInput(key));
+    meta.input.addEventListener('change', () => applyKeyFromInput(key));
+  });
+
+  const resetBtn = el('sessionScaleDebugResetBtn');
+  if (resetBtn) {
+    resetBtn.onclick = () => {
+      Object.assign(sessionNextCardScaleConfig, SESSION_NEXT_CARD_SCALE_DEFAULTS);
+      syncInputsFromConfig();
+      applySessionNextCardScaleConfig();
+    };
+  }
+
+  const printBtn = el('sessionScaleDebugPrintBtn');
+  if (printBtn) {
+    printBtn.onclick = () => {
+      exportSessionScaleDebugValues();
+    };
+  }
+
+  toggleBtn.onclick = event => {
+    event.preventDefault();
+    event.stopPropagation();
+    panel.classList.toggle('hidden');
+  };
+
+  panel.addEventListener('click', event => {
+    event.stopPropagation();
+  });
+
+  applySessionNextCardScaleConfig();
+  syncInputsFromConfig();
+}
+
 /**
 * @function startSession
  * @description Builds and starts a study session queue from selected topics, cards, and filters.
@@ -458,6 +724,175 @@ function renderSessionTopicPills(card) {
 }
 
 /**
+ * @function setNextCardSwipeProgress
+ * @description Updates the swipe-linked progress for the stacked next-card preview.
+ */
+
+function setNextCardSwipeProgress(progress = 0, options = {}) {
+  const nextCardEl = el('nextFlashcard');
+  if (!nextCardEl) return;
+  const opts = options && typeof options === 'object' ? options : {};
+  const immediate = opts.immediate === true;
+  const numeric = Number(progress);
+  const clamped = Number.isFinite(numeric) ? Math.min(1, Math.max(0, numeric)) : 0;
+  if (immediate) nextCardEl.style.transition = 'none';
+  nextCardEl.style.setProperty('--next-card-progress', String(clamped));
+  nextCardEl.classList.toggle('is-engaged', clamped > 0.001);
+  if (immediate) {
+    void nextCardEl.offsetWidth;
+    nextCardEl.style.transition = '';
+  }
+}
+
+/**
+ * @function applyNextSessionCardTheme
+ * @description Applies per-card accent variables to the stacked next-card preview.
+ */
+
+function applyNextSessionCardTheme(card) {
+  const nextCardEl = el('nextFlashcard');
+  if (!nextCardEl) return;
+  if (!card) {
+    nextCardEl.style.removeProperty('--face-accent');
+    return;
+  }
+  const accent = (typeof resolveCardSubjectAccent === 'function')
+    ? resolveCardSubjectAccent(card)
+    : '#2dd4bf';
+  const rgba = a => (typeof hexToRgba === 'function' ? hexToRgba(accent, a) : `rgba(45, 212, 191, ${a})`);
+  nextCardEl.style.setProperty('--face-accent', rgba(0.14));
+}
+
+/**
+ * @function buildDisabledMcqAnswerZone
+ * @description Builds a read-only MCQ answer zone used in non-interactive card previews.
+ */
+
+function buildDisabledMcqAnswerZone(card) {
+  const options = Array.isArray(card?.options) ? card.options : [];
+  const optionCount = options.length;
+  const optionsAlign = card?.optionsTextAlign || card?.answerTextAlign || card?.textAlign || 'center';
+  const optionsWrap = document.createElement('div');
+  optionsWrap.className = 'mcq-options';
+  options.forEach(option => {
+    const optionEl = document.createElement('button');
+    optionEl.type = 'button';
+    optionEl.className = 'mcq-option';
+    optionEl.disabled = true;
+    optionEl.tabIndex = -1;
+    const textEl = document.createElement('span');
+    textEl.className = 'mcq-text';
+    renderRich(textEl, option?.text || '', { textAlign: optionsAlign });
+    applySessionTextSize(textEl, option?.text || '', {
+      forMcqOption: true,
+      optionCount
+    });
+    optionEl.appendChild(textEl);
+    optionsWrap.appendChild(optionEl);
+  });
+  applyMcqOptionsGridLayout(optionsWrap, optionCount);
+
+  const answerZone = document.createElement('div');
+  answerZone.className = 'mcq-answer-zone';
+  const separator = document.createElement('div');
+  separator.className = 'card-tile-separator';
+  const checkRow = document.createElement('div');
+  checkRow.className = 'mcq-check-row';
+  const checkBtn = document.createElement('button');
+  checkBtn.className = 'btn mcq-check-btn';
+  checkBtn.type = 'button';
+  checkBtn.textContent = 'Check';
+  checkBtn.disabled = true;
+  checkBtn.tabIndex = -1;
+  checkRow.appendChild(checkBtn);
+  answerZone.append(separator, optionsWrap, checkRow);
+  return answerZone;
+}
+
+/**
+ * @function syncNextSessionFaceOverflowState
+ * @description Mirrors overflow behavior for the stacked next-card preview.
+ */
+
+function syncNextSessionFaceOverflowState() {
+  const nextCardEl = el('nextFlashcard');
+  const nextContent = el('nextContent');
+  if (!nextCardEl || !nextContent) return;
+  const isMcq = !!nextCardEl.classList.contains('mcq-mode');
+  if (isMcq) {
+    nextContent.classList.remove('is-overflowing');
+    nextContent.scrollTop = 0;
+    return;
+  }
+  nextContent.classList.remove('is-overflowing');
+  const isOverflowing = nextContent.scrollHeight > (nextContent.clientHeight + 2);
+  if (isOverflowing) {
+    nextContent.classList.add('is-overflowing');
+    nextContent.scrollTop = 0;
+  }
+}
+
+/**
+ * @function queueNextSessionFaceOverflowSync
+ * @description Defers next-card overflow sync by two frames.
+ */
+
+function queueNextSessionFaceOverflowSync() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      syncNextSessionFaceOverflowState();
+    });
+  });
+}
+
+/**
+ * @function renderNextSessionCardPreview
+ * @description Renders the upcoming card as a non-interactive stacked preview behind the active card.
+ */
+
+function renderNextSessionCardPreview(card) {
+  const nextCardEl = el('nextFlashcard');
+  const nextContent = el('nextContent');
+  const nextTopicPill = el('nextTopicPill');
+  if (!nextCardEl || !nextContent) return;
+  applySessionNextCardScaleConfig();
+
+  setNextCardSwipeProgress(0, { immediate: true });
+
+  if (!card) {
+    nextCardEl.classList.add('hidden');
+    nextCardEl.dataset.type = 'qa';
+    nextCardEl.classList.remove('mcq-mode');
+    nextContent.innerHTML = '';
+    setCardTopicPill(nextTopicPill, '');
+    applyNextSessionCardTheme(null);
+    return;
+  }
+
+  const isMcq = card.type === 'mcq' && (card.options || []).length > 1;
+  const qImages = getCardImageList(card, 'Q');
+  applyNextSessionCardTheme(card);
+  nextCardEl.dataset.type = isMcq ? 'mcq' : 'qa';
+  nextCardEl.classList.toggle('mcq-mode', isMcq);
+  setCardTopicPill(nextTopicPill, resolveCardTopicName(card));
+  nextContent.innerHTML = `<div></div><div class="qtxt"></div>`;
+  const qtxtEl = nextContent.querySelector('.qtxt');
+  const prompt = String(card?.prompt || '').trim();
+  if (prompt) {
+    renderRich(qtxtEl, card.prompt, { textAlign: card.questionTextAlign || card.textAlign || 'center' });
+    applySessionTextSize(qtxtEl, card.prompt, { hasImage: qImages.length > 0, isMcq });
+  } else {
+    qtxtEl.textContent = 'Question';
+  }
+  appendSessionImages(nextContent, qImages, 'Question image');
+  if (isMcq) {
+    nextContent.append(buildDisabledMcqAnswerZone(card));
+  }
+  nextCardEl.classList.remove('hidden');
+  queueNextSessionFaceOverflowSync();
+}
+
+/**
  * @function renderPreviewTopicPills
  * @description Renders preview topic pills.
  */
@@ -556,41 +991,7 @@ function renderCardPreviewContent(card) {
 
   if (isMcq) {
     back.innerHTML = '';
-    const optionsWrap = document.createElement('div');
-    optionsWrap.className = 'mcq-options';
-    const optionCount = (card.options || []).length;
-    const optionsAlign = card.optionsTextAlign || card.answerTextAlign || card.textAlign || 'center';
-    (card.options || []).forEach(option => {
-      const optionEl = document.createElement('button');
-      optionEl.type = 'button';
-      optionEl.className = 'mcq-option';
-      optionEl.disabled = true;
-      optionEl.tabIndex = -1;
-      const textEl = document.createElement('span');
-      textEl.className = 'mcq-text';
-      renderRich(textEl, option?.text || '', { textAlign: optionsAlign });
-      applySessionTextSize(textEl, option?.text || '', {
-        forMcqOption: true,
-        optionCount
-      });
-      optionEl.appendChild(textEl);
-      optionsWrap.appendChild(optionEl);
-    });
-    applyMcqOptionsGridLayout(optionsWrap, optionCount);
-    const answerZone = document.createElement('div');
-    answerZone.className = 'mcq-answer-zone';
-    const separator = document.createElement('div');
-    separator.className = 'card-tile-separator';
-    const checkRow = document.createElement('div');
-    checkRow.className = 'mcq-check-row';
-    const checkBtn = document.createElement('button');
-    checkBtn.className = 'btn mcq-check-btn';
-    checkBtn.type = 'button';
-    checkBtn.textContent = 'Check';
-    checkBtn.disabled = true;
-    checkRow.appendChild(checkBtn);
-    answerZone.append(separator, optionsWrap, checkRow);
-    front.append(answerZone);
+    front.append(buildDisabledMcqAnswerZone(card));
   } else {
     back.innerHTML = `<div class="atxt"></div>`;
     const atxtEl = back.querySelector('.atxt');
@@ -836,15 +1237,20 @@ async function renderSessionCard() {
   const flashcard = el('flashcard');
   if (!flashcard) return;
   resetSessionFlashcardToFrontInstant(flashcard);
+  setNextCardSwipeProgress(0, { immediate: true });
   closeStudyImageLightbox();
   flashcard.classList.remove('flipped', 'swiping', 'swipe-correct', 'swipe-wrong', 'swipe-partial');
   flashcard.style.removeProperty('--swipe-intensity');
+  flashcard.style.transition = 'none';
   flashcard.style.transform = '';
-  flashcard.style.transition = '';
   flashcard.style.willChange = '';
+  // Prevents the next active card from animating in from the swipe-off edge.
+  void flashcard.offsetWidth;
+  flashcard.style.transition = '';
   const swipeBadge = el('swipeBadge');
   if (swipeBadge) swipeBadge.textContent = '';
   if (!session.activeQueue.length) {
+    renderNextSessionCardPreview(null);
     session.active = false;
     resetSessionImagePreloadCache();
     syncSidebarHiddenState();
@@ -859,9 +1265,11 @@ async function renderSessionCard() {
     return;
   }
   const card = session.activeQueue[0];
+  const nextCard = session.activeQueue[1] || null;
   warmUpcomingSessionCards(2);
   flashcard.classList.remove('flipped');
   renderCardContent(card);
+  renderNextSessionCardPreview(nextCard);
 }
 
 /**
@@ -1277,11 +1685,11 @@ function wireSwipe() {
   const rotateLimit = 15;
   const ARC_RADIUS = Math.max(window.innerHeight * 1.4, 1200);
   const ARC_COMMIT_ANGLE = 0.55;
-  const SIDE_SWIPE_RATIO = 0.72;
   const UP_CANCEL_RATIO = 1.25;
   const UP_CANCEL_MIN_PX = 26;
 
   let dragging = false;
+  let panActivated = false;
   let swipeDecisionPending = false;
   let swipeIntent = '';
   let startX = 0;
@@ -1314,12 +1722,14 @@ function wireSwipe() {
 
   function resetSwipeDragState() {
     dragging = false;
+    panActivated = false;
     swipeDecisionPending = false;
     swipeIntent = '';
     card.style.transition = '';
     card.style.willChange = '';
     card.style.transform = '';
     clearSwipeFeedback();
+    setNextCardSwipeProgress(0);
   }
 
   function applySwipeFeedback(result, intensity) {
@@ -1333,7 +1743,89 @@ function wireSwipe() {
     }[result];
 
     card.classList.add('swiping', cls);
-    card.style.setProperty('--swipe-intensity', String(clamp(intensity, 0, 1)));
+    const clampedIntensity = clamp(intensity, 0, 1);
+    card.style.setProperty('--swipe-intensity', String(clampedIntensity));
+  }
+
+  function getSwipeCommitThresholds() {
+    const xFraction = clampSessionScaleNumber(
+      sessionNextCardScaleConfig.commitXFraction,
+      0.05,
+      0.45,
+      SESSION_NEXT_CARD_SCALE_DEFAULTS.commitXFraction
+    );
+    const xMin = clampSessionScaleNumber(
+      sessionNextCardScaleConfig.commitXMin,
+      8,
+      200,
+      SESSION_NEXT_CARD_SCALE_DEFAULTS.commitXMin
+    );
+    const yFraction = clampSessionScaleNumber(
+      sessionNextCardScaleConfig.commitYFraction,
+      0.1,
+      0.6,
+      SESSION_NEXT_CARD_SCALE_DEFAULTS.commitYFraction
+    );
+    const yMin = clampSessionScaleNumber(
+      sessionNextCardScaleConfig.commitYMin,
+      20,
+      320,
+      SESSION_NEXT_CARD_SCALE_DEFAULTS.commitYMin
+    );
+    return {
+      x: Math.max(card.clientWidth * xFraction, xMin),
+      y: Math.max(card.clientHeight * yFraction, yMin)
+    };
+  }
+
+  function getSideSwipeRatio() {
+    return clampSessionScaleNumber(
+      sessionNextCardScaleConfig.sideSwipeRatio,
+      0.4,
+      1.4,
+      SESSION_NEXT_CARD_SCALE_DEFAULTS.sideSwipeRatio
+    );
+  }
+
+  function interpolateNextCardProgress(distance, commitDistance, axis = 'horizontal') {
+    const required = Math.max(1, Number(commitDistance) || 1);
+    const safeDistance = Math.max(0, Number(distance) || 0);
+    const isVertical = axis === 'vertical';
+    const revealStartKey = isVertical ? 'revealStartFractionV' : 'revealStartFractionH';
+    const revealEndKey = isVertical ? 'revealEndFractionV' : 'revealEndFractionH';
+    const revealStartFallback = isVertical
+      ? SESSION_NEXT_CARD_SCALE_DEFAULTS.revealStartFractionV
+      : SESSION_NEXT_CARD_SCALE_DEFAULTS.revealStartFractionH;
+    const revealEndFallback = isVertical
+      ? SESSION_NEXT_CARD_SCALE_DEFAULTS.revealEndFractionV
+      : SESSION_NEXT_CARD_SCALE_DEFAULTS.revealEndFractionH;
+    const revealStartFraction = clampSessionScaleNumber(
+      sessionNextCardScaleConfig[revealStartKey],
+      0,
+      0.95,
+      revealStartFallback
+    );
+    const revealEndFractionRaw = clampSessionScaleNumber(
+      sessionNextCardScaleConfig[revealEndKey],
+      0.05,
+      2,
+      revealEndFallback
+    );
+    const revealEndFraction = Math.max(revealStartFraction + 0.01, revealEndFractionRaw);
+    const revealStart = required * revealStartFraction;
+    const revealEnd = required * revealEndFraction;
+    if (safeDistance <= revealStart) return 0;
+    const normalized = (safeDistance - revealStart) / Math.max(revealEnd - revealStart, 1);
+    return clamp(normalized, 0, 1);
+  }
+
+  function computeNextCardProgress(result, absX, rawDy) {
+    if (!result) return 0;
+    const thresholds = getSwipeCommitThresholds();
+    if (result === 'partial') {
+      return interpolateNextCardProgress(Math.max(0, rawDy), thresholds.y, 'vertical');
+    }
+    return interpolateNextCardProgress(absX, thresholds.x, 'horizontal');
   }
 
   function getSwipeResult() {
@@ -1341,10 +1833,12 @@ function wireSwipe() {
 
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
-    const xT = Math.max(card.clientWidth * 0.15, 42);
-    const yT = Math.max(card.clientHeight * 0.25, 80);
+    const sideSwipeRatio = getSideSwipeRatio();
+    const thresholds = getSwipeCommitThresholds();
+    const xT = thresholds.x;
+    const yT = thresholds.y;
 
-    const horizontalSwipe = absX > xT && (swipeIntent === 'horizontal' || absX >= absY * SIDE_SWIPE_RATIO);
+    const horizontalSwipe = absX > xT && (swipeIntent === 'horizontal' || absX >= absY * sideSwipeRatio);
     if (horizontalSwipe) {
       return dx < 0 ? 'correct' : 'wrong';
     }
@@ -1396,6 +1890,7 @@ function wireSwipe() {
 
     // Track swipe state
     dragging = true;
+    panActivated = false;
     swipeDecisionPending = faceCanScroll;
     swipeIntent = '';
 
@@ -1414,6 +1909,7 @@ function wireSwipe() {
     card.style.transition = 'none';
     card.style.willChange = 'transform';
     clearSwipeFeedback();
+    setNextCardSwipeProgress(0, { immediate: true });
   }, { passive: true });
 
   card.addEventListener('touchmove', e => {
@@ -1422,6 +1918,11 @@ function wireSwipe() {
 
     dx = e.touches[0].clientX - startX;
     dy = e.touches[0].clientY - startY;
+    const travel = Math.abs(dx) + Math.abs(dy);
+    if (!panActivated) {
+      if (travel < 8) return;
+      panActivated = true;
+    }
 
     // ⛔ Swipe nach oben sperren
     if (dy < -UP_CANCEL_MIN_PX && Math.abs(dy) > Math.abs(dx) * UP_CANCEL_RATIO) {
@@ -1430,8 +1931,6 @@ function wireSwipe() {
     }
 
     if (swipeDecisionPending) {
-      const travel = Math.abs(dx) + Math.abs(dy);
-      if (travel < 8) return;
       if (Math.abs(dy) > Math.abs(dx) * 1.2) {
         resetSwipeDragState();
         return;
@@ -1443,15 +1942,16 @@ function wireSwipe() {
 
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
+    const sideSwipeRatio = getSideSwipeRatio();
     if (!swipeIntent) {
-      if (absX >= 12 && absX >= absY * SIDE_SWIPE_RATIO) swipeIntent = 'horizontal';
+      if (absX >= 12 && absX >= absY * sideSwipeRatio) swipeIntent = 'horizontal';
       else if (dy > 0 && absY >= 12 && absY > absX * 1.1) swipeIntent = 'vertical';
     }
 
     let x = 0, y = 0, rotate = 0;
     let result = null, intensity = 0;
 
-    if (swipeIntent === 'horizontal' || absX >= absY * SIDE_SWIPE_RATIO) {
+    if (swipeIntent === 'horizontal' || absX >= absY * sideSwipeRatio) {
       const arc = computeArcTransform(dx);
       x = arc.x;
       y = arc.y;
@@ -1470,10 +1970,15 @@ function wireSwipe() {
 
     setTransform(x, y, rotate);
     applySwipeFeedback(result, intensity);
+    setNextCardSwipeProgress(computeNextCardProgress(result, absX, dy));
   }, { passive: false });
 
   const finishSwipe = () => {
     if (!dragging) return;
+    if (!panActivated) {
+      resetSwipeDragState();
+      return;
+    }
     dragging = false;
     swipeDecisionPending = false;
 
@@ -1481,6 +1986,7 @@ function wireSwipe() {
     if (result) {
       card.style.transition = 'transform 240ms cubic-bezier(0.2,0.8,0.2,1)';
       applySwipeFeedback(result, 1);
+      setNextCardSwipeProgress(1);
 
       requestAnimationFrame(() => {
         if (result === 'partial') {
@@ -1493,10 +1999,11 @@ function wireSwipe() {
         }
       });
 
-      setTimeout(() => gradeCard(result), 210);
+      setTimeout(() => gradeCard(result), 250);
       return;
     }
 
+    setNextCardSwipeProgress(0);
     card.style.transition = 'transform 380ms cubic-bezier(0.18,0.89,0.32,1.28)';
     requestAnimationFrame(() => setTransform(0, 0, 0));
     setTimeout(resetSwipeDragState, 390);

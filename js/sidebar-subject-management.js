@@ -703,6 +703,9 @@ function buildSessionCardImage(src, alt = 'Flashcard image') {
   img.className = 'session-card-image';
   img.addEventListener('load', () => {
     queueSessionFaceOverflowSync();
+    if (typeof queueNextSessionFaceOverflowSync === 'function') {
+      queueNextSessionFaceOverflowSync();
+    }
   });
   img.addEventListener('click', async e => {
     e.stopPropagation();

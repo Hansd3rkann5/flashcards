@@ -973,12 +973,19 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   flex: 1;
   height: 100%;
   min-height: 0;
+  position: relative;
   margin: 0;
   padding: var(--space-5);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  --next-card-scale-min: 0;
+  --next-card-scale-max: 1;
+  --next-card-depth-start: -280px;
+  --next-card-depth-end: 0px;
+  --next-card-tilt-start: 8deg;
+  --next-card-tilt-end: 0deg;
 }
 
 #studySessionSection .flash-area {
@@ -991,6 +998,123 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
 #studySessionSection .controls {
   margin-top: auto;
   justify-content: center;
+}
+
+.session-scale-debug-btn {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--space-3));
+  right: var(--space-3);
+  z-index: 36;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.session-scale-debug-panel {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--space-3) + 44px);
+  right: var(--space-3);
+  z-index: 36;
+  width: min(360px, calc(100% - (2 * var(--space-3))));
+  max-height: min(66vh, 560px);
+  overflow-y: auto;
+  border: 1px solid #35558c;
+  border-radius: 14px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(12, 19, 35, 0.97) 0%, rgba(8, 13, 24, 0.97) 100%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+  box-sizing: border-box;
+}
+
+.session-scale-debug-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.session-scale-debug-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-scale-debug-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.session-scale-debug-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #dce9ff;
+}
+
+.session-scale-debug-field {
+  position: relative;
+  padding-top: 2px;
+}
+
+.session-scale-debug-info {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #4c6a9f;
+  background: #13213e;
+  color: #dce9ff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  cursor: help;
+}
+
+.session-scale-debug-info::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(280px, 72vw);
+  padding: 8px 9px;
+  border-radius: 10px;
+  border: 1px solid #3a588e;
+  background: rgba(9, 16, 30, 0.98);
+  color: #e8f0ff;
+  font-size: 0.74rem;
+  line-height: 1.38;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  z-index: 38;
+}
+
+.session-scale-debug-info:hover::after,
+.session-scale-debug-info:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.session-scale-debug-grid input {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 9px;
+  border: 1px solid #3d5688;
+  background: #111c34;
+  color: #eff5ff;
+  padding: 4px 8px;
+  box-sizing: border-box;
 }
 
 .panel .section:first-child {
@@ -1653,8 +1777,10 @@ textarea:focus-visible {
 
 .flash-area {
   perspective: 1000px;
+  perspective-origin: 50% 50%;
   min-height: 280px;
   height: 80%;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1669,6 +1795,47 @@ textarea:focus-visible {
   transition: transform 0.3s ease-in-out;
   cursor: pointer;
   touch-action: pan-y;
+}
+
+#studySessionSection .flash-area #flashcard {
+  z-index: 2;
+}
+
+.session-next-card {
+  width: min(1200px, 95%);
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 1;
+  pointer-events: none;
+  --next-card-progress: 0;
+  transform-origin: center center;
+  transform:
+    translate3d(
+      0,
+      0,
+      calc(var(--next-card-depth-start) + (var(--next-card-progress) * (var(--next-card-depth-end) - var(--next-card-depth-start))))
+    )
+    scale(calc(var(--next-card-scale-min) + (var(--next-card-progress) * (var(--next-card-scale-max) - var(--next-card-scale-min))))
+    )
+    rotateX(calc(var(--next-card-tilt-start) + (var(--next-card-progress) * (var(--next-card-tilt-end) - var(--next-card-tilt-start)))));
+  opacity: 1;
+  filter: none;
+  transition: transform 0.12s linear, opacity 0.12s linear, filter 0.12s linear;
+}
+
+.session-next-card .card-corner-label,
+.session-next-card .face-topic-pill {
+  opacity: calc(0.74 + (var(--next-card-progress) * 0.26));
+}
+
+#studySessionSection .flash-area #flashcard.flipped~#nextFlashcard {
+  opacity: 0;
+  transform:
+    translate3d(0, 0, calc(var(--next-card-depth-start) - 40px))
+    scale(var(--next-card-scale-min))
+    rotateX(var(--next-card-tilt-start));
 }
 
 .flashcard.flipped {
@@ -3346,6 +3513,7 @@ body.session-image-open {
 
 .pill-row.mastered {
   justify-content: flex-start;
+  margin-right: 8px;
 }
 
 .pill-row.active {
@@ -3685,30 +3853,6 @@ dialog.modal.subject-edit-modal {
   display: none;
 }
 
-.content-exchange-summary-main {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.content-exchange-summary-title-row {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.content-exchange-summary-title-row .daily-review-subject-chevron {
-  flex: 0 0 auto;
-  font-size: 0.96rem;
-}
-
-.content-exchange-summary-title {
-  color: #e2ecff;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
 .content-exchange-summary-actions {
   display: inline-flex;
   align-items: center;
@@ -3867,18 +4011,19 @@ dialog.modal.subject-edit-modal {
   color: #dbe7ff;
 }
 
-#sessionCompleteDialog> :not(#sessionCompleteConfettiCanvas) {
-  position: relative;
-  z-index: 1;
-}
-
 #sessionCompleteConfettiCanvas {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 0;
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+body.session-complete-confetti-active #sessionCompleteConfettiCanvas {
+  opacity: 1;
 }
 
 dialog.modal-wide {
@@ -4567,6 +4712,8 @@ dialog::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
   gap: 10px;
   padding: 10px 12px;
   border: 0;
@@ -4743,18 +4890,21 @@ dialog::backdrop {
 }
 
 .daily-overview-streak-value {
-  display: inline-flex;
-  align-items: baseline;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
   gap: 10px;
   font-size: 1.08rem;
   font-weight: 700;
   color: #eef5ff;
+  text-align: right;
   letter-spacing: 0.015em;
 }
 
 .daily-overview-streak-value strong {
-  font-size: clamp(2.1rem, 2.9vw, 2.85rem);
-  line-height: 1;
+  font-size: clamp(5.8rem, 4.6vw, 4rem);
+  line-height: 0;
   color: #fef3c7;
   text-shadow:
     0 0 0 rgba(0, 0, 0, 0),
@@ -4775,6 +4925,7 @@ dialog::backdrop {
   box-shadow:
     inset 0 0 0 1px rgba(255, 194, 102, 0.08),
     0 10px 24px rgba(4, 8, 18, 0.34);
+    display: flex;
 }
 
 .subject-progress-segment-bar {
@@ -5497,6 +5648,24 @@ dialog::backdrop {
     font-size: 5vw;
   }
 
+  .session-scale-debug-btn {
+    top: calc(env(safe-area-inset-top) + var(--space-2));
+    right: var(--space-2);
+    padding: 7px 10px;
+    font-size: 0.74rem;
+  }
+
+  .session-scale-debug-panel {
+    top: calc(env(safe-area-inset-top) + var(--space-2) + 40px);
+    right: var(--space-2);
+    width: calc(100% - (2 * var(--space-2)));
+    max-height: min(62vh, 520px);
+  }
+
+  .session-scale-debug-grid {
+    grid-template-columns: 1fr;
+  }
+
   .review-analytics-card {
     width: 100%;
     min-width: 0;
@@ -5731,7 +5900,8 @@ dialog::backdrop {
     min-width: 110px;
   }
 
-  .flashcard {
+  .flashcard,
+  .session-next-card {
     width: 100%;
   }
 
@@ -6045,10 +6215,11 @@ dialog::backdrop {
     margin-bottom: 0;
   }
 
-  #studySessionSection .flashcard {
+  /* #studySessionSection .flashcard,
+  #studySessionSection .session-next-card {
     width: min(96vw, 680px);
     height: 100%;
-  }
+  } */
 
   /*
   .pill-row {
