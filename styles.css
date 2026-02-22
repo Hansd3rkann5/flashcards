@@ -2382,6 +2382,7 @@ textarea:focus-visible {
   text-align: center;
   justify-content: center;
   position: relative;
+  max-width: 500px;
 }
 
 .card-tile.card-tile-search {
@@ -3068,11 +3069,11 @@ body.session-image-open {
 }
 
 .rich-content.rich-align-left {
-  text-align: center;
+  text-align: left;
 }
 
 .card-tile-body.rich-content.rich-align-left {
-  text-align: center;
+  text-align: left;
 }
 
 .rich-content.rich-align-center {
