@@ -1,0 +1,738 @@
+{
+  "Topic 1: Global Warming": [
+    {
+      "question_id": "Q1",
+      "question": "What is the approximate reference period for the temperature increase?",
+      "answer_id": "A1",
+      "answer": "Pre-industrial, 1850-1900"
+    },
+    {
+      "question_id": "Q2",
+      "question": "Approximately how many degrees has the global temperature risen since industrialization?",
+      "answer_id": "A2",
+      "answer": "Approx. 1.5 degrees"
+    },
+    {
+      "question_id": "Q3",
+      "question": "Is there a region where the temperature has risen significantly more?",
+      "answer_id": "A3",
+      "answer": "The poles, especially the North Pole by up to 6°C"
+    },
+    {
+      "question_id": "Q4",
+      "question": "Besides temperature, what other changes indicate global warming?",
+      "answer_id": "A4",
+      "answer": "Less pack ice, melting glaciers, less snow cover, rising sea level, growing ocean acidification"
+    },
+    {
+      "question_id": "Q5",
+      "question": "What causes more direct damage, the absolute temperature increase or the rate of change?",
+      "answer_id": "A5",
+      "answer": "The absolute change has been higher in earth´s history but over a much longer period, the current change is too rapid for the ecosphere to adapt."
+    },
+    {
+      "question_id": "Q6",
+      "question": "How high are the yearly global cost of climate related natural disasters? >1, >10, >100 bn USD.",
+      "answer_id": "A6",
+      "answer": ">100 bn USD"
+    },
+    {
+      "question_id": "Q7",
+      "question": "What can cause natural climate change?",
+      "answer_id": "A7",
+      "answer": "Changes in Earth´s position to the sun (eccentricity, precession, tilt), volcanoes (dual effect +CO2 for minor warming, +sulfur for major cooling), tectonics, etc."
+    },
+    {
+      "question_id": "Q8",
+      "question": "What are the timescales for natural climate change?",
+      "answer_id": "A8",
+      "answer": "Tens of thousands and hundreds of thousands of years (see orbital changes)"
+    },
+    {
+      "question_id": "Q9",
+      "question": "Which effect is the only one that can explain climate change in simulations?",
+      "answer_id": "A9",
+      "answer": "CO2 emissions"
+    },
+    {
+      "question_id": "Q10",
+      "question": "How old is the knowledge about the influence of CO2 on the climate – 170, 70, 20, 10 years?",
+      "answer_id": "A10",
+      "answer": "Approximately 170 years"
+    },
+    {
+      "question_id": "Q11",
+      "question": "What has a higher heat absorption capacity, the atmosphere or the oceans and how long would it take to heat up the atmosphere or the oceans by 1,5°C? 1 y, 10 y, 100 y, 1000 y",
+      "answer_id": "A11",
+      "answer": "The oceans have a much higher heat capacity than the atmosphere: While the atmosphere could be heated up in less than 1 year, the oceans would require more than 1000 years and delay the heating of the atmosphere."
+    },
+    {
+      "question_id": "Q12",
+      "question": "What is the average solar irradiance per m² – 3.4, 34, 340, 3400, or 34000 W/m²?",
+      "answer_id": "A12",
+      "answer": "340 W/m²"
+    },
+    {
+      "question_id": "Q13",
+      "question": "What is the albedo factor?",
+      "answer_id": "A13",
+      "answer": "The portion of solar radiation reflected by a surface; 0 for absorption, 1 for total reflection , , 0,8 for snow, 0,1 for forests"
+    },
+    {
+      "question_id": "Q14",
+      "question": "What distinguishes the Earth and the Moon during day and night?",
+      "answer_id": "A14",
+      "answer": "Temperature difference moderate on Earth due to its atmosphere, big on the Moon due to a lack of the same."
+    },
+    {
+      "question_id": "Q15",
+      "question": "In which spectrum (name) lie the peaks of the sun´s and the earth´s irradiance?",
+      "answer_id": "A15",
+      "answer": "The peak of solar irradiance is in the visible spectrum the peak of Earth´s irradiance is in the infrared spectrum."
+    },
+    {
+      "question_id": "Q16",
+      "question": "How do gaps arise in the spectrum of infrared radiation emitted by the Earth into space?",
+      "answer_id": "A16",
+      "answer": "Absorption by greenhouse gases, as absorbed light energy of a certain wavelength is turned into inner-molecular motion of the absorbing molecules and spreads into kinetic motion of molecules"
+    },
+    {
+      "question_id": "Q17",
+      "question": "How do greenhouse gases work?",
+      "answer_id": "A17",
+      "answer": "Absorption, movement of molecules (heat), reemission of infrared light also back to Earth. Internal"
+    },
+    {
+      "question_id": "Q18",
+      "question": "Name two significant greenhouse gases besides CO2?",
+      "answer_id": "A18",
+      "answer": "Methane and nitrous oxide."
+    }
+  ],
+  "Topic 2: Carbon": [
+    {
+      "question_id": "Q19",
+      "question": "What makes the element carbon so special?",
+      "answer_id": "A19",
+      "answer": "The ability to form so many different bonds with itself and other atoms."
+    },
+    {
+      "question_id": "Q20",
+      "question": "Name bond combinations for Carbon:",
+      "answer_id": "A20",
+      "answer": "4x1, 2x2, 2+1+1, 3+1"
+    },
+    {
+      "question_id": "Q21",
+      "question": "How do you estimate enthalpies of combustion?",
+      "answer_id": "A21",
+      "answer": "As the difference in bond energies between reactants and products."
+    },
+    {
+      "question_id": "Q22",
+      "question": "What is the difference between lower and higher heating values?",
+      "answer_id": "A22",
+      "answer": "The higher heating value includes the enthalpy of condensation of water formed in the combustion whereas the lower heating value is calculated with reaction water as a gaseous product"
+    },
+    {
+      "question_id": "Q23",
+      "question": "What is produced during photosynthesis from 6 CO2 and 6 H2O?",
+      "answer_id": "A23",
+      "answer": "C6H12O6 Glucose + 6 O2"
+    },
+    {
+      "question_id": "Q24",
+      "question": "What is the maximum theoretical efficiency of photosynthesis?",
+      "answer_id": "A24",
+      "answer": "About 4.6%"
+    },
+    {
+      "question_id": "Q25",
+      "question": "What is the practical efficiency of photosynthesis?",
+      "answer_id": "A25",
+      "answer": "Mostly under 2%, often as low as 0.4%"
+    },
+    {
+      "question_id": "Q26",
+      "question": "What happens during the breakdown of cellulose to oil and gas?",
+      "answer_id": "A26",
+      "answer": "Removal of oxygen from molecules."
+    },
+    {
+      "question_id": "Q27",
+      "question": "When did coal primarily form?",
+      "answer_id": "A27",
+      "answer": "About 300 million years ago in the carboniferous period."
+    },
+    {
+      "question_id": "Q28",
+      "question": "When did oil primarily form?",
+      "answer_id": "A28",
+      "answer": "About 170 million years ago in the Mesozoic, in particular in the Jurassic period."
+    },
+    {
+      "question_id": "Q29",
+      "question": "Where is a very high natural concentration of C?",
+      "answer_id": "A29",
+      "answer": "In living organisms, where carbon forms 50% of the dry matter"
+    },
+    {
+      "question_id": "Q30",
+      "question": "Where is the most carbon bound in Earth's habitat: in the forest, at the ocean surface, or in the deep sea?",
+      "answer_id": "A30",
+      "answer": "In the deep sea"
+    },
+    {
+      "question_id": "Q31",
+      "question": "Why is glucose a poor fuel?",
+      "answer_id": "A31",
+      "answer": "There is too little hydrogen and too much oxygen in the molecule – meaning it is somewhere in the middle between a fossil oxygen-free molecule and carbon dioxide."
+    },
+    {
+      "question_id": "Q32",
+      "question": "Why do wood (polysaccharide cellulose), ethanol, or glucose produce more CO2 when burned than fossil fuels like methane?",
+      "answer_id": "A32",
+      "answer": "Again, as before, there is too little hydrogen and too much oxygen in the molecule – meaning it is somewhere in the middle between a fossil oxygen-free molecule and carbon dioxide."
+    },
+    {
+      "question_id": "Q33",
+      "question": "What effect do the oceans have on the rate of global warming?",
+      "answer_id": "A33",
+      "answer": "The oceans not only absorb a lot of CO2, but their sheer mass also slows down the temperature increase in the atmosphere."
+    },
+    {
+      "question_id": "Q34",
+      "question": "Is the air-water equilibrium for CO2 temperature-dependent, and if so, how?",
+      "answer_id": "A34",
+      "answer": "At higher temperatures, water dissolves less CO2."
+    },
+    {
+      "question_id": "Q35",
+      "question": "Is the equilibrium of CO2 in the oceans static or dynamic?",
+      "answer_id": "A35",
+      "answer": "Dynamic, CO2 is absorbed from the atmosphere into the cold water currents at the poles (arctic sink) and it is released from the oceans into the atmosphere from the warmer currents near the equator."
+    },
+    {
+      "question_id": "Q36",
+      "question": "What is a positive feedback loop in global warming?",
+      "answer_id": "A36",
+      "answer": "A positive feedback loop builds on a self-inforcing mechanism, like warming melts pack ice, the open sea surface absorbs more sunlight than the pack ice, the sea warms up, it releases CO2, that causes more global warming"
+    }
+  ],
+  "Topic 3: Reporting": [
+    {
+      "question_id": "Q37",
+      "question": "At which three levels are greenhouse gas emissions reported?",
+      "answer_id": "A37",
+      "answer": "Greenhouse gas inventories are calculated for countries/nations, for companies and for products."
+    },
+    {
+      "question_id": "Q38",
+      "question": "Which institutions developed the leading standards for GHG reporting?",
+      "answer_id": "A38",
+      "answer": "UN (UNFCCC) for nations, GHG Protocol (World Resources Institute, World Business Council for Sustainable Development) for companies and products Internal"
+    },
+    {
+      "question_id": "Q39",
+      "question": "What was the climate saving scope of the Rio Earth Summit, the Kyotoy Protocol and the Paris Agreement:",
+      "answer_id": "A39",
+      "answer": "Rio: Stabilize GHG conc. to prevent dangerous interfe-rence with climate system ; Kyoto: Reduce GHG emissions to 5 % below 1990 level Paris: Limit global warming to 2°C, preferably 1,5°C"
+    },
+    {
+      "question_id": "Q40",
+      "question": "What is the share of energy use in emissions globally and in Germany?",
+      "answer_id": "A40",
+      "answer": ">70% and >80%"
+    },
+    {
+      "question_id": "Q41",
+      "question": "How are emissions collected, i.e., directly or indirectly?",
+      "answer_id": "A41",
+      "answer": "Through multiplication of activity data (km/y) multiplied with emission factors (g CO2/km) multiplied with global warming potential (1 g CO2eq/g CO2)."
+    },
+    {
+      "question_id": "Q42",
+      "question": "Give a basic example of consumption and emission factor.",
+      "answer_id": "A42",
+      "answer": "Example: Electricity consumption in kWh and CO2 value per kWh in the electricity grid"
+    },
+    {
+      "question_id": "Q43",
+      "question": "Name two of the top 5 GHG emitters as countries:",
+      "answer_id": "A43",
+      "answer": "China, USA, India, Russia, Japan"
+    },
+    {
+      "question_id": "Q44",
+      "question": "Name two of the top 5 GHG per capita emitters as countries:",
+      "answer_id": "A44",
+      "answer": "Australia, Canada, Saudi Arabia, USA, Russia"
+    },
+    {
+      "question_id": "Q45",
+      "question": "By when do most countries want to be climate neutral?",
+      "answer_id": "A45",
+      "answer": "2050"
+    },
+    {
+      "question_id": "Q46",
+      "question": "What does the Greenhouse Gas Protocol define?",
+      "answer_id": "A46",
+      "answer": "Emissions reports for companies and products"
+    },
+    {
+      "question_id": "Q47",
+      "question": "Define Scope 1 emissions, define Scope 2 emissions, define Scope 3 emissions",
+      "answer_id": "A47",
+      "answer": "Scope 1 (direct emissions from owned or controlled sources) Scope 2 (indirect emissions from the generation of purchased electricity, steam, heating and cooling consumed by the reporting company). Scope 3 includes all other indirect emissions that occur in a company’s value chain upstream (at suppliers) and downstream (at customers)"
+    },
+    {
+      "question_id": "Q48",
+      "question": "Give examples of companies with high and low Scope 1 emissions:",
+      "answer_id": "A48",
+      "answer": "steel, cement, and chemicals with high emissions; banks and mechanical manufacturers with low emissions"
+    },
+    {
+      "question_id": "Q49",
+      "question": "Give examples of companies with high Scope 3 upstream emissions:",
+      "answer_id": "A49",
+      "answer": "Plastic part manufacturers (as a lot of emissions occur upstream in the chemical industry)"
+    },
+    {
+      "question_id": "Q50",
+      "question": "Give examples of companies with high Scope 3 downstream emissions:",
+      "answer_id": "A50",
+      "answer": "Refineries (as most products are being burnt downstream by customers as fuels)"
+    },
+    {
+      "question_id": "Q51",
+      "question": "What does the Science Based Targets initiative require of its signatories?",
+      "answer_id": "A51",
+      "answer": "To adhere to the 1.5°C target and fulfill and report yearly emission reductions in the order of 4%/year."
+    },
+    {
+      "question_id": "Q52",
+      "question": "Calculate the annual emissions of company X: electricity consumption 1,000,000 kWh, heating oil consumption 200,000 l, vehicle kilometers 200 cars at 15,000 km each with a gasoline consumption of 8 l/100 km, grid emission factor 350 g CO2/kWh, 2.7 kg CO2/l oil, 2.4 kg CO2/l gasoline;",
+      "answer_id": "A52",
+      "answer": "350 t + 540 t + 576 t = 1466 t."
+    },
+    {
+      "question_id": "Q53",
+      "question": "Explain the Product Carbon Footprint (PCF)",
+      "answer_id": "A53",
+      "answer": "A Product Carbon Footprint (PCF) refers to the total greenhouse gas (GHG) emissions caused during a product’s life-cycle, from raw material extraction and pre-processing, manufacturing, distribution, to usage and disposal."
+    },
+    {
+      "question_id": "Q54",
+      "question": "What is meant by a cradle to gate PCF:",
+      "answer_id": "A54",
+      "answer": "Emissions from raw material extraction to sale."
+    },
+    {
+      "question_id": "Q55",
+      "question": "What does cradle to grave mean:",
+      "answer_id": "A55",
+      "answer": "From raw material extraction to disposal/incineration?"
+    },
+    {
+      "question_id": "Q56",
+      "question": "How are Product Carbon Footprints and company emissions related?",
+      "answer_id": "A56",
+      "answer": "The sum of the product footprints (product quantity x product footprint) must reflect the company's emissions across all products."
+    },
+    {
+      "question_id": "Q57",
+      "question": "Are there one or more standards for calculating PCF?",
+      "answer_id": "A57",
+      "answer": "Several national standards."
+    },
+    {
+      "question_id": "Q58",
+      "question": "For which industry was the Together for Sustainability PCF standard developed?",
+      "answer_id": "A58",
+      "answer": "Chemical industry."
+    },
+    {
+      "question_id": "Q59",
+      "question": "When is allocation necessary in PCF calculation?",
+      "answer_id": "A59",
+      "answer": "When two products come from one process."
+    },
+    {
+      "question_id": "Q60",
+      "question": "Give examples of foods with a high PCF: Internal",
+      "answer_id": "A60",
+      "answer": "Beef, cheese, chocolate, coffee."
+    },
+    {
+      "question_id": "Q61",
+      "question": "Give examples of foods with a low PCF:",
+      "answer_id": "A61",
+      "answer": "Apples, carrots, bananas, peas."
+    },
+    {
+      "question_id": "Q62",
+      "question": "What is the approximate PCF of a pair of sneakers? (1, 10, or 50 kg CO2/pair)",
+      "answer_id": "A62",
+      "answer": "7-9"
+    },
+    {
+      "question_id": "Q63",
+      "question": "Name two building materials with a high PCF.",
+      "answer_id": "A63",
+      "answer": "Aluminum and stainless steel"
+    },
+    {
+      "question_id": "Q64",
+      "question": "What is the approximate PCF of a Golf-class combustion engine vehicle?",
+      "answer_id": "A64",
+      "answer": "6 t CO2"
+    },
+    {
+      "question_id": "Q65",
+      "question": "What is the approximate PCF of a comparable electric car?",
+      "answer_id": "A65",
+      "answer": "11 t CO2"
+    },
+    {
+      "question_id": "Q66",
+      "question": "What accounts for the difference?",
+      "answer_id": "A66",
+      "answer": "The battery production including the production of lithium is energy- and emission-intensive"
+    }
+  ],
+  "Topic 4: Energy": [
+    {
+      "question_id": "Q67",
+      "question": "Name the two main categories of energy:",
+      "answer_id": "A67",
+      "answer": "potential energy and kinetic energy."
+    },
+    {
+      "question_id": "Q68",
+      "question": "Name subtypes of potential energy:",
+      "answer_id": "A68",
+      "answer": "chemical, mechanical, nuclear, gravimetric."
+    },
+    {
+      "question_id": "Q69",
+      "question": "Name subtypes of kinetic energy:",
+      "answer_id": "A69",
+      "answer": "radiation, heat, motion, sound, electricity."
+    },
+    {
+      "question_id": "Q70",
+      "question": "What percentage of global emissions come from energy, and of that, from heat and electricity:",
+      "answer_id": "A70",
+      "answer": "approximately 75% combined, and approximately 50% from heat and approximately 25% from electricity?"
+    },
+    {
+      "question_id": "Q71",
+      "question": "What is the emission ratio between coal and gas?",
+      "answer_id": "A71",
+      "answer": "Approximately a factor of 2 for direct heat use and approximately a factor of 3 for electricity generation."
+    },
+    {
+      "question_id": "Q72",
+      "question": "How does the oxygen content in molecules affect calorific value / heating value and CO2 emissions?",
+      "answer_id": "A72",
+      "answer": "Calorific value decreases, and CO2 emissions increase."
+    },
+    {
+      "question_id": "Q73",
+      "question": "What is the share of renewable energies globally (not just electricity, but total)? 0%-10%, 10%- 20%, 20%-30%",
+      "answer_id": "A73",
+      "answer": "It's 15%."
+    },
+    {
+      "question_id": "Q74",
+      "question": "What is the efficiency of typical power plants?",
+      "answer_id": "A74",
+      "answer": "Nuclear power 30%, coal 40%, gas-fired combined heat and power plants >80%"
+    },
+    {
+      "question_id": "Q75",
+      "question": "Define energy efficiency:",
+      "answer_id": "A75",
+      "answer": "Energy used / Energy input"
+    },
+    {
+      "question_id": "Q76",
+      "question": "What are the approximate efficiency levels of a candle, a classic light bulb, and an LED?",
+      "answer_id": "A76",
+      "answer": "Approx. 1%, approx. 20%, approx. 40%"
+    },
+    {
+      "question_id": "Q77",
+      "question": "What is the overall efficiency of a chain of processes that individually have efficiencies of 80%, 50%, and 25%?",
+      "answer_id": "A77",
+      "answer": "0.8 * 0.5 * 0.25 = 0.1, so 10%, product rule"
+    },
+    {
+      "question_id": "Q78",
+      "question": "Give an example of an energy conversion with efficiency:",
+      "answer_id": "A78",
+      "answer": "Example: combustion engine typically 20%, max. 42% or solar module 20%, maximum 47% in the lab for multilayers, electrolyzer approx. 83–98%"
+    },
+    {
+      "question_id": "Q79",
+      "question": "How much more efficient is an electric vehicle in its use of electricity compared to a",
+      "answer_id": "A79",
+      "answer": "combustion engine vehicle with e-fuel? A: 72% to 15%, so 5 to 1"
+    },
+    {
+      "question_id": "Q80",
+      "question": "Which demand (oil, electricity, or gas) fluctuates strongly seasonally and why?",
+      "answer_id": "A80",
+      "answer": "Gas demand as it is a heating fuel in winter"
+    },
+    {
+      "question_id": "Q81",
+      "question": "Where is electricity demand more dependent on the time of day: In material industry (metal or chemicals) or in private households?",
+      "answer_id": "A81",
+      "answer": "Private households"
+    },
+    {
+      "question_id": "Q82",
+      "question": "Is solar radiation uniform or variable throughout the year in Germany?",
+      "answer_id": "A82",
+      "answer": "Varying greatly, 10 to 15 times more in midsummer than in winter"
+    },
+    {
+      "question_id": "Q83",
+      "question": "How does solar radiation depend on latitude?",
+      "answer_id": "A83",
+      "answer": "High at the equator, low at the poles"
+    },
+    {
+      "question_id": "Q84",
+      "question": "Is there a difference in temperature between the equator and the North Pole throughout the year? Internal",
+      "answer_id": "A84",
+      "answer": "Yes, in the Northern Hemisphere the difference is small in summer and large in winter."
+    },
+    {
+      "question_id": "Q85",
+      "question": "What effect does this difference have?",
+      "answer_id": "A85",
+      "answer": "It acts as a driving force for wind currents"
+    },
+    {
+      "question_id": "Q86",
+      "question": "When can more wind energy be harvested, in summer or winter?",
+      "answer_id": "A86",
+      "answer": "Winter."
+    },
+    {
+      "question_id": "Q87",
+      "question": "What is meant by \"dark doldrums\"?",
+      "answer_id": "A87",
+      "answer": "A period without solar energy (fog, clouds, or darkness) and little wind (calm)."
+    },
+    {
+      "question_id": "Q88",
+      "question": "What is meant by \"demand-side management\" in the context of energy?",
+      "answer_id": "A88",
+      "answer": "Shifting consumption from times of high demand to times of low demand and storing energy during times of low demand."
+    },
+    {
+      "question_id": "Q89",
+      "question": "Give examples of intensive private electricity consumers where the use can generally be shifted by many hours to 1-2 days.",
+      "answer_id": "A89",
+      "answer": "Washing machine and dryer, and charging electric cars."
+    },
+    {
+      "question_id": "Q90",
+      "question": "Which fossil fuel is stored in Germany and the EU, partly in national storage facilities?",
+      "answer_id": "A90",
+      "answer": "Natural gas."
+    },
+    {
+      "question_id": "Q91",
+      "question": "What are relevant energy storage facilities for renewable energies?",
+      "answer_id": "A91",
+      "answer": "Pumped-storage power plants, battery storage, thermal storage,"
+    },
+    {
+      "question_id": "Q92",
+      "question": "Name the key parameters for evaluating energy storage systems:",
+      "answer_id": "A92",
+      "answer": "capacity, discharge time, efficiency for charging and discharging cycles = round trip efficiency, number of possible cycles, energy density per unit weight or volume, price"
+    },
+    {
+      "question_id": "Q93",
+      "question": "What influence does the number of storage cycles have on costs?",
+      "answer_id": "A93",
+      "answer": "The higher the number of cycles, the lower the depreciation costs per cycle"
+    },
+    {
+      "question_id": "Q94",
+      "question": "How long would German pumped-storage power plants last to cover Germany's electricity demand at most – approx. 10 min, approx. 1 h, approx. 10 h, approx. 1 day?",
+      "answer_id": "A94",
+      "answer": "40 min"
+    },
+    {
+      "question_id": "Q95",
+      "question": "How long would all electric car batteries and solar storage systems last to cover electricity demand if they could feed into the grid – approx. 10 min, approx. 1 h, approx. 10 h, approx. 1 day?",
+      "answer_id": "A95",
+      "answer": "70 min"
+    },
+    {
+      "question_id": "Q96",
+      "question": "Germany currently has approximately 0.02% of its annual electricity demand as storage capacity, assuming approximately 50% renewable electricity. What size storage capacity would we need at 100% renewable energy?",
+      "answer_id": "A96",
+      "answer": "Approximately 0.2 to 2%, depending on the study."
+    },
+    {
+      "question_id": "Q97",
+      "question": "When is the electricity price lowest on the power exchange?",
+      "answer_id": "A97",
+      "answer": "When demand is low and renewable energy sources are in high proportion."
+    },
+    {
+      "question_id": "Q98",
+      "question": "How does the Merit Order Principle work in the definition of electricity prices at the German “Strombörse”?",
+      "answer_id": "A98",
+      "answer": "All potential suppliers of electricity offer their supplies at their marginal cost and are then prioritized, the cheapes first, the most expensive last, for supplies into the grid. The last supplier with the highest marginal cost defines the trading price."
+    }
+  ],
+  "Topic 5: Sector Solutions": [
+    {
+      "question_id": "Q99",
+      "question": "Which process should be implemented faster: electrification or expansion of renewable electricity generation?",
+      "answer_id": "A99",
+      "answer": "The renewable electricity production should be developed faster than the growing electrification of processes so that electrification does not lead to a growing production of fossil electricity."
+    },
+    {
+      "question_id": "Q100",
+      "question": "What is plotted on the x-axis and y-axis of a marginal abatement cost curve for CO2 reduction?",
+      "answer_id": "A100",
+      "answer": "The x-axis represents the absolute or proportional CO2 reductions achieved through measures, and the y-axis represents the CO2 avoidance costs, e.g., in €/t CO2."
+    },
+    {
+      "question_id": "Q101",
+      "question": "How are the measures ordered within the marginal abatement cost curve?",
+      "answer_id": "A101",
+      "answer": "From left to right, with increasing CO2 avoidance costs"
+    },
+    {
+      "question_id": "Q102",
+      "question": "Task: Roughly prioritize three measures according to their CO2 avoidance costs: A) Investment €10,000, lifespan 20 years, CO2 savings 5 t CO2/year B) Annual additional costs €1,000, CO2 savings over 10 years 50 t CO2 in total C) Annual additional costs €500, CO2 savings 20 t CO2/year Internal",
+      "answer_id": "A102",
+      "answer": "Result according to CO2 avoidance costs: C) €25/t CO2 A) €100/t CO2 B) €2,000/t CO2"
+    },
+    {
+      "question_id": "Q103",
+      "question": "Which energy producers currently have the lowest levelized cost of energy (LCOE) in Germany?",
+      "answer_id": "A103",
+      "answer": "Solar power and onshore wind."
+    },
+    {
+      "question_id": "Q104",
+      "question": "What is the approximate share of renewable energies in electricity generation in Germany currently (2023)?",
+      "answer_id": "A104",
+      "answer": "Almost 60%, 59% in 2023"
+    },
+    {
+      "question_id": "Q105",
+      "question": "What were the approximate average emissions from electricity generation in 2023?",
+      "answer_id": "A105",
+      "answer": "350 g CO2/kWh"
+    },
+    {
+      "question_id": "Q106",
+      "question": "In the building sector, what is the market share of heat pump technology in new construction?",
+      "answer_id": "A106",
+      "answer": ">50% approaching 60%"
+    },
+    {
+      "question_id": "Q107",
+      "question": "What is district heating currently supplied from?",
+      "answer_id": "A107",
+      "answer": "Waste heat from combustion power plants (hard coal, lignite, natural gas, waste incineration)"
+    },
+    {
+      "question_id": "Q108",
+      "question": "What are refrigerants?",
+      "answer_id": "A108",
+      "answer": "Materials which boil at low temperature so that they can take up heat through evaporation from low temperature environments like refrigerators or cold winter air."
+    },
+    {
+      "question_id": "Q109",
+      "question": "What are the problems with different refrigerants?",
+      "answer_id": "A109",
+      "answer": "Flammability, toxicity, global warming potential, ozone depletion"
+    },
+    {
+      "question_id": "Q110",
+      "question": "How does a heat pump work, i.e., how does the cycle work?",
+      "answer_id": "A110",
+      "answer": "Evaporation, compression, condensation, expansion"
+    },
+    {
+      "question_id": "Q111",
+      "question": "Does the coefficient of performance decrease or fall with the source temperature?",
+      "answer_id": "A111",
+      "answer": "Increases"
+    },
+    {
+      "question_id": "Q112",
+      "question": "Does the coefficient of performance decrease or fall with the sink or application temperature?",
+      "answer_id": "A112",
+      "answer": "Decreases"
+    },
+    {
+      "question_id": "Q113",
+      "question": "Where in Europe are heat pumps most widespread?",
+      "answer_id": "A113",
+      "answer": "Scandinavia"
+    },
+    {
+      "question_id": "Q114",
+      "question": "Which type of heat pump is widespread in Scandinavia?",
+      "answer_id": "A114",
+      "answer": "Air/Air Heat Pump"
+    },
+    {
+      "question_id": "Q115",
+      "question": "Give examples of low temperature, medium temperature and high temperature processes in industry.",
+      "answer_id": "A115",
+      "answer": "Low temperature: cooking and baking in food industry, Medium temperature: e.g. compounding of polymers at > 300 °C, High temperature: steam cracking at 800 °C or glass melting above 1000 °C"
+    },
+    {
+      "question_id": "Q116",
+      "question": "What is the approximate ratio of emissions during operation between a combustion engine and an electric car?",
+      "answer_id": "A116",
+      "answer": "Roughly a factor of 3 Combustion engine: approx. 6 kg fuel/100 km * 3 kg CO2/kg fuel = 18 kg CO2/100 km Electric: approx. 14 kWh/100 km * 0.4 kg CO2/kWh = 5.6 kg CO2/100 km"
+    },
+    {
+      "question_id": "Q117",
+      "question": "What is a vapor compressor?",
+      "answer_id": "A117",
+      "answer": "A process-integrated heat pump, usually in a distillation process."
+    },
+    {
+      "question_id": "Q118",
+      "question": "Name different hydrogen production processes?",
+      "answer_id": "A118",
+      "answer": "Steam reforming with natural gas and water, methane pyrolysis, water electrolysis"
+    },
+    {
+      "question_id": "Q119",
+      "question": "What is methane pyrolysis?",
+      "answer_id": "A119",
+      "answer": "Conversion of CH4 to carbon and hydrogen using heat"
+    },
+    {
+      "question_id": "Q120",
+      "question": "Where is nitrous oxide produced in chemistry?",
+      "answer_id": "A120",
+      "answer": "For example, in the production of nitric acid for fertilizers or of adipic acid as a monomer for PA6.6"
+    },
+    {
+      "question_id": "Q121",
+      "question": "What type of chemical reactions in material production lead to carbon dioxide?",
+      "answer_id": "A121",
+      "answer": "The reduction of limestone oxides for cement, of iron oxides for steel and of aluminum oxides for aluminum"
+    }
+  ]
+}

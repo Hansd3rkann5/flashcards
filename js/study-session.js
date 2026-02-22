@@ -111,6 +111,13 @@ const sessionNextCardScaleConfig = {
 };
 
 let sessionScaleDebugControlsWired = false;
+const SESSION_PROGRAMMATIC_SWIPE_ROTATE_LIMIT = 15;
+const SESSION_PROGRAMMATIC_SWIPE_ARC_COMMIT_ANGLE = 0.55;
+const SESSION_DESKTOP_AUTO_SWIPE_ARC_COMMIT_ANGLE = 0.82;
+const SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS = 420;
+const SESSION_DESKTOP_AUTO_SWIPE_EASING = 'cubic-bezier(0.42, 0, 1, 1)';
+const SESSION_DESKTOP_AUTO_SWIPE_COMMIT_DELAY_MS = 420;
+let sessionProgrammaticSwipeInFlight = false;
 
 function clampSessionScaleNumber(value, min, max, fallback = 0) {
   const numeric = Number(value);
@@ -1143,7 +1150,7 @@ function renderCardContent(card) {
         checkBtn.dataset.mode = 'check';
         // reset option visuals for next card
         buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'selected'));
-        gradeCard(result);
+        void gradeCardWithDesktopAutoMove(result);
       };
     };
   } else {
@@ -1243,6 +1250,7 @@ async function renderSessionCard() {
   flashcard.style.removeProperty('--swipe-intensity');
   flashcard.style.transition = 'none';
   flashcard.style.transform = '';
+  flashcard.style.opacity = '';
   flashcard.style.willChange = '';
   // Prevents the next active card from animating in from the swipe-off edge.
   void flashcard.offsetWidth;
@@ -1339,6 +1347,74 @@ async function gradeCard(result) {
     ? !cardsOverviewSection.classList.contains('hidden')
     : false;
   if (overviewVisible) void loadDeck();
+}
+
+function getProgrammaticSessionSwipeTransform(cardEl, result) {
+  if (!cardEl || result === 'partial') {
+    return { x: 0, y: window.innerHeight * 1.24, rotate: 0 };
+  }
+  const arcRadius = Math.max(window.innerHeight * 1.4, 1200);
+  const rect = cardEl.getBoundingClientRect();
+  const cardCenterX = rect.left + rect.width / 2;
+  const direction = result === 'correct' ? -1 : 1;
+  const angle = direction * SESSION_DESKTOP_AUTO_SWIPE_ARC_COMMIT_ANGLE;
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight + arcRadius;
+  const arcX = cx + arcRadius * Math.sin(angle);
+  const arcY = cy - arcRadius * Math.cos(angle);
+  const baseArcY = cy - arcRadius;
+  const boostedX = (arcX - cardCenterX) * 1.22;
+  const boostedY = (arcY - baseArcY) * 1.1;
+  return {
+    x: boostedX,
+    y: boostedY,
+    rotate: angle * SESSION_PROGRAMMATIC_SWIPE_ROTATE_LIMIT * 1.4
+  };
+}
+
+function canUseDesktopAutoSwipeMotion(flashcardEl, result) {
+  if (!flashcardEl || !session.active) return false;
+  if (!['correct', 'partial', 'wrong'].includes(result)) return false;
+  if (!isStudySessionVisible()) return false;
+  if (isCoarsePointerDevice()) return false;
+  if (document.body.classList.contains('session-image-open')) return false;
+  if (flashcardEl.dataset.type === 'mcq') return false;
+  if (flashcardEl.classList.contains('swiping')) return false;
+  return true;
+}
+
+async function gradeCardWithDesktopAutoMove(result) {
+  const safeResult = String(result || '').trim().toLowerCase();
+  if (!['correct', 'partial', 'wrong'].includes(safeResult)) return;
+  if (sessionProgrammaticSwipeInFlight) return;
+  const flashcardEl = el('flashcard');
+  if (!canUseDesktopAutoSwipeMotion(flashcardEl, safeResult)) {
+    await gradeCard(safeResult);
+    return;
+  }
+
+  sessionProgrammaticSwipeInFlight = true;
+  flashcardEl.classList.remove('swipe-correct', 'swipe-wrong', 'swipe-partial');
+  flashcardEl.classList.add('swiping', `swipe-${safeResult}`);
+  flashcardEl.style.setProperty('--swipe-intensity', '1');
+  flashcardEl.style.transition = `transform ${SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS}ms ${SESSION_DESKTOP_AUTO_SWIPE_EASING}, opacity ${SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS}ms ${SESSION_DESKTOP_AUTO_SWIPE_EASING}`;
+  flashcardEl.style.willChange = 'transform, opacity';
+  flashcardEl.style.opacity = '1';
+  setNextCardSwipeProgress(1);
+
+  const transform = getProgrammaticSessionSwipeTransform(flashcardEl, safeResult);
+  requestAnimationFrame(() => {
+    const baseTransform = flashcardEl.classList.contains('flipped') ? ' rotateX(180deg)' : '';
+    flashcardEl.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) rotate(${transform.rotate}deg)${baseTransform}`;
+    flashcardEl.style.opacity = safeResult === 'partial' ? '0.12' : '0.05';
+  });
+
+  try {
+    await new Promise(resolve => setTimeout(resolve, SESSION_DESKTOP_AUTO_SWIPE_COMMIT_DELAY_MS));
+    await gradeCard(safeResult);
+  } finally {
+    sessionProgrammaticSwipeInFlight = false;
+  }
 }
 
 /**
@@ -1682,9 +1758,9 @@ function wireSwipe() {
   const card = el('flashcard');
   if (!card) return;
 
-  const rotateLimit = 15;
+  const rotateLimit = SESSION_PROGRAMMATIC_SWIPE_ROTATE_LIMIT;
   const ARC_RADIUS = Math.max(window.innerHeight * 1.4, 1200);
-  const ARC_COMMIT_ANGLE = 0.55;
+  const ARC_COMMIT_ANGLE = SESSION_PROGRAMMATIC_SWIPE_ARC_COMMIT_ANGLE;
   const UP_CANCEL_RATIO = 1.25;
   const UP_CANCEL_MIN_PX = 26;
 

@@ -1665,6 +1665,7 @@ function renderDailyOverviewStatsCards() {
   const streakDaysEl = el('dailyOverviewStreakDays');
   const streakMetaEl = el('dailyOverviewStreakMeta');
   const currentStreak = el('currentStreak');
+  const dayText = el('dayText');
   if (!grid || !bar || !legend || !streakDaysEl || !streakMetaEl) return;
   const latest = dailyReviewState.latestStateCounts || createEmptyDailyReviewLatestStateCounts();
   const mastered = toCounterInt(latest.mastered);
@@ -1684,6 +1685,7 @@ function renderDailyOverviewStatsCards() {
   streakDaysEl.textContent = String(streakDays);
   if (streakDays > 0) {
     const dayWord = streakDays === 1 ? 'day' : 'days';
+    dayText.textContent = dayWord;
     currentStreak.textContent = 'Current streak:';
     streakMetaEl.textContent = `Active for ${streakDays} ${dayWord} in a row.`;
   } else if (activeDaysTotal > 0) {

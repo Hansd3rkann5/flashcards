@@ -1822,7 +1822,10 @@ textarea:focus-visible {
     rotateX(calc(var(--next-card-tilt-start) + (var(--next-card-progress) * (var(--next-card-tilt-end) - var(--next-card-tilt-start)))));
   opacity: 1;
   filter: none;
-  transition: transform 0.12s linear, opacity 0.12s linear, filter 0.12s linear;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .session-next-card .card-corner-label,
@@ -2608,6 +2611,7 @@ body.session-image-open {
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .image-preview-single-layout {
@@ -2615,7 +2619,7 @@ body.session-image-open {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -2624,7 +2628,7 @@ body.session-image-open {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -2682,13 +2686,53 @@ body.session-image-open {
   height: 100%;
   max-width: none;
   border-radius: 0;
+  object-position: center center;
 }
 
 .image-preview-wrap-single img {
-  object-fit: fill;
+  object-fit: contain;
 }
 
-.image-preview-wrap-stack img {}
+.image-preview-wrap-stack img {
+  object-fit: contain;
+}
+
+.image-preview-upload-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  min-height: 54px;
+  border-radius: 999px;
+  border: 1px solid rgba(84, 255, 39, 0.78);
+  background: rgba(8, 15, 28, 0.74);
+  color: #ffffff;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(84, 255, 39, 0.24) inset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: copy;
+  pointer-events: auto;
+  transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.image-preview-upload-btn span {
+  font-size: 2rem;
+  line-height: 1;
+  transform: translateY(-1px);
+  font-weight: 700;
+}
+
+.image-preview-upload-btn:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+  background: rgba(8, 15, 28, 0.88);
+  border-color: rgba(84, 255, 39, 1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(84, 255, 39, 0.32) inset;
+}
 
 .image-preview-drop-tile {
   display: flex;
@@ -2727,7 +2771,7 @@ body.session-image-open {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 2;
+  z-index: 4;
   width: 38px;
   height: 38px;
   min-width: 38px;
@@ -3432,6 +3476,8 @@ body.session-image-open {
     height 0.25s ease;
   flex-shrink: 0;
   box-sizing: border-box;
+  max-width: 60px;
+  max-height: 24px;
 }
 
 .pill-dot.current {

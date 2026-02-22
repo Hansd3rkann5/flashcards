@@ -1291,7 +1291,7 @@ async function boot() {
         !isMcqSessionCard
       ) {
         e.preventDefault();
-        gradeCard(gradeResult);
+        void gradeCardWithDesktopAutoMove(gradeResult);
         return;
       }
       const isShiftBackspace = (e.code === 'Backspace' || e.key === 'Backspace')
@@ -2099,7 +2099,9 @@ async function boot() {
   };
 
   document.querySelectorAll('[data-grade]').forEach(btn => {
-    btn.addEventListener('click', () => gradeCard(btn.dataset.grade));
+    btn.addEventListener('click', () => {
+      void gradeCardWithDesktopAutoMove(btn.dataset.grade);
+    });
   });
 
   ensureKatexLoaded().then(loaded => {

@@ -497,6 +497,7 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
   const images = normalizeImageList(dataUrls);
   if (!images.length) {
     previewEl.classList.remove('has-image', 'single-image', 'multi-image');
+    previewEl.setAttribute('title', 'Drop image or click to upload');
     previewEl.innerHTML = `
           <div class="image-preview-empty-state" aria-hidden="true">
             <img class="image-preview-drop-icon" src="icons/drop_image.png" alt="" style="width: 48px; height: 48px;"/>
@@ -507,7 +508,18 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
   previewEl.classList.add('has-image');
   previewEl.classList.toggle('single-image', images.length === 1);
   previewEl.classList.toggle('multi-image', images.length > 1);
+  previewEl.setAttribute('title', 'Drop more images or click to upload');
   previewEl.innerHTML = '';
+
+  const appendUploadOverlayButton = () => {
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'image-preview-upload-btn';
+    addBtn.setAttribute('aria-label', 'Add images');
+    addBtn.setAttribute('title', 'Drop more images or click to upload');
+    addBtn.innerHTML = '<span aria-hidden="true">+</span>';
+    previewEl.appendChild(addBtn);
+  };
 
   const createImageWrap = (src, idx, variant = 'single') => {
     const wrap = document.createElement('div');
@@ -528,20 +540,12 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
     return wrap;
   };
 
-  const createDropTile = (variant = 'single') => {
-    const tile = document.createElement('div');
-    tile.className = `image-preview-drop-tile image-preview-drop-tile-${variant}`;
-    tile.innerHTML = '<img class="image-preview-drop-icon" src="icons/drop_image.png" alt="" aria-hidden="true">';
-    tile.setAttribute('title', 'Drop more images');
-    return tile;
-  };
-
   if (images.length === 1) {
     const row = document.createElement('div');
     row.className = 'image-preview-single-layout';
     row.appendChild(createImageWrap(images[0], 0, 'single'));
-    row.appendChild(createDropTile('single'));
     previewEl.appendChild(row);
+    appendUploadOverlayButton();
     return;
   }
 
@@ -559,8 +563,8 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
     stack.appendChild(wrap);
   });
   row.appendChild(stack);
-  row.appendChild(createDropTile('multi'));
   previewEl.appendChild(row);
+  appendUploadOverlayButton();
 }
 
 /**
@@ -660,13 +664,7 @@ function attachImagePicker(target, onImages) {
     const clickTarget = e.target;
     if (!(clickTarget instanceof Element)) return;
     if (clickTarget.closest('.image-remove-btn')) return;
-
-    const isDropTileClick = !!clickTarget.closest('.image-preview-drop-tile');
-    const isEmptyStateClick = !!clickTarget.closest('.image-preview-empty-state');
-    const isDropIconClick = clickTarget.classList.contains('image-preview-drop-icon');
-    const isEmptyContainerClick = clickTarget === target && !target.classList.contains('has-image');
-    if (!isDropTileClick && !isEmptyStateClick && !isDropIconClick && !isEmptyContainerClick) return;
-
+    e.preventDefault();
     fileInput.click();
   });
 }
