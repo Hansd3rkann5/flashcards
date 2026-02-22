@@ -9,6 +9,7 @@ __pycache__/
 flashcards.sqlite3
 flashcards.sqlite3-shm
 flashcards.sqlite3-wal
+flashcards.backup_before_carbon_update_20260222_143530.sqlite3
 
 # Local certificates / TLS files
 *.pem
