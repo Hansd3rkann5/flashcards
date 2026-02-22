@@ -1074,14 +1074,17 @@ async function deleteSubjectById(subjectId) {
  * @description Loads and renders cards for the selected topic in the overview grid.
  */
 
-async function loadDeck() {
+async function loadDeck(options = {}) {
   if (!selectedTopic) {
     setDeckTopicCardCount(null);
     setDeckSelectionMode(false);
     return;
   }
+  const opts = (options && typeof options === 'object') ? options : {};
+  const force = !!opts.force;
+  const uiBlocking = opts.uiBlocking !== false;
   setDeckTitle(selectedTopic.name);
-  const cards = await getCardsByTopicIds([selectedTopic.id]);
+  const cards = await getCardsByTopicIds([selectedTopic.id], { force, uiBlocking });
   setDeckTopicCardCount(cards.length);
   cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
   const cardIds = new Set(cards.map(card => card.id));
@@ -1159,9 +1162,12 @@ function getCardCreatedAt(card) {
  * @description Loads editor cards.
  */
 
-async function loadEditorCards() {
+async function loadEditorCards(options = {}) {
   if (!selectedTopic) return;
-  const cards = await getCardsByTopicIds([selectedTopic.id]);
+  const opts = (options && typeof options === 'object') ? options : {};
+  const force = !!opts.force;
+  const uiBlocking = opts.uiBlocking !== false;
+  const cards = await getCardsByTopicIds([selectedTopic.id], { force, uiBlocking });
   cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
   const list = el('editorCardsList');
   if (!cards.length) {

@@ -2382,7 +2382,6 @@ textarea:focus-visible {
   text-align: center;
   justify-content: center;
   position: relative;
-  max-width: 500px;
 }
 
 .card-tile.card-tile-search {

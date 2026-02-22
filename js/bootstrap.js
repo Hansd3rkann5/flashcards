@@ -1985,16 +1985,31 @@ async function boot() {
       try {
         await put('cards', card, {
           uiBlocking: false,
-          skipFlushPending: true,
-          invalidate: false
+          skipFlushPending: true
         });
         await putCardBank(card, { uiBlocking: false });
         if (selectedSubject?.id) await touchSubject(selectedSubject.id, undefined, { uiBlocking: false });
+
+        const cardsOverviewSection = el('cardsOverviewSection');
+        const cardsOverviewVisible = cardsOverviewSection
+          ? !cardsOverviewSection.classList.contains('hidden')
+          : false;
+        const canForceReload = !!dbReady;
+        if (selectedTopic?.id === createdTopicId && (cardsOverviewVisible || currentView === 2)) {
+          void loadDeck({ force: canForceReload, uiBlocking: false });
+        }
+        if (currentView === 3 && selectedTopic?.id === createdTopicId) {
+          void loadEditorCards({ force: canForceReload, uiBlocking: false });
+        }
       } catch (err) {
         console.warn('Deferred post-create sync failed:', err);
       } finally {
         try {
           await refreshSidebar({ uiBlocking: false });
+          if (selectedSubject) void refreshTopicSessionMeta(currentSubjectTopics);
+          if (selectedSubject && typeof refreshSubjectProgressPanel === 'function') {
+            void refreshSubjectProgressPanel({ topicsForSubject: currentSubjectTopics });
+          }
         } catch (err) {
           console.warn('Deferred post-create refresh failed:', err);
         }
