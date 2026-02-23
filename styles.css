@@ -1754,6 +1754,13 @@ textarea:focus-visible {
   height: 0.68em;
 }
 
+.topic-more-btn {
+  font-size: 1.6rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+
 .topic-tile.selection-mode {
   cursor: pointer;
   padding-top: calc(var(--space-3) + 20px);
@@ -3765,6 +3772,42 @@ dialog.modal.subject-edit-modal {
   width: 100%;
 }
 
+#topicEditDialog h3 {
+  margin: 0 0 var(--space-3);
+  text-align: center;
+}
+
+#topicEditDialog .topic-edit-field {
+  width: min(360px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+#topicEditDialog .topic-edit-field label {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+}
+
+#topicEditDialog #editTopicName {
+  width: 100%;
+  margin: 0;
+}
+
+#topicEditDialog .topic-edit-actions {
+  width: min(360px, 100%);
+  margin: var(--space-3) auto 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+#topicEditDialog .topic-edit-actions .btn {
+  width: 100%;
+}
+
 .migration-log-meta {
   margin-top: var(--space-2);
 }
@@ -3865,6 +3908,27 @@ dialog.modal.subject-edit-modal {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+.content-exchange-user-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.exchange-admin-edit-btn {
+  min-width: 56px;
+}
+
+.content-exchange-user:not(.is-admin-editing) .exchange-admin-delete-btn,
+.content-exchange-user:not(.is-admin-editing) .exchange-admin-delete-selected-btn {
+  display: none;
+}
+
+.content-exchange-user.is-admin-editing .exchange-admin-edit-btn {
+  background: rgba(45, 212, 191, 0.2);
+  border: 1px solid rgba(45, 212, 191, 0.7);
 }
 
 .content-exchange-user-name {
@@ -6086,6 +6150,10 @@ dialog::backdrop {
 
   .topic-list-actions {
     gap: 6px;
+  }
+
+  .topic-more-btn {
+    font-size: 1.45rem;
   }
 
   .topic-search-controls {

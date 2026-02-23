@@ -235,6 +235,28 @@ function openCreateCardEditor() {
 }
 
 /**
+ * @function openTopicEditDialog
+ * @description Opens the topic rename dialog for one topic row.
+ */
+
+function openTopicEditDialog(topic = null) {
+  const safeTopic = topic && typeof topic === 'object' ? topic : null;
+  const topicId = String(safeTopic?.id || '').trim();
+  if (!topicId) return;
+  editingTopicId = topicId;
+  const input = el('editTopicName');
+  if (input) input.value = String(safeTopic?.name || '').trim();
+  const dialog = el('topicEditDialog');
+  if (!dialog) return;
+  showDialog(dialog);
+  requestAnimationFrame(() => {
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(0, input.value.length);
+  });
+}
+
+/**
  * @function loadTopics
  * @description Loads and renders topics for the active subject including selection and bulk actions.
  */

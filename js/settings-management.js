@@ -30,12 +30,81 @@ async function addSubjectFromDialog() {
 const CONTENT_EXCHANGE_PROFILE_SETTINGS_ID = 'profile';
 const CONTENT_EXCHANGE_FETCH_BATCH_SIZE = 20;
 const CONTENT_EXCHANGE_CARD_PREVIEW_MAX_LEN = 120;
+const CONTENT_EXCHANGE_ADMIN_EMAILS = new Set(['simon-bader@gmx.net']);
 let contentExchangeSnapshot = null;
 let contentExchangeLoading = false;
 let contentExchangeImporting = false;
+let contentExchangeDeleting = false;
+let contentExchangeIsAdmin = false;
+let contentExchangeAdminEditOwnerIds = new Set();
 let contentExchangeLastLoadToken = 0;
 let contentExchangeSelectedCardIdsByTopicKey = new Map();
 let contentExchangeReturnView = 0;
+
+/**
+ * @function normalizeContentExchangeEmail
+ * @description Normalizes emails for admin-role checks.
+ */
+
+function normalizeContentExchangeEmail(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * @function isContentExchangeAdminEmail
+ * @description Returns true when an email is included in the local exchange-admin allow-list.
+ */
+
+function isContentExchangeAdminEmail(email = '') {
+  const safeEmail = normalizeContentExchangeEmail(email);
+  if (!safeEmail) return false;
+  return CONTENT_EXCHANGE_ADMIN_EMAILS.has(safeEmail);
+}
+
+/**
+ * @function resolveContentExchangeAdminState
+ * @description Resolves whether the currently authenticated user should see admin controls in exchange view.
+ */
+
+async function resolveContentExchangeAdminState() {
+  let email = '';
+  if (typeof authenticatedSupabaseUser !== 'undefined' && authenticatedSupabaseUser) {
+    email = normalizeContentExchangeEmail(authenticatedSupabaseUser.email || '');
+  }
+  if (!email) {
+    const { data, error } = await supabaseClient.auth.getUser();
+    assertSupabaseSuccess(error, 'Failed to resolve admin role for content exchange.');
+    email = normalizeContentExchangeEmail(data?.user?.email || '');
+  }
+  contentExchangeIsAdmin = isContentExchangeAdminEmail(email);
+  if (!contentExchangeIsAdmin) {
+    contentExchangeAdminEditOwnerIds = new Set();
+  }
+  return contentExchangeIsAdmin;
+}
+
+/**
+ * @function pruneContentExchangeAdminEditOwners
+ * @description Removes stale owner ids from admin-edit mode after each snapshot reload.
+ */
+
+function pruneContentExchangeAdminEditOwners() {
+  if (!contentExchangeIsAdmin || !contentExchangeSnapshot?.users) {
+    contentExchangeAdminEditOwnerIds = new Set();
+    return;
+  }
+  const validOwnerIds = new Set(
+    contentExchangeSnapshot.users
+      .filter(user => !user?.isCurrentUser)
+      .map(user => String(user?.uid || '').trim())
+      .filter(Boolean)
+  );
+  Array.from(contentExchangeAdminEditOwnerIds).forEach(ownerId => {
+    if (!validOwnerIds.has(ownerId)) contentExchangeAdminEditOwnerIds.delete(ownerId);
+  });
+}
 
 /**
  * @function setContentExchangeModalOpenState
@@ -596,12 +665,21 @@ function appendContentExchangeLogLine(message = '') {
 }
 
 /**
+ * @function isContentExchangeBusy
+ * @description Returns true while loading/importing/deleting operations are active.
+ */
+
+function isContentExchangeBusy() {
+  return contentExchangeLoading || contentExchangeImporting || contentExchangeDeleting;
+}
+
+/**
  * @function setContentExchangeBusyState
  * @description Locks/unlocks content-exchange controls while loading/importing.
  */
 
 function setContentExchangeBusyState() {
-  const busy = contentExchangeLoading || contentExchangeImporting;
+  const busy = isContentExchangeBusy();
   const panel = el('contentExchangePanel');
   const closeBtn = el('closeContentExchangeBtn');
   const reloadBtn = el('reloadContentExchangeBtn');
@@ -610,7 +688,7 @@ function setContentExchangeBusyState() {
   if (reloadBtn) reloadBtn.disabled = busy;
   if (panel) {
     panel.querySelectorAll('.exchange-import-btn').forEach(btn => { btn.disabled = busy; });
-    panel.querySelectorAll('.exchange-select-all-btn, .exchange-clear-selection-btn, .exchange-import-selected-btn, .content-exchange-card-check')
+    panel.querySelectorAll('.exchange-select-all-btn, .exchange-clear-selection-btn, .exchange-import-selected-btn, .content-exchange-card-check, .exchange-admin-edit-btn, .exchange-admin-delete-btn, .exchange-admin-delete-selected-btn')
       .forEach(node => { node.disabled = busy; });
   }
   if (!busy) refreshAllContentExchangeTopicSelectionUi();
@@ -939,7 +1017,7 @@ function refreshContentExchangeTopicSelectionUi(ownerId = '', topicId = '') {
   const selectedSet = getContentExchangeTopicSelectionSet(safeOwnerId, safeTopicId, cardIds);
   const selectedCount = cardIds.reduce((sum, id) => sum + (selectedSet.has(id) ? 1 : 0), 0);
   const totalCount = cardIds.length;
-  const busy = contentExchangeLoading || contentExchangeImporting;
+  const busy = isContentExchangeBusy();
 
   forEachContentExchangeTopicControl('content-exchange-topic-selection-meta', safeOwnerId, safeTopicId, node => {
     node.textContent = `${selectedCount} / ${totalCount} selected`;
@@ -1194,6 +1272,17 @@ function renderContentExchangeTree() {
   }
 
   const html = sourceUsers.map(user => {
+    const ownerId = String(user?.uid || '').trim();
+    const ownerEsc = escapeHTML(ownerId);
+    const isAdminEditing = contentExchangeIsAdmin && contentExchangeAdminEditOwnerIds.has(ownerId);
+    const adminUserActions = contentExchangeIsAdmin
+      ? `<div class="content-exchange-user-actions">
+          <button class="btn btn-small exchange-admin-edit-btn"
+            data-owner-id="${ownerEsc}"
+            type="button">${isAdminEditing ? 'Done' : 'Edit'}</button>
+        </div>`
+      : '';
+
     const subjectHtml = user.subjects.length
       ? user.subjects.map(subject => {
         const topics = user.topicsBySubjectId.get(subject.id) || [];
@@ -1216,13 +1305,11 @@ function renderContentExchangeTree() {
           ? topics.map(topic => {
             const cards = user.cardsByTopicId.get(topic.id) || [];
             const topicId = String(topic?.id || '').trim();
-            const ownerId = String(user.uid || '').trim();
             const cardIds = cards
               .map(card => String(card?.id || '').trim())
               .filter(Boolean);
             const selectedSet = getContentExchangeTopicSelectionSet(ownerId, topicId, cardIds);
             const selectedCount = cardIds.reduce((sum, id) => sum + (selectedSet.has(id) ? 1 : 0), 0);
-            const ownerEsc = escapeHTML(ownerId);
             const topicEsc = escapeHTML(topicId);
 
             const cardHtml = cards.length
@@ -1244,6 +1331,11 @@ function renderContentExchangeTree() {
                       data-owner-id="${ownerEsc}"
                       data-id="${topicEsc}"
                       type="button">Import Topic</button>
+                    <button class="btn btn-small delete exchange-admin-delete-btn"
+                      data-level="topic"
+                      data-owner-id="${ownerEsc}"
+                      data-id="${topicEsc}"
+                      type="button">Delete Topic</button>
                     <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
                   </div>
                 </summary>
@@ -1265,6 +1357,10 @@ function renderContentExchangeTree() {
                         data-owner-id="${ownerEsc}"
                         data-topic-id="${topicEsc}"
                         type="button">Import selected</button>
+                      <button class="btn btn-small delete exchange-admin-delete-selected-btn"
+                        data-owner-id="${ownerEsc}"
+                        data-topic-id="${topicEsc}"
+                        type="button">Delete selected</button>
                     </div>
                   </div>
                   ${cardHtml}
@@ -1284,9 +1380,14 @@ function renderContentExchangeTree() {
               <div class="content-exchange-summary-actions">
                 <button class="btn btn-small exchange-import-btn"
                   data-level="subject"
-                  data-owner-id="${escapeHTML(user.uid)}"
+                  data-owner-id="${ownerEsc}"
                   data-id="${escapeHTML(subject.id)}"
                   type="button">Import Subject</button>
+                <button class="btn btn-small delete exchange-admin-delete-btn"
+                  data-level="subject"
+                  data-owner-id="${ownerEsc}"
+                  data-id="${escapeHTML(subject.id)}"
+                  type="button">Delete Subject</button>
                 <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
               </div>
             </summary>
@@ -1297,12 +1398,13 @@ function renderContentExchangeTree() {
       : '<div class="tiny">This user has no subjects.</div>';
 
     return `
-      <div class="content-exchange-user">
+      <div class="content-exchange-user${isAdminEditing ? ' is-admin-editing' : ''}" data-owner-id="${ownerEsc}">
         <div class="content-exchange-user-header">
           <div>
             <div class="content-exchange-user-name">${escapeHTML(user.displayName || 'Unnamed user')}</div>
             <div class="tiny">${user.subjects.length} ${user.subjects.length === 1 ? 'subject' : 'subjects'} • ${user.topics.length} ${user.topics.length === 1 ? 'topic' : 'topics'} • ${user.cards.length} ${user.cards.length === 1 ? 'card' : 'cards'}</div>
           </div>
+          ${adminUserActions}
         </div>
         ${subjectHtml}
       </div>
@@ -1335,7 +1437,9 @@ async function reloadContentExchangeTree(options = {}) {
     await initSupabaseBackend();
     await resolveSupabaseTenantColumn();
     const ownerId = await getSupabaseOwnerId();
+    await resolveContentExchangeAdminState();
     appendContentExchangeLogLine(`Authenticated as uid=${ownerId.slice(0, 8)}...`);
+    appendContentExchangeLogLine(`Admin mode: ${contentExchangeIsAdmin ? 'enabled' : 'disabled'}.`);
 
     const [subjectRows, topicRows, cardRows, profileRows] = await Promise.all([
       fetchContentExchangeRows('subjects', 'name:payload->>name,accent:payload->>accent'),
@@ -1356,6 +1460,7 @@ async function reloadContentExchangeTree(options = {}) {
       cardRows,
       profileRows
     );
+    pruneContentExchangeAdminEditOwners();
     pruneContentExchangeSelectionState();
     renderContentExchangeTree();
 
@@ -1375,9 +1480,15 @@ async function reloadContentExchangeTree(options = {}) {
         'No external content is visible. Either no other user has data yet, or cross-user SELECT is still blocked (scripts/supabase_content_exchange_select_all.sql).'
       );
     } else {
-      setContentExchangePolicyHint(
-        'Import works by copying selected rows into your account (same ids, your uid).'
-      );
+      if (contentExchangeIsAdmin) {
+        setContentExchangePolicyHint(
+          'Admin mode enabled. Use Edit on each user block to reveal delete controls (requires matching DELETE RLS policy).'
+        );
+      } else {
+        setContentExchangePolicyHint(
+          'Import works by copying selected rows into your account (same ids, your uid).'
+        );
+      }
     }
     appendContentExchangeLogLine(
       `Dataset ready in ${formatImageMigrationDurationMs(performance.now() - startedAt)}. External users: ${userCount}.`
@@ -1483,6 +1594,196 @@ function buildContentExchangeImportSelection(sourceUser, level = '', entityId = 
 }
 
 /**
+ * @function buildContentExchangeDeleteSelection
+ * @description Expands one delete action (subject/topic/cards) into concrete record ids to remove.
+ */
+
+function buildContentExchangeDeleteSelection(sourceUser, level = '', entityId = '', options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const safeLevel = String(level || '').trim().toLowerCase();
+  const safeEntityId = String(entityId || '').trim();
+  const subjectIds = new Set();
+  const topicIds = new Set();
+  const cardIds = new Set();
+  if (!sourceUser || !safeEntityId) {
+    return { subjectIds: [], topicIds: [], cardIds: [] };
+  }
+
+  if (safeLevel === 'subject') {
+    subjectIds.add(safeEntityId);
+    sourceUser.topics.forEach(topic => {
+      if (String(topic?.subjectId || '').trim() !== safeEntityId) return;
+      topicIds.add(String(topic?.id || '').trim());
+    });
+    sourceUser.cards.forEach(card => {
+      if (!topicIds.has(String(card?.topicId || '').trim())) return;
+      cardIds.add(String(card?.id || '').trim());
+    });
+  } else if (safeLevel === 'topic') {
+    const topic = sourceUser.topicById.get(safeEntityId);
+    if (!topic) return { subjectIds: [], topicIds: [], cardIds: [] };
+    topicIds.add(safeEntityId);
+    sourceUser.cards.forEach(card => {
+      if (String(card?.topicId || '').trim() !== safeEntityId) return;
+      const cardId = String(card?.id || '').trim();
+      if (cardId) cardIds.add(cardId);
+    });
+  } else if (safeLevel === 'cards') {
+    const selectedCardIds = Array.isArray(opts.selectedCardIds)
+      ? opts.selectedCardIds.map(value => String(value || '').trim()).filter(Boolean)
+      : [];
+    const selectedCardSet = new Set(selectedCardIds);
+    if (!selectedCardSet.size) return { subjectIds: [], topicIds: [], cardIds: [] };
+    sourceUser.cards.forEach(card => {
+      if (String(card?.topicId || '').trim() !== safeEntityId) return;
+      const cardId = String(card?.id || '').trim();
+      if (!cardId || !selectedCardSet.has(cardId)) return;
+      cardIds.add(cardId);
+    });
+  }
+
+  return {
+    subjectIds: Array.from(subjectIds).filter(Boolean),
+    topicIds: Array.from(topicIds).filter(Boolean),
+    cardIds: Array.from(cardIds).filter(Boolean)
+  };
+}
+
+/**
+ * @function deleteContentExchangeRowsByKey
+ * @description Deletes rows for one store/source uid/key-list in batches and returns deleted row count.
+ */
+
+async function deleteContentExchangeRowsByKey(store = '', sourceUid = '', keys = [], options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const log = typeof opts.log === 'function' ? opts.log : null;
+  const safeStore = String(store || '').trim();
+  const safeSourceUid = String(sourceUid || '').trim();
+  const keyField = getStoreKeyField(safeStore);
+  if (!safeStore || !safeSourceUid || !keyField) return 0;
+
+  const uniqueKeys = Array.from(new Set((Array.isArray(keys) ? keys : [])
+    .map(value => String(value || '').trim())
+    .filter(Boolean)));
+  if (!uniqueKeys.length) return 0;
+
+  const tenantColumn = String(supabaseTenantColumn || 'uid').trim() || 'uid';
+  const chunks = chunkImageMigrationList(uniqueKeys, CONTENT_EXCHANGE_FETCH_BATCH_SIZE);
+  let deleted = 0;
+
+  for (let idx = 0; idx < chunks.length; idx += 1) {
+    const chunk = chunks[idx];
+    if (!chunk.length) continue;
+    if (log) {
+      log(`Deleting ${safeStore} batch ${idx + 1}/${chunks.length} (${chunk.length} row(s))...`);
+    }
+    let query = supabaseClient
+      .from(SUPABASE_TABLE)
+      .delete()
+      .eq('store', safeStore)
+      .eq(tenantColumn, safeSourceUid);
+    if (chunk.length === 1) query = query.eq('record_key', chunk[0]);
+    else query = query.in('record_key', chunk);
+    const { data, error } = await query.select('record_key');
+    assertSupabaseSuccess(error, `Failed to delete ${safeStore} rows.`);
+    deleted += Array.isArray(data) ? data.length : 0;
+  }
+  return deleted;
+}
+
+/**
+ * @function deleteContentExchangeSelection
+ * @description Deletes selected external records (admin-only).
+ */
+
+async function deleteContentExchangeSelection(level = '', sourceUid = '', entityId = '', options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const safeLevel = String(level || '').trim().toLowerCase();
+  const safeSourceUid = String(sourceUid || '').trim();
+  const safeEntityId = String(entityId || '').trim();
+  if (!safeLevel || !safeSourceUid || !safeEntityId) return;
+  if (isContentExchangeBusy()) return;
+  if (!contentExchangeIsAdmin) {
+    alert('Admin rights required.');
+    return;
+  }
+
+  const snapshot = contentExchangeSnapshot;
+  if (!snapshot?.usersById) return;
+  const sourceUser = snapshot.usersById.get(safeSourceUid);
+  if (!sourceUser) {
+    appendContentExchangeLogLine(`Delete aborted: source user ${safeSourceUid} not found in snapshot.`);
+    return;
+  }
+  if (sourceUser.isCurrentUser) {
+    alert('Admin delete is only available for other users.');
+    return;
+  }
+
+  const selection = buildContentExchangeDeleteSelection(sourceUser, safeLevel, safeEntityId, opts);
+  if (!selection.subjectIds.length && !selection.topicIds.length && !selection.cardIds.length) {
+    appendContentExchangeLogLine(`Delete aborted: no records resolved for ${safeLevel} "${safeEntityId}".`);
+    return;
+  }
+
+  const expectedCards = selection.cardIds.length;
+  const expectedTopics = selection.topicIds.length;
+  const expectedSubjects = selection.subjectIds.length;
+
+  contentExchangeDeleting = true;
+  setContentExchangeBusyState();
+  setContentExchangeStatusText(`Deleting ${safeLevel}...`);
+  const startedAt = performance.now();
+  appendContentExchangeLogLine(
+    `Delete started (${safeLevel}): subjects=${expectedSubjects}, topics=${expectedTopics}, cards=${expectedCards}.`
+  );
+
+  try {
+    await initSupabaseBackend();
+    await resolveSupabaseTenantColumn();
+    const ownerId = await getSupabaseOwnerId();
+    if (ownerId === safeSourceUid) {
+      throw new Error('Refusing to delete your own rows via admin exchange action.');
+    }
+
+    const adminStillValid = await resolveContentExchangeAdminState();
+    if (!adminStillValid) {
+      throw new Error('Admin role check failed. Please sign in with an admin account.');
+    }
+
+    const deletedProgress = await deleteContentExchangeRowsByKey('progress', safeSourceUid, selection.cardIds, { log: appendContentExchangeLogLine });
+    const deletedCardBank = await deleteContentExchangeRowsByKey('cardbank', safeSourceUid, selection.cardIds, { log: appendContentExchangeLogLine });
+    const deletedCards = await deleteContentExchangeRowsByKey('cards', safeSourceUid, selection.cardIds, { log: appendContentExchangeLogLine });
+    const deletedTopics = await deleteContentExchangeRowsByKey('topics', safeSourceUid, selection.topicIds, { log: appendContentExchangeLogLine });
+    const deletedSubjects = await deleteContentExchangeRowsByKey('subjects', safeSourceUid, selection.subjectIds, { log: appendContentExchangeLogLine });
+
+    if (expectedCards > 0 && deletedCards <= 0) {
+      throw new Error('No cards were deleted. Supabase DELETE policy may still block cross-user deletes.');
+    }
+    if (safeLevel === 'topic' && expectedTopics > 0 && deletedTopics <= 0) {
+      throw new Error('No topic row was deleted. Supabase DELETE policy may still block cross-user deletes.');
+    }
+    if (safeLevel === 'subject' && expectedSubjects > 0 && deletedSubjects <= 0) {
+      throw new Error('No subject row was deleted. Supabase DELETE policy may still block cross-user deletes.');
+    }
+
+    appendContentExchangeLogLine(
+      `Delete done in ${formatImageMigrationDurationMs(performance.now() - startedAt)}. Deleted subjects=${deletedSubjects}, topics=${deletedTopics}, cards=${deletedCards}, cardbank=${deletedCardBank}, progress=${deletedProgress}.`
+    );
+    setContentExchangeStatusText('Delete finished. Refreshing exchange tree...');
+    await reloadContentExchangeTree({ preserveLog: true });
+  } catch (err) {
+    const message = String(err?.message || 'Unknown error');
+    appendContentExchangeLogLine(`Delete failed: ${message}`);
+    setContentExchangeStatusText('Delete failed. See log output.');
+    console.error('Content exchange delete failed:', err);
+  } finally {
+    contentExchangeDeleting = false;
+    setContentExchangeBusyState();
+  }
+}
+
+/**
  * @function fetchContentExchangePayloadRowsByKey
  * @description Loads full payload rows for one store and source uid in batches.
  */
@@ -1565,7 +1866,7 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
   const safeSourceUid = String(sourceUid || '').trim();
   const safeEntityId = String(entityId || '').trim();
   if (!safeLevel || !safeSourceUid || !safeEntityId) return;
-  if (contentExchangeLoading || contentExchangeImporting) return;
+  if (isContentExchangeBusy()) return;
   const snapshot = contentExchangeSnapshot;
   if (!snapshot?.usersById) return;
 
@@ -1695,11 +1996,68 @@ function handleContentExchangeTreeClick(event) {
   const target = event.target instanceof Element ? event.target : null;
   if (!target) return;
 
+  const adminEditBtn = target.closest('.exchange-admin-edit-btn');
+  if (adminEditBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isContentExchangeBusy()) return;
+    if (!contentExchangeIsAdmin) return;
+    const ownerId = String(adminEditBtn.dataset.ownerId || '').trim();
+    if (!ownerId) return;
+    const isEditing = contentExchangeAdminEditOwnerIds.has(ownerId)
+      ? (contentExchangeAdminEditOwnerIds.delete(ownerId), false)
+      : (contentExchangeAdminEditOwnerIds.add(ownerId), true);
+    const userWrap = adminEditBtn.closest('.content-exchange-user');
+    if (userWrap) userWrap.classList.toggle('is-admin-editing', isEditing);
+    adminEditBtn.textContent = isEditing ? 'Done' : 'Edit';
+    return;
+  }
+
+  const adminDeleteSelectedBtn = target.closest('.exchange-admin-delete-selected-btn');
+  if (adminDeleteSelectedBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isContentExchangeBusy()) return;
+    if (!contentExchangeIsAdmin) return;
+    const ownerId = String(adminDeleteSelectedBtn.dataset.ownerId || '').trim();
+    const topicId = String(adminDeleteSelectedBtn.dataset.topicId || '').trim();
+    const cardIds = getContentExchangeTopicCardIds(ownerId, topicId);
+    const selected = getContentExchangeTopicSelectionSet(ownerId, topicId, cardIds);
+    const selectedIds = cardIds.filter(id => selected.has(id));
+    if (!selectedIds.length) {
+      alert('Please select at least one card.');
+      return;
+    }
+    const proceed = confirm(`Delete ${selectedIds.length} selected ${selectedIds.length === 1 ? 'card' : 'cards'} from this source user?`);
+    if (!proceed) return;
+    void deleteContentExchangeSelection('cards', ownerId, topicId, { selectedCardIds: selectedIds });
+    return;
+  }
+
+  const adminDeleteBtn = target.closest('.exchange-admin-delete-btn');
+  if (adminDeleteBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isContentExchangeBusy()) return;
+    if (!contentExchangeIsAdmin) return;
+    const level = String(adminDeleteBtn.dataset.level || '').trim().toLowerCase();
+    const ownerId = String(adminDeleteBtn.dataset.ownerId || '').trim();
+    const id = String(adminDeleteBtn.dataset.id || '').trim();
+    if (!level || !ownerId || !id) return;
+    const label = level === 'subject'
+      ? 'this subject including all nested topics and cards'
+      : 'this topic including all cards';
+    const proceed = confirm(`Delete ${label} from the source user account?`);
+    if (!proceed) return;
+    void deleteContentExchangeSelection(level, ownerId, id);
+    return;
+  }
+
   const selectAllBtn = target.closest('.exchange-select-all-btn');
   if (selectAllBtn) {
     event.preventDefault();
     event.stopPropagation();
-    if (contentExchangeLoading || contentExchangeImporting) return;
+    if (isContentExchangeBusy()) return;
     const ownerId = String(selectAllBtn.dataset.ownerId || '').trim();
     const topicId = String(selectAllBtn.dataset.topicId || '').trim();
     const cardIds = getContentExchangeTopicCardIds(ownerId, topicId);
@@ -1714,7 +2072,7 @@ function handleContentExchangeTreeClick(event) {
   if (clearBtn) {
     event.preventDefault();
     event.stopPropagation();
-    if (contentExchangeLoading || contentExchangeImporting) return;
+    if (isContentExchangeBusy()) return;
     const ownerId = String(clearBtn.dataset.ownerId || '').trim();
     const topicId = String(clearBtn.dataset.topicId || '').trim();
     const cardIds = getContentExchangeTopicCardIds(ownerId, topicId);
@@ -1728,7 +2086,7 @@ function handleContentExchangeTreeClick(event) {
   if (importSelectedBtn) {
     event.preventDefault();
     event.stopPropagation();
-    if (contentExchangeLoading || contentExchangeImporting) return;
+    if (isContentExchangeBusy()) return;
     const ownerId = String(importSelectedBtn.dataset.ownerId || '').trim();
     const topicId = String(importSelectedBtn.dataset.topicId || '').trim();
     const cardIds = getContentExchangeTopicCardIds(ownerId, topicId);
@@ -1749,7 +2107,7 @@ function handleContentExchangeTreeClick(event) {
   if (!btn) return;
   event.preventDefault();
   event.stopPropagation();
-  if (contentExchangeLoading || contentExchangeImporting) return;
+  if (isContentExchangeBusy()) return;
   const level = String(btn.dataset.level || '').trim().toLowerCase();
   const ownerId = String(btn.dataset.ownerId || '').trim();
   const id = String(btn.dataset.id || '').trim();
@@ -1773,7 +2131,7 @@ function handleContentExchangeTreeChange(event) {
   if (!target) return;
   const checkbox = target.closest('.content-exchange-card-check');
   if (!checkbox) return;
-  if (contentExchangeLoading || contentExchangeImporting) return;
+  if (isContentExchangeBusy()) return;
   const ownerId = String(checkbox.dataset.ownerId || '').trim();
   const topicId = String(checkbox.dataset.topicId || '').trim();
   const cardId = String(checkbox.dataset.cardId || '').trim();

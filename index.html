@@ -328,6 +328,8 @@
                 title="Karten auswählen" type="button">
                 <img src="icons/check.svg" alt="" />
               </button>
+              <button class="btn select-cards-btn topic-more-btn" id="openTopicEditBtn"
+                aria-label="Rename topic" title="Rename topic" type="button">⋯</button>
               <button class="btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
                 aria-label="Create flashcard" title="Create flashcard">+</button>
             </div>
@@ -721,6 +723,18 @@
         <button class="btn delete" id="deleteSubjectBtn">Delete</button>
         <button class="btn" id="cancelSubjectEditBtn">Cancel</button>
       </div>
+    </div>
+  </dialog>
+
+  <dialog id="topicEditDialog" class="modal subject-edit-modal">
+    <h3>Edit Topic</h3>
+    <div class="topic-edit-field">
+      <label>Name</label>
+      <input id="editTopicName" placeholder="e.g., Thermodynamics" />
+    </div>
+    <div class="controls topic-edit-actions">
+      <button class="btn save-primary" id="saveTopicEditBtn" type="button">Save</button>
+      <button class="btn" id="cancelTopicEditBtn" type="button">Cancel</button>
     </div>
   </dialog>
 

@@ -46,6 +46,7 @@ const storageImageResolveInFlight = new Map();
 let editingCardId = null;
 let editingCardSnapshot = null;
 let editingSubjectId = null;
+let editingTopicId = null;
 let sessionStartInFlight = false;
 let mcqMode = false;
 let editMcqMode = false;

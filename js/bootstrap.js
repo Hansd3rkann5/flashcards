@@ -1395,6 +1395,14 @@ async function boot() {
       if (e.target === moveCardsDialog) closeDialog(moveCardsDialog);
     });
   }
+  const topicEditDialog = el('topicEditDialog');
+  if (topicEditDialog) {
+    topicEditDialog.addEventListener('click', e => {
+      if (e.target !== topicEditDialog) return;
+      editingTopicId = null;
+      closeDialog(topicEditDialog);
+    });
+  }
 
   const toggleCardSelectBtn = el('toggleCardSelectBtn');
   if (toggleCardSelectBtn) {
@@ -1466,6 +1474,23 @@ async function boot() {
     toggleTopicSelectBtn.onclick = () => {
       setTopicSelectionMode(!topicSelectionMode);
       loadTopics();
+    };
+  }
+  const openTopicEditBtn = el('openTopicEditBtn');
+  if (openTopicEditBtn) {
+    openTopicEditBtn.onclick = async () => {
+      const selectedTopicId = String(selectedTopic?.id || '').trim();
+      if (!selectedTopicId) {
+        alert('Open a topic first.');
+        return;
+      }
+      let topic = currentSubjectTopics.find(t => String(t?.id || '').trim() === selectedTopicId) || null;
+      if (!topic) topic = await getById('topics', selectedTopicId);
+      if (!topic) {
+        alert('Could not load the current topic.');
+        return;
+      }
+      openTopicEditDialog(topic);
     };
   }
   const openTopicSearchBtn = el('openTopicSearchBtn');
@@ -1804,6 +1829,40 @@ async function boot() {
     el('subjectEditDialog').close();
     await deleteSubjectById(id);
   };
+  el('cancelTopicEditBtn').onclick = () => {
+    editingTopicId = null;
+    closeDialog(el('topicEditDialog'));
+  };
+  el('saveTopicEditBtn').onclick = async () => {
+    if (!editingTopicId) return;
+    const name = el('editTopicName').value.trim();
+    if (!name) return;
+    const topic = await getById('topics', editingTopicId);
+    if (!topic) return;
+    const updatedTopic = { ...topic, name };
+    await put('topics', updatedTopic);
+    if (topic?.subjectId) {
+      await touchSubject(topic.subjectId);
+    }
+    if (selectedTopic?.id === editingTopicId) {
+      selectedTopic = { ...selectedTopic, ...updatedTopic };
+      setDeckTitle(updatedTopic.name || 'Deck');
+      const editorTitle = el('editorTitle');
+      if (editorTitle) editorTitle.textContent = `${updatedTopic.name || ''}`;
+    }
+    editingTopicId = null;
+    closeDialog(el('topicEditDialog'));
+    await refreshSidebar();
+    if (selectedSubject) await loadTopics({ force: true });
+  };
+  const editTopicNameInput = el('editTopicName');
+  if (editTopicNameInput) {
+    editTopicNameInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      void el('saveTopicEditBtn')?.click();
+    });
+  }
 
   el('subjectAccentPicker').addEventListener('input', e => {
     el('subjectAccentText').value = e.target.value;
