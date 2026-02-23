@@ -1052,25 +1052,126 @@ async function deleteTopicById(topicId, options = {}) {
 }
 
 /**
+ * @function chunkSubjectDeleteKeys
+ * @description Splits large key arrays into fixed-size chunks for batched deletes.
+ */
+
+function chunkSubjectDeleteKeys(keys = [], chunkSize = 120) {
+  const list = Array.isArray(keys) ? keys : [];
+  const safeChunkSize = Math.max(1, Math.trunc(Number(chunkSize) || 120));
+  const chunks = [];
+  for (let i = 0; i < list.length; i += safeChunkSize) {
+    chunks.push(list.slice(i, i + safeChunkSize));
+  }
+  return chunks;
+}
+
+/**
+ * @function deleteStoreRecordsByKeysFast
+ * @description Deletes many keyed records in batched queries (Supabase) or fast local loops.
+ */
+
+async function deleteStoreRecordsByKeysFast(store = '', keys = [], options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const safeStore = String(store || '').trim();
+  const uniqueKeys = Array.from(new Set(
+    (Array.isArray(keys) ? keys : []).map(key => String(key || '').trim()).filter(Boolean)
+  ));
+  if (!safeStore || !uniqueKeys.length) return 0;
+
+  if (isLocalSnapshotModeEnabled()) {
+    for (const key of uniqueKeys) {
+      await del(safeStore, key, { uiBlocking: false, skipFlushPending: true, invalidate: false });
+    }
+    return uniqueKeys.length;
+  }
+
+  const ownerId = String(opts.ownerId || '').trim();
+  const tenantColumn = String(opts.tenantColumn || '').trim();
+  if (!ownerId || !tenantColumn) {
+    throw new Error(`Missing owner/tenant context for bulk delete (${safeStore}).`);
+  }
+  const chunks = chunkSubjectDeleteKeys(uniqueKeys, 120);
+  for (const chunk of chunks) {
+    let query = supabaseClient
+      .from(SUPABASE_TABLE)
+      .delete()
+      .eq('store', safeStore)
+      .eq(tenantColumn, ownerId);
+    if (chunk.length === 1) query = query.eq('record_key', chunk[0]);
+    else query = query.in('record_key', chunk);
+    const { error } = await query;
+    assertSupabaseSuccess(error, `Failed to bulk delete ${safeStore} records.`);
+  }
+  return uniqueKeys.length;
+}
+
+/**
  * @function deleteSubjectById
  * @description Deletes subject by ID.
  */
 
 async function deleteSubjectById(subjectId) {
-  setAppLoadingState(true, 'Deleting subject...');
+  const safeSubjectId = String(subjectId || '').trim();
+  if (!safeSubjectId) return;
+  if (pendingSubjectDeletionIds.has(safeSubjectId)) return;
+
+  pendingSubjectDeletionIds.add(safeSubjectId);
+  const wasSelectedSubject = String(selectedSubject?.id || '').trim() === safeSubjectId;
+  if (wasSelectedSubject) {
+    selectedSubject = null;
+    selectedTopic = null;
+    setView(0);
+  }
+  // Hide immediately from sidebar while backend cleanup runs.
+  void refreshSidebar({ uiBlocking: false });
+
   try {
-    const topics = await getTopicsBySubject(subjectId, { force: true, uiBlocking: false });
-    for (const t of topics) await deleteTopicById(t.id, { skipSubjectTouch: true, uiBlocking: false });
-    await del('subjects', subjectId, { uiBlocking: false });
-    if (selectedSubject?.id === subjectId) {
-      selectedSubject = null;
-      selectedTopic = null;
-      setView(0);
+    let ownerId = '';
+    let tenantColumn = '';
+    if (!isLocalSnapshotModeEnabled()) {
+      await initSupabaseBackend();
+      await resolveSupabaseTenantColumn();
+      ownerId = await getSupabaseOwnerId();
+      tenantColumn = String(supabaseTenantColumn || '').trim() || 'uid';
     }
+
+    const topics = await getTopicsBySubject(safeSubjectId, { force: true, uiBlocking: false });
+    const topicIds = topics
+      .map(topic => String(topic?.id || '').trim())
+      .filter(Boolean);
+    const cardRefs = topicIds.length
+      ? await getCardRefsByTopicIds(topicIds, {
+        uiBlocking: false,
+        payloadLabel: 'subject-delete-refs'
+      })
+      : [];
+    const cardIds = Array.from(new Set(
+      cardRefs.map(card => String(card?.id || '').trim()).filter(Boolean)
+    ));
+
+    await deleteStoreRecordsByKeysFast('progress', cardIds, { ownerId, tenantColumn });
+    await deleteStoreRecordsByKeysFast('cardbank', cardIds, { ownerId, tenantColumn });
+    await deleteStoreRecordsByKeysFast('cards', cardIds, { ownerId, tenantColumn });
+    await deleteStoreRecordsByKeysFast('topics', topicIds, { ownerId, tenantColumn });
+    await deleteStoreRecordsByKeysFast('subjects', [safeSubjectId], { ownerId, tenantColumn });
+
+    cardIds.forEach(cardId => progressByCardId.delete(cardId));
+    topicIds.forEach(topicId => {
+      selectedTopicIds.delete(topicId);
+      topicSelectedIds.delete(topicId);
+    });
+    if (selectedTopic && topicIds.includes(String(selectedTopic.id || '').trim())) {
+      selectedTopic = null;
+    }
+    invalidateApiStoreCache();
+  } catch (err) {
+    console.error('Failed to delete subject:', err);
+    alert(err?.message || 'Failed to delete subject.');
+  } finally {
+    pendingSubjectDeletionIds.delete(safeSubjectId);
     await refreshSidebar({ uiBlocking: false, force: true });
     if (selectedSubject) await loadTopics({ uiBlocking: false, force: true });
-  } finally {
-    setAppLoadingState(false);
   }
 }
 
