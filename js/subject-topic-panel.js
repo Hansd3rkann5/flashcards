@@ -332,6 +332,7 @@ async function loadTopics(options = {}) {
       const checkbox = selectWrap.querySelector('input');
       checkbox.checked = topicSelectedIds.has(t.id);
       row.classList.toggle('selected-for-bulk', checkbox.checked);
+      selectWrap.addEventListener('click', e => e.stopPropagation());
       checkbox.addEventListener('click', e => e.stopPropagation());
       checkbox.addEventListener('change', () => {
         toggleTopicSelection(t.id, checkbox.checked);
@@ -352,12 +353,15 @@ async function loadTopics(options = {}) {
                 <div class="topic-tile-name">${escapeHTML(t.name)}</div>
                 <div class="tiny topic-card-count">${cardCountLabel}</div>
               </div>
-              <input type="checkbox" data-topic-id="${t.id}" />
             </div>
           `;
-      const checkbox = row.querySelector('input[type="checkbox"]');
+      const selectWrap = document.createElement('label');
+      selectWrap.className = 'card-select-control';
+      selectWrap.innerHTML = `<input type="checkbox" data-topic-id="${t.id}" aria-label="Select topic for study session" />`;
+      const checkbox = selectWrap.querySelector('input');
       checkbox.checked = selectedTopicIds.has(t.id);
       row.classList.toggle('selected', selectedTopicIds.has(t.id));
+      selectWrap.addEventListener('click', e => e.stopPropagation());
       row.onclick = () => {
         selectedTopic = t;
         session.active = false;
@@ -379,6 +383,7 @@ async function loadTopics(options = {}) {
         updateSelectAllSessionTopicsButton(topics);
         await refreshTopicSessionMeta(topics);
       });
+      row.appendChild(selectWrap);
     }
     list.appendChild(row);
   });

@@ -1727,29 +1727,40 @@ textarea:focus-visible {
 
 .topic-list .topic-tile .tile-check {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   height: 100%;
   min-height: 54px;
   align-items: center;
   gap: var(--space-3);
+  padding-right: 42px;
 }
 
-.topic-list .topic-tile .tile-check input[type="checkbox"] {
+.topic-list .topic-tile>.card-select-control {
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
   width: 28px;
   height: 28px;
-  flex: 0 0 auto;
-  position: relative;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.topic-list .topic-tile>.card-select-control input[type="checkbox"] {
+  width: 26px;
+  height: 26px;
   margin: 0;
 }
 
-.topic-list .topic-tile .tile-check input[type="checkbox"]::after {
+.topic-list .topic-tile>.card-select-control input[type="checkbox"]::after {
   content: "";
   position: absolute;
   inset: -8px;
 }
 
-.topic-list .topic-tile .tile-check input[type="checkbox"]::before {
+.topic-list .topic-tile>.card-select-control input[type="checkbox"]::before {
   width: 0.68em;
   height: 0.68em;
 }
@@ -1763,7 +1774,6 @@ textarea:focus-visible {
 
 .topic-tile.selection-mode {
   cursor: pointer;
-  padding-top: calc(var(--space-3) + 20px);
 }
 
 .topic-tile.selected-for-bulk {
