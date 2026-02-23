@@ -13,6 +13,46 @@ function setAuthGateVisibility(visible = false) {
 }
 
 /**
+ * @function isLocalRuntimeHost
+ * @description Returns true when app runs on localhost/loopback and not on a GitHub Pages host.
+ */
+
+function isLocalRuntimeHost() {
+  const hostname = String(window.location.hostname || '').trim().toLowerCase();
+  if (!hostname) return false;
+  const isGithubPagesHost = hostname === 'github.io' || hostname.endsWith('.github.io');
+  if (isGithubPagesHost) return false;
+  const isLoopbackHost = hostname === 'localhost'
+    || hostname === '::1'
+    || hostname === '[::1]'
+    || hostname.startsWith('127.');
+  return isLoopbackHost;
+}
+
+/**
+ * @function updateRuntimeHostHint
+ * @description Toggles the runtime host hint badge for local development hosts.
+ */
+
+function updateRuntimeHostHint() {
+  let badge = el('runtimeHostHint');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'runtimeHostHint';
+    badge.className = 'runtime-host-hint hidden';
+    document.body.appendChild(badge);
+  }
+  if (!isLocalRuntimeHost()) {
+    badge.classList.add('hidden');
+    return;
+  }
+  const hostLabel = String(window.location.host || window.location.hostname || 'localhost').trim();
+  badge.textContent = `Local runtime (${hostLabel})`;
+  badge.title = 'Running locally (localhost/127.*), not on GitHub host.';
+  badge.classList.remove('hidden');
+}
+
+/**
  * @function setAuthMessage
  * @description Updates authentication status text.
  */
@@ -836,6 +876,7 @@ async function ensureAuthenticatedSession() {
 
 async function boot() {
   void registerOfflineServiceWorker();
+  updateRuntimeHostHint();
   try {
     await ensureAuthenticatedSession();
   } catch (err) {
@@ -929,7 +970,23 @@ async function boot() {
   const importJsonBtn = el('importJsonBtn');
   if (importJsonBtn) {
     importJsonBtn.onclick = () => {
+      if (!confirmImportFormatRequirements('json')) return;
       const input = el('importInput');
+      if (!input) return;
+      // Allow re-importing the same file by clearing previous selection first.
+      input.value = '';
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+        return;
+      }
+      input.click();
+    };
+  }
+  const importCsvBtn = el('importCsvBtn');
+  if (importCsvBtn) {
+    importCsvBtn.onclick = () => {
+      if (!confirmImportFormatRequirements('csv')) return;
+      const input = el('importCsvInput');
       if (!input) return;
       // Allow re-importing the same file by clearing previous selection first.
       input.value = '';
@@ -954,8 +1011,26 @@ async function boot() {
   if (importInput) {
     importInput.addEventListener('change', e => {
       const file = e.target?.files?.[0];
-      if (file) importJSON(file);
+      if (file) {
+        importJSON(file).catch(err => {
+          console.error('JSON import failed:', err);
+          alert(err?.message || 'JSON import failed.');
+        });
+      }
       importInput.value = '';
+    });
+  }
+  const importCsvInput = el('importCsvInput');
+  if (importCsvInput) {
+    importCsvInput.addEventListener('change', e => {
+      const file = e.target?.files?.[0];
+      if (file) {
+        importCSV(file).catch(err => {
+          console.error('CSV import failed:', err);
+          alert(err?.message || 'CSV import failed.');
+        });
+      }
+      importCsvInput.value = '';
     });
   }
   const openProgressCheckBtn = el('openProgressCheckBtn');

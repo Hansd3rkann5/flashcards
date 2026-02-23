@@ -1614,10 +1614,35 @@ function handleListAutoIndent(e) {
   if (!listMeta) return;
 
   e.preventDefault();
-  let insert = '\n';
   if (!listMeta.text.trim()) {
-    insert = '\n';
-  } else if (listMeta.type === 'ul') {
+    const depth = getListDepth(listMeta);
+    if (depth > 0) {
+      const outdentedIndent = listMeta.indent.slice(0, Math.max(0, listMeta.indent.length - 2));
+      let outdentedLine = '';
+      if (listMeta.type === 'ol') {
+        const outdentedSequence = listMeta.sequence.length > 1
+          ? listMeta.sequence.slice(0, -1)
+          : [1];
+        outdentedLine = `${outdentedIndent}${formatOrderedSequence(outdentedSequence)} `;
+      } else {
+        const outdentedMarker = getOutdentedBulletMarker(listMeta.marker || '-');
+        outdentedLine = `${outdentedIndent}${outdentedMarker} `;
+      }
+      textarea.setRangeText(outdentedLine, lineStart, lineEnd, 'end');
+      const nextCaret = Math.min(lineStart + outdentedLine.length, textarea.value.length);
+      textarea.setSelectionRange(nextCaret, nextCaret);
+      emitTextareaInput(textarea);
+      return;
+    }
+    // Root-level empty list line: remove marker in-place instead of creating a new line.
+    textarea.setRangeText('', lineStart, lineEnd, 'end');
+    textarea.setSelectionRange(lineStart, lineStart);
+    emitTextareaInput(textarea);
+    return;
+  }
+
+  let insert = '\n';
+  if (listMeta.type === 'ul') {
     insert = `\n${listMeta.indent}${listMeta.marker || '-'} `;
   } else if (listMeta.type === 'ol') {
     const nextSequence = [...listMeta.sequence];
@@ -1638,16 +1663,6 @@ function handleListTabIndent(e) {
   const textarea = e.target;
   if (!(textarea instanceof HTMLTextAreaElement)) return;
 
-  if (textarea.id === 'cardPrompt' && !e.shiftKey) {
-    e.preventDefault();
-    const answerField = el('cardAnswer');
-    if (!(answerField instanceof HTMLTextAreaElement)) return;
-    answerField.focus();
-    const caret = answerField.value.length;
-    answerField.setSelectionRange(caret, caret);
-    return;
-  }
-
   const start = textarea.selectionStart ?? 0;
   const end = textarea.selectionEnd ?? start;
   if (start !== end) return;
@@ -1658,7 +1673,17 @@ function handleListTabIndent(e) {
   const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
   const line = value.slice(lineStart, lineEnd);
   const listMeta = parseListLineMeta(line);
-  if (!listMeta) return;
+  if (!listMeta) {
+    if (textarea.id === 'cardPrompt' && !e.shiftKey) {
+      e.preventDefault();
+      const answerField = el('cardAnswer');
+      if (!(answerField instanceof HTMLTextAreaElement)) return;
+      answerField.focus();
+      const caret = answerField.value.length;
+      answerField.setSelectionRange(caret, caret);
+    }
+    return;
+  }
 
   e.preventDefault();
   let nextLine = line;

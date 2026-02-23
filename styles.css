@@ -2280,6 +2280,40 @@ textarea:focus-visible {
   display: none !important;
 }
 
+.runtime-host-hint {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: 12px;
+  z-index: 190;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 210, 120, 0.55);
+  background: rgb(198, 60, 10);
+  color: #ffe7b5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(8px);
+  width: 74%;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .runtime-host-hint {
+    right: 10px;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    font-size: 0.68rem;
+    padding: 6px 10px;
+  }
+}
+
 .palette {
   display: flex;
   gap: var(--space-2);

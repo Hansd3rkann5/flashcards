@@ -184,36 +184,804 @@ async function exportCSV() {
 }
 
 /**
+ * @function confirmImportFormatRequirements
+ * @description Shows a short format hint before opening the file picker.
+ */
+
+function confirmImportFormatRequirements(format = 'json') {
+  const safeFormat = String(format || '').trim().toLowerCase() === 'csv' ? 'csv' : 'json';
+  const title = safeFormat === 'csv'
+    ? 'CSV import format requirements:'
+    : 'JSON import format requirements:';
+  const body = safeFormat === 'csv'
+    ? [
+      '- Header row required.',
+      '- Minimum required columns: subject, topic, question, answer.',
+      '- IDs are optional (card id/topicId can be empty).',
+      '- Supported columns: id, topicId, topic, topicName, subject, subjectName, type, prompt/question, answer, options, imagesQ, imagesA.',
+      '- Best compatibility: use files exported via "Export CSV".'
+    ].join('\n')
+    : [
+      '- JSON array of cards OR object with cards/subjects/topics/progress arrays.',
+      '- Minimum required per card: subject, topic, question, answer.',
+      '- IDs are optional (card id/topicId can be empty).',
+      '- Best compatibility: use files exported via "Export JSON".'
+    ].join('\n');
+  return confirm(`${title}\n\n${body}\n\nContinue and choose a file?`);
+}
+
+/**
+ * @function normalizeImportCsvHeaderKey
+ * @description Maps raw CSV header names to canonical field keys.
+ */
+
+function normalizeImportCsvHeaderKey(raw = '') {
+  const normalized = String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+  if (!normalized) return '';
+  if (normalized === 'id' || normalized === 'cardid') return 'id';
+  if (normalized === 'topicid') return 'topicId';
+  if (normalized === 'topic') return 'topicName';
+  if (normalized === 'topicname') return 'topicName';
+  if (normalized === 'subject') return 'subjectName';
+  if (normalized === 'subjectname') return 'subjectName';
+  if (normalized === 'type') return 'type';
+  if (normalized === 'prompt' || normalized === 'question' || normalized === 'q') return 'prompt';
+  if (normalized === 'answer' || normalized === 'a') return 'answer';
+  if (normalized === 'options' || normalized === 'choices') return 'options';
+  if (normalized === 'imagesq' || normalized === 'questionimages') return 'imagesQ';
+  if (normalized === 'imagesa' || normalized === 'answerimages') return 'imagesA';
+  if (normalized === 'imagedataq') return 'imageDataQ';
+  if (normalized === 'imagedataa') return 'imageDataA';
+  if (normalized === 'textalign') return 'textAlign';
+  if (normalized === 'questiontextalign') return 'questionTextAlign';
+  if (normalized === 'answertextalign') return 'answerTextAlign';
+  if (normalized === 'optionstextalign') return 'optionsTextAlign';
+  return '';
+}
+
+/**
+ * @function parseCsvTextToRows
+ * @description Parses CSV text (including quoted multiline values) into row arrays.
+ */
+
+function parseCsvTextToRows(csvText = '') {
+  const text = String(csvText || '');
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let idx = 0;
+  let inQuotes = false;
+
+  while (idx < text.length) {
+    const char = text[idx];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[idx + 1] === '"') {
+          cell += '"';
+          idx += 2;
+          continue;
+        }
+        inQuotes = false;
+        idx += 1;
+        continue;
+      }
+      cell += char;
+      idx += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+      idx += 1;
+      continue;
+    }
+    if (char === ',') {
+      row.push(cell);
+      cell = '';
+      idx += 1;
+      continue;
+    }
+    if (char === '\n' || char === '\r') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+      if (char === '\r' && text[idx + 1] === '\n') idx += 1;
+      idx += 1;
+      continue;
+    }
+
+    cell += char;
+    idx += 1;
+  }
+
+  row.push(cell);
+  rows.push(row);
+  return rows
+    .map(cols => cols.map(value => String(value || '')))
+    .filter((cols, rowIndex) => {
+      if (!Array.isArray(cols)) return false;
+      if (rowIndex === 0) return true;
+      return cols.some(value => String(value || '').trim() !== '');
+    });
+}
+
+/**
+ * @function parseCsvObjectRows
+ * @description Parses CSV text and returns canonical header keys plus object rows.
+ */
+
+function parseCsvObjectRows(csvText = '') {
+  const matrix = parseCsvTextToRows(csvText);
+  if (!matrix.length) {
+    throw new Error('CSV file is empty.');
+  }
+  const header = matrix[0] || [];
+  const keys = header.map(normalizeImportCsvHeaderKey);
+  const knownHeaderCount = keys.filter(Boolean).length;
+  if (!knownHeaderCount) {
+    throw new Error('CSV header row is missing or unsupported.');
+  }
+  if (!keys.includes('subjectName')) {
+    throw new Error('CSV must include a subject column (subject/subjectName).');
+  }
+  if (!keys.includes('topicName')) {
+    throw new Error('CSV must include a topic column (topic/topicName).');
+  }
+  if (!keys.includes('prompt') || !keys.includes('answer')) {
+    throw new Error('CSV must include question/prompt and answer columns.');
+  }
+
+  const rows = matrix.slice(1).map(cols => {
+    const row = {};
+    keys.forEach((key, idx) => {
+      if (!key) return;
+      row[key] = String(cols[idx] || '').trim();
+    });
+    return row;
+  }).filter(row => Object.values(row).some(value => String(value || '').trim() !== ''));
+
+  return { headerKeys: keys, rows };
+}
+
+/**
+ * @function normalizeImportLookupName
+ * @description Normalizes names for case-insensitive import matching.
+ */
+
+function normalizeImportLookupName(value = '') {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+/**
+ * @function getImportSubjectName
+ * @description Resolves a subject name from flexible import row keys.
+ */
+
+function getImportSubjectName(row = null) {
+  if (!row || typeof row !== 'object') return '';
+  return String(
+    row.subjectName
+    ?? row.subject
+    ?? row.subject_title
+    ?? ''
+  ).trim();
+}
+
+/**
+ * @function getImportTopicName
+ * @description Resolves a topic name from flexible import row keys.
+ */
+
+function getImportTopicName(row = null) {
+  if (!row || typeof row !== 'object') return '';
+  return String(
+    row.topicName
+    ?? row.topic
+    ?? row.topic_title
+    ?? ''
+  ).trim();
+}
+
+/**
+ * @function getImportPromptText
+ * @description Resolves a card question text from flexible import row keys.
+ */
+
+function getImportPromptText(row = null) {
+  if (!row || typeof row !== 'object') return '';
+  return String(
+    row.prompt
+    ?? row.question
+    ?? row.q
+    ?? ''
+  ).trim();
+}
+
+/**
+ * @function getImportAnswerText
+ * @description Resolves a card answer text from flexible import row keys.
+ */
+
+function getImportAnswerText(row = null) {
+  if (!row || typeof row !== 'object') return '';
+  return String(
+    row.answer
+    ?? row.a
+    ?? ''
+  ).trim();
+}
+
+/**
+ * @function parseCsvStringList
+ * @description Parses a CSV cell into a string list (JSON array, "|" list, or single string).
+ */
+
+function parseCsvStringList(raw = '') {
+  const safe = String(raw || '').trim();
+  if (!safe) return [];
+
+  if ((safe.startsWith('[') && safe.endsWith(']')) || (safe.startsWith('{') && safe.endsWith('}'))) {
+    try {
+      const parsed = JSON.parse(safe);
+      if (Array.isArray(parsed)) {
+        return normalizeImageList(parsed.map(value => String(value || '').trim()));
+      }
+      if (parsed && typeof parsed === 'object') {
+        return normalizeImageList(Object.values(parsed).map(value => String(value || '').trim()));
+      }
+    } catch (_) {
+      // Fall back to plain token parsing below.
+    }
+  }
+
+  if (safe.includes('|')) {
+    return normalizeImageList(safe.split('|').map(value => String(value || '').trim()));
+  }
+  return normalizeImageList([safe]);
+}
+
+/**
+ * @function normalizeCsvOptionObject
+ * @description Normalizes one option value to { text, correct }.
+ */
+
+function normalizeCsvOptionObject(raw = null) {
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (!text) return null;
+    return { text, correct: false };
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  const text = String(raw.text ?? '').trim();
+  if (!text) return null;
+  const correctRaw = raw.correct;
+  const correct = correctRaw === true || String(correctRaw || '').trim().toLowerCase() === 'true';
+  return { text, correct };
+}
+
+/**
+ * @function parseCsvOptions
+ * @description Parses options from CSV cell content.
+ */
+
+function parseCsvOptions(raw = '') {
+  const safe = String(raw || '').trim();
+  if (!safe) return [];
+
+  let parsed = null;
+  if ((safe.startsWith('[') && safe.endsWith(']')) || (safe.startsWith('{') && safe.endsWith('}'))) {
+    try {
+      parsed = JSON.parse(safe);
+    } catch (_) {
+      parsed = null;
+    }
+  }
+
+  const candidates = Array.isArray(parsed)
+    ? parsed
+    : safe.split('|').map(token => {
+      const value = String(token || '').trim();
+      if (!value) return null;
+      const prefixedCorrect = value.startsWith('*') || value.startsWith('+');
+      const text = prefixedCorrect ? value.slice(1).trim() : value;
+      return { text, correct: prefixedCorrect };
+    });
+
+  const seen = new Set();
+  const options = [];
+  candidates.forEach(entry => {
+    const normalized = normalizeCsvOptionObject(entry);
+    if (!normalized) return;
+    const dedupeKey = `${normalized.text.toLowerCase()}::${normalized.correct ? '1' : '0'}`;
+    if (seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
+    options.push(normalized);
+  });
+  return options;
+}
+
+/**
+ * @function ensureCsvImportSubject
+ * @description Ensures a subject exists for CSV import and returns it.
+ */
+
+async function ensureCsvImportSubject(subjectName = '', cache = null) {
+  const safeName = String(subjectName || '').trim() || 'Imported';
+  const key = normalizeImportLookupName(safeName);
+  const subjectByName = cache?.subjectByName;
+  const subjectById = cache?.subjectById;
+  if (subjectByName instanceof Map && subjectByName.has(key)) {
+    return { subject: subjectByName.get(key), created: false };
+  }
+
+  const subject = buildSubjectRecord({
+    id: uid(),
+    name: safeName,
+    accent: '#2dd4bf'
+  });
+  await put('subjects', subject);
+  if (subjectByName instanceof Map) subjectByName.set(key, subject);
+  if (subjectById instanceof Map) subjectById.set(String(subject.id || '').trim(), subject);
+  return { subject, created: true };
+}
+
+/**
+ * @function ensureCsvImportTopic
+ * @description Ensures a topic exists for CSV import and returns it.
+ */
+
+async function ensureCsvImportTopic(topicName = '', subjectId = '', topicIdHint = '', cache = null) {
+  const safeSubjectId = String(subjectId || '').trim();
+  const safeTopicName = String(topicName || '').trim() || 'Imported Topic';
+  const safeTopicIdHint = String(topicIdHint || '').trim();
+  const topicById = cache?.topicById;
+  const topicByLookup = cache?.topicByLookup;
+
+  if (safeTopicIdHint && topicById instanceof Map && topicById.has(safeTopicIdHint)) {
+    return { topic: topicById.get(safeTopicIdHint), created: false };
+  }
+
+  const lookupKey = `${safeSubjectId}::${normalizeImportLookupName(safeTopicName)}`;
+  if (topicByLookup instanceof Map && topicByLookup.has(lookupKey)) {
+    return { topic: topicByLookup.get(lookupKey), created: false };
+  }
+
+  const nextTopicId = (safeTopicIdHint && !(topicById instanceof Map && topicById.has(safeTopicIdHint)))
+    ? safeTopicIdHint
+    : uid();
+  const topic = {
+    id: nextTopicId,
+    subjectId: safeSubjectId,
+    name: safeTopicName
+  };
+  await put('topics', topic);
+  if (topicById instanceof Map) topicById.set(nextTopicId, topic);
+  if (topicByLookup instanceof Map) topicByLookup.set(lookupKey, topic);
+  return { topic, created: true };
+}
+
+/**
+ * @function importCSV
+ * @description Imports flashcards from CSV rows.
+ */
+
+async function importCSV(file) {
+  const text = await file.text();
+  const parsed = parseCsvObjectRows(text);
+  const rows = Array.isArray(parsed?.rows) ? parsed.rows : [];
+  if (!rows.length) {
+    alert('No CSV rows to import.');
+    return;
+  }
+
+  const [subjects, topics, cards] = await Promise.all([
+    getAll('subjects'),
+    getAll('topics'),
+    getAll('cards')
+  ]);
+
+  const subjectById = new Map();
+  const subjectByName = new Map();
+  (Array.isArray(subjects) ? subjects : []).forEach(subject => {
+    const id = String(subject?.id || '').trim();
+    if (!id) return;
+    subjectById.set(id, subject);
+    subjectByName.set(normalizeImportLookupName(subject?.name || ''), subject);
+  });
+
+  const topicById = new Map();
+  const topicByLookup = new Map();
+  (Array.isArray(topics) ? topics : []).forEach(topic => {
+    const id = String(topic?.id || '').trim();
+    const subjectId = String(topic?.subjectId || '').trim();
+    if (!id || !subjectId) return;
+    topicById.set(id, topic);
+    topicByLookup.set(`${subjectId}::${normalizeImportLookupName(topic?.name || '')}`, topic);
+  });
+
+  const cardById = new Map();
+  (Array.isArray(cards) ? cards : []).forEach(card => {
+    const id = String(card?.id || '').trim();
+    if (!id) return;
+    cardById.set(id, card);
+  });
+
+  const cache = { subjectById, subjectByName, topicById, topicByLookup, cardById };
+  const nowIso = new Date().toISOString();
+  let createdSubjects = 0;
+  let createdTopics = 0;
+  let importedCards = 0;
+  let skippedRows = 0;
+
+  for (let idx = 0; idx < rows.length; idx += 1) {
+    const row = rows[idx] || {};
+    const rowLabel = `Row ${idx + 2}`; // +2 because CSV row 1 is header.
+    const rawSubjectName = getImportSubjectName(row);
+    const rawTopicName = getImportTopicName(row);
+    const prompt = getImportPromptText(row);
+    const answer = getImportAnswerText(row);
+    const rawTopicId = String(row.topicId || '').trim();
+
+    if (!rawSubjectName || !rawTopicName || !prompt || !answer) {
+      console.warn(`${rowLabel}: skipped because subject/topic/question/answer are required.`);
+      skippedRows += 1;
+      continue;
+    }
+
+    const ensureSubject = await ensureCsvImportSubject(rawSubjectName, cache);
+    const subject = ensureSubject.subject;
+    if (ensureSubject.created) createdSubjects += 1;
+
+    let topic = rawTopicId ? topicById.get(rawTopicId) : null;
+    const safeSubjectId = String(subject?.id || '').trim();
+    if (topic && String(topic.subjectId || '').trim() !== safeSubjectId) {
+      topic = null;
+    }
+
+    if (!topic) {
+      const ensureTopic = await ensureCsvImportTopic(rawTopicName, subject.id, rawTopicId, cache);
+      topic = ensureTopic.topic;
+      if (ensureTopic.created) createdTopics += 1;
+    }
+
+    if (!topic?.id) {
+      console.warn(`${rowLabel}: skipped because topic resolution failed.`);
+      skippedRows += 1;
+      continue;
+    }
+
+    const rawCardId = String(row.id || '').trim();
+    const cardId = rawCardId || uid();
+    const existing = cardById.get(cardId) || null;
+    const imageDataQ = parseCsvStringList(row.imagesQ || row.imageDataQ || '');
+    const imageDataA = parseCsvStringList(row.imagesA || row.imageDataA || '');
+
+    const type = String(row.type || existing?.type || '').trim().toLowerCase() === 'mcq' ? 'mcq' : 'qa';
+    let options = parseCsvOptions(row.options || '');
+    if (type === 'mcq' && !options.length && answer) {
+      options = [{ text: answer, correct: true }];
+    }
+    if (type !== 'mcq') {
+      options = [];
+    }
+
+    const migratedImagePayload = await buildCardImagePayloadForSave(cardId, imageDataQ, imageDataA);
+    const questionTextAlign = normalizeTextAlign(
+      row.questionTextAlign
+      || row.textAlign
+      || existing?.questionTextAlign
+      || existing?.textAlign
+      || 'center'
+    );
+    const answerTextAlign = normalizeTextAlign(
+      row.answerTextAlign
+      || row.textAlign
+      || existing?.answerTextAlign
+      || existing?.textAlign
+      || 'center'
+    );
+    const optionsTextAlign = normalizeTextAlign(
+      row.optionsTextAlign
+      || existing?.optionsTextAlign
+      || 'center'
+    );
+    const createdAt = existing?.meta?.createdAt || existing?.createdAt || nowIso;
+    const nextCard = {
+      ...(existing || {}),
+      id: cardId,
+      topicId: String(topic.id || '').trim(),
+      type,
+      prompt,
+      answer,
+      options,
+      textAlign: questionTextAlign,
+      questionTextAlign,
+      answerTextAlign,
+      optionsTextAlign,
+      ...migratedImagePayload,
+      createdAt,
+      meta: {
+        ...(existing?.meta || {}),
+        createdAt,
+        updatedAt: nowIso
+      }
+    };
+
+    await put('cards', nextCard);
+    await putCardBank(nextCard);
+    cardById.set(cardId, nextCard);
+    importedCards += 1;
+  }
+
+  progressByCardId = new Map();
+  const skipNote = skippedRows > 0 ? ` Skipped rows: ${skippedRows}.` : '';
+  alert(
+    `CSV import complete.\nImported cards: ${importedCards}\nCreated subjects: ${createdSubjects}\nCreated topics: ${createdTopics}.${skipNote}`
+  );
+  refreshSidebar();
+  if (selectedSubject) loadTopics();
+  if (selectedTopic) loadDeck();
+}
+
+/**
+ * @function normalizeJsonImportPayload
+ * @description Normalizes flexible JSON import structures into store arrays.
+ */
+
+function normalizeJsonImportPayload(raw = null) {
+  const root = Array.isArray(raw)
+    ? { cards: raw }
+    : (raw && typeof raw === 'object')
+      ? raw
+      : {};
+  const toRows = value => (Array.isArray(value) ? value.filter(row => row && typeof row === 'object') : []);
+  const cardsFromRoot = toRows(root.cards);
+  const fallbackCards = cardsFromRoot.length
+    ? cardsFromRoot
+    : toRows(root.flashcards).length
+      ? toRows(root.flashcards)
+      : toRows(root.items);
+  const singleCard = (!fallbackCards.length && root && typeof root === 'object'
+    && (root.prompt || root.question || root.answer))
+    ? [{ ...root }]
+    : [];
+  return {
+    subjects: toRows(root.subjects),
+    topics: toRows(root.topics),
+    cards: fallbackCards.length ? fallbackCards : singleCard,
+    progress: toRows(root.progress)
+  };
+}
+
+/**
  * @function importJSON
  * @description Imports JSON.
  */
 
 async function importJSON(file) {
   const text = await file.text();
-  const data = JSON.parse(text);
-  for (const s of ['subjects', 'topics', 'cards', 'progress']) {
-    for (const row of (data[s] || [])) {
-      if (s === 'cards') {
-        const cardId = String(row?.id || '').trim() || uid();
-        const migratedImagePayload = await buildCardImagePayloadForSave(
-          cardId,
-          getCardImageList(row, 'Q'),
-          getCardImageList(row, 'A')
-        );
-        const nextCard = {
-          ...row,
-          id: cardId,
-          ...migratedImagePayload
-        };
-        await put('cards', nextCard);
-        await putCardBank(nextCard);
-      } else {
-        await put(s, row);
-      }
-    }
+  const parsed = normalizeJsonImportPayload(JSON.parse(text));
+  if (!parsed.subjects.length && !parsed.topics.length && !parsed.cards.length && !parsed.progress.length) {
+    throw new Error('JSON contains no importable rows.');
   }
+
+  const [subjects, topics, cards] = await Promise.all([
+    getAll('subjects'),
+    getAll('topics'),
+    getAll('cards')
+  ]);
+
+  const subjectById = new Map();
+  const subjectByName = new Map();
+  (Array.isArray(subjects) ? subjects : []).forEach(subject => {
+    const id = String(subject?.id || '').trim();
+    if (!id) return;
+    subjectById.set(id, subject);
+    subjectByName.set(normalizeImportLookupName(subject?.name || ''), subject);
+  });
+
+  const topicById = new Map();
+  const topicByLookup = new Map();
+  (Array.isArray(topics) ? topics : []).forEach(topic => {
+    const id = String(topic?.id || '').trim();
+    const subjectId = String(topic?.subjectId || '').trim();
+    if (!id || !subjectId) return;
+    topicById.set(id, topic);
+    topicByLookup.set(`${subjectId}::${normalizeImportLookupName(topic?.name || '')}`, topic);
+  });
+
+  const cardById = new Map();
+  (Array.isArray(cards) ? cards : []).forEach(card => {
+    const id = String(card?.id || '').trim();
+    if (!id) return;
+    cardById.set(id, card);
+  });
+
+  const cache = { subjectById, subjectByName, topicById, topicByLookup, cardById };
+  const nowIso = new Date().toISOString();
+  let createdSubjects = 0;
+  let createdTopics = 0;
+  let importedCards = 0;
+  let importedProgress = 0;
+  let skippedCards = 0;
+
+  for (const row of parsed.subjects) {
+    const safeRow = (row && typeof row === 'object') ? row : {};
+    const rowName = String(safeRow.name || safeRow.subjectName || safeRow.subject || '').trim();
+    const rowId = String(safeRow.id || '').trim();
+    const nameKey = normalizeImportLookupName(rowName);
+    const existing = (rowId && subjectById.get(rowId))
+      || (nameKey ? subjectByName.get(nameKey) : null)
+      || null;
+    const nextName = rowName || String(existing?.name || '').trim();
+    if (!nextName) continue;
+    const nextId = rowId || String(existing?.id || '').trim() || uid();
+    const nextSubject = buildSubjectRecord({
+      ...(existing || {}),
+      ...safeRow,
+      id: nextId,
+      name: nextName,
+      accent: normalizeHexColor(safeRow.accent || existing?.accent || '#2dd4bf')
+    });
+    await put('subjects', nextSubject);
+    if (!existing) createdSubjects += 1;
+    subjectById.set(nextId, nextSubject);
+    subjectByName.set(normalizeImportLookupName(nextName), nextSubject);
+  }
+
+  for (const row of parsed.topics) {
+    const safeRow = (row && typeof row === 'object') ? row : {};
+    const rowTopicName = getImportTopicName(safeRow) || String(safeRow.name || '').trim();
+    const rowTopicId = String(safeRow.id || '').trim();
+    const rowSubjectId = String(safeRow.subjectId || '').trim();
+    const rowSubjectName = getImportSubjectName(safeRow);
+    let subject = rowSubjectId ? subjectById.get(rowSubjectId) : null;
+    if (!subject && rowSubjectName) {
+      const ensured = await ensureCsvImportSubject(rowSubjectName, cache);
+      subject = ensured.subject;
+      if (ensured.created) createdSubjects += 1;
+    }
+    if (!subject || !rowTopicName) continue;
+    const lookupKey = `${String(subject.id || '').trim()}::${normalizeImportLookupName(rowTopicName)}`;
+    const existing = (rowTopicId && topicById.get(rowTopicId))
+      || topicByLookup.get(lookupKey)
+      || null;
+    const nextTopicId = rowTopicId || String(existing?.id || '').trim() || uid();
+    const nextTopic = {
+      ...(existing || {}),
+      ...safeRow,
+      id: nextTopicId,
+      subjectId: String(subject.id || '').trim(),
+      name: rowTopicName
+    };
+    await put('topics', nextTopic);
+    if (!existing) createdTopics += 1;
+    topicById.set(nextTopicId, nextTopic);
+    topicByLookup.set(lookupKey, nextTopic);
+  }
+
+  for (let idx = 0; idx < parsed.cards.length; idx += 1) {
+    const row = parsed.cards[idx] || {};
+    const rowLabel = `Card row ${idx + 1}`;
+    const rawSubjectName = getImportSubjectName(row);
+    const rawTopicName = getImportTopicName(row);
+    const prompt = getImportPromptText(row);
+    const answer = getImportAnswerText(row);
+    if (!rawSubjectName || !rawTopicName || !prompt || !answer) {
+      console.warn(`${rowLabel}: skipped because subject/topic/question/answer are required.`);
+      skippedCards += 1;
+      continue;
+    }
+
+    const ensureSubject = await ensureCsvImportSubject(rawSubjectName, cache);
+    const subject = ensureSubject.subject;
+    if (ensureSubject.created) createdSubjects += 1;
+
+    const rawTopicId = String(row.topicId || '').trim();
+    let topic = rawTopicId ? topicById.get(rawTopicId) : null;
+    const safeSubjectId = String(subject?.id || '').trim();
+    if (topic && String(topic.subjectId || '').trim() !== safeSubjectId) {
+      topic = null;
+    }
+    if (!topic) {
+      const ensureTopic = await ensureCsvImportTopic(rawTopicName, safeSubjectId, rawTopicId, cache);
+      topic = ensureTopic.topic;
+      if (ensureTopic.created) createdTopics += 1;
+    }
+    if (!topic?.id) {
+      skippedCards += 1;
+      continue;
+    }
+
+    const cardId = String(row.id || '').trim() || uid();
+    const existing = cardById.get(cardId) || null;
+    const typeRaw = String(row.type || existing?.type || '').trim().toLowerCase();
+    let options = [];
+    if (Array.isArray(row.options)) {
+      options = row.options
+        .map(normalizeCsvOptionObject)
+        .filter(Boolean);
+    } else if (typeof row.options === 'string') {
+      options = parseCsvOptions(row.options);
+    }
+    const type = typeRaw === 'mcq' || options.length > 1 ? 'mcq' : 'qa';
+    if (type !== 'mcq') options = [];
+    if (type === 'mcq' && !options.length) {
+      options = [{ text: answer, correct: true }];
+    }
+
+    const migratedImagePayload = await buildCardImagePayloadForSave(
+      cardId,
+      getCardImageList(row, 'Q'),
+      getCardImageList(row, 'A')
+    );
+    const questionTextAlign = normalizeTextAlign(
+      row.questionTextAlign
+      || row.textAlign
+      || existing?.questionTextAlign
+      || existing?.textAlign
+      || 'center'
+    );
+    const answerTextAlign = normalizeTextAlign(
+      row.answerTextAlign
+      || row.textAlign
+      || existing?.answerTextAlign
+      || existing?.textAlign
+      || 'center'
+    );
+    const optionsTextAlign = normalizeTextAlign(
+      row.optionsTextAlign
+      || existing?.optionsTextAlign
+      || 'center'
+    );
+    const createdAt = existing?.meta?.createdAt || existing?.createdAt || nowIso;
+    const nextCard = {
+      ...(existing || {}),
+      ...row,
+      id: cardId,
+      topicId: String(topic.id || '').trim(),
+      type,
+      prompt,
+      answer,
+      options,
+      textAlign: questionTextAlign,
+      questionTextAlign,
+      answerTextAlign,
+      optionsTextAlign,
+      ...migratedImagePayload,
+      createdAt,
+      meta: {
+        ...(existing?.meta || {}),
+        createdAt,
+        updatedAt: nowIso
+      }
+    };
+    await put('cards', nextCard);
+    await putCardBank(nextCard);
+    cardById.set(cardId, nextCard);
+    importedCards += 1;
+  }
+
+  for (const row of parsed.progress) {
+    const safeRow = (row && typeof row === 'object') ? row : {};
+    const cardId = String(safeRow.cardId || '').trim();
+    if (!cardId) continue;
+    await put('progress', { ...safeRow, cardId });
+    importedProgress += 1;
+  }
+
   progressByCardId = new Map();
-  alert('Imported successfully.');
+  const skippedNote = skippedCards > 0 ? `\nSkipped cards: ${skippedCards}` : '';
+  alert(
+    `JSON import complete.\nImported cards: ${importedCards}\nImported progress: ${importedProgress}\nCreated subjects: ${createdSubjects}\nCreated topics: ${createdTopics}${skippedNote}`
+  );
   refreshSidebar();
   if (selectedSubject) loadTopics();
   if (selectedTopic) loadDeck();
