@@ -61,7 +61,8 @@ function updateSidebarMetaInfo() {
   const versionLabel = el('appVersionLabel');
   if (!versionLabel) return;
   const safeVersion = String(window.__APP_VERSION__ || '').trim() || 'dev';
-  versionLabel.textContent = safeVersion;
+  const runtimeChannel = isLocalRuntimeHost() ? 'local' : 'public';
+  versionLabel.textContent = `${safeVersion} (${runtimeChannel})`;
 }
 
 /**
