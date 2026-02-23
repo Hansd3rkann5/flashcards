@@ -145,6 +145,7 @@ let dailyReviewState = {
   expandedSubjectKeys: new Set(),
   selectedTopicIds: new Set(),
   statusByCardId: new Map(),
+  reviewPriorityByCardId: new Map(),
   latestStateByCardId: new Map(),
   latestStateCounts: {
     mastered: 0,
@@ -177,6 +178,7 @@ const PROGRESS_CHECK_COLUMN_KEYS = Object.freeze([
   'topic',
   'question',
   'current',
+  'score',
   'streak',
   'lastGrade',
   'lastAnsweredAt',
@@ -188,6 +190,7 @@ const PROGRESS_CHECK_COLUMN_LABELS = Object.freeze({
   topic: 'Topic',
   question: 'Question',
   current: 'Current',
+  score: 'Score',
   streak: 'Streak',
   lastGrade: 'Last Grade',
   lastAnsweredAt: 'Last Answered',

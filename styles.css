@@ -3783,41 +3783,70 @@ dialog.modal.subject-edit-modal {
   border-color: #435479;
 }
 
-#subjectEditDialog h3 {
+:is(#subjectDialog, #subjectEditDialog) h3 {
   margin: 0 0 var(--space-3);
   text-align: center;
 }
 
-#subjectEditDialog .subject-edit-grid {
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-grid {
   display: grid;
   gap: var(--space-3);
   justify-items: center;
 }
 
-#subjectEditDialog .subject-edit-field {
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-field {
   width: min(360px, 100%);
   display: grid;
   gap: 8px;
   justify-items: center;
 }
 
-#subjectEditDialog .subject-edit-field label {
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-field label {
   width: 100%;
   text-align: center;
   font-weight: 700;
 }
 
+#subjectDialog #subjectNameInput,
+#subjectDialog #subjectAccentPicker,
+#subjectDialog #subjectAccentText,
+#subjectDialog #subjectExamDateInput,
 #subjectEditDialog #editSubjectName,
-#subjectEditDialog #editSubjectColor {
+#subjectEditDialog #editSubjectColor,
+#subjectEditDialog #editSubjectExamDate {
   width: 100%;
   margin: 0;
 }
 
+#subjectDialog #subjectAccentPicker,
 #subjectEditDialog #editSubjectColor {
   height: 46px;
 }
 
-#subjectEditDialog .subject-edit-actions {
+.subject-review-checkbox-field {
+  display: flex;
+  align-items: center;
+}
+
+.subject-review-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.subject-review-checkbox-label input[type="checkbox"] {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+}
+
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-checkbox-field {
+  align-items: center;
+}
+
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-actions {
   width: 100%;
   margin-top: var(--space-3);
   display: grid;
@@ -3825,19 +3854,29 @@ dialog.modal.subject-edit-modal {
   justify-items: center;
 }
 
+#subjectDialog .subject-edit-actions #createSubjectBtn,
 #subjectEditDialog .subject-edit-actions #saveSubjectEditBtn {
   width: min(360px, 100%);
 }
 
-#subjectEditDialog .subject-edit-secondary-actions {
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-secondary-actions {
   width: min(360px, 100%);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
 }
 
-#subjectEditDialog .subject-edit-secondary-actions .btn {
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-secondary-actions .btn {
   width: 100%;
+}
+
+#subjectDialog .subject-create-secondary-actions {
+  grid-template-columns: 1fr;
+}
+
+#subjectDialog .subject-edit-palette {
+  width: 100%;
+  justify-content: center;
 }
 
 #topicEditDialog h3 {

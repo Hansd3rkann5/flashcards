@@ -679,33 +679,49 @@
   <script src="js/settings-management.js" defer></script>
   <script src="js/bootstrap.js" defer></script>
 
-  <dialog id="subjectDialog" class="modal">
+  <dialog id="subjectDialog" class="modal subject-edit-modal">
     <h3>New Subject</h3>
-    <div class="grid two">
-      <div>
-        <label>Subject Name</label>
-        <input class="input" id="subjectNameInput" placeholder="e.g., Fluid Mechanics" />
+    <div class="subject-edit-grid">
+      <div class="subject-edit-field">
+        <label>Name</label>
+        <input id="subjectNameInput" placeholder="e.g., Fluid Mechanics" />
       </div>
-      <div>
+      <div class="subject-edit-field">
         <label>Accent Color</label>
-        <input class="input" type="color" id="subjectAccentPicker" value="#2dd4bf" />
+        <input type="color" id="subjectAccentPicker" value="#2dd4bf" />
+      </div>
+      <div class="subject-edit-field">
+        <label>Accent Hex</label>
+        <input id="subjectAccentText" value="#2dd4bf" />
+      </div>
+      <div class="subject-edit-field">
+        <label>Exam Date</label>
+        <input id="subjectExamDateInput" type="date" />
+      </div>
+      <div class="subject-edit-field subject-edit-checkbox-field">
+        <label class="subject-review-checkbox-label" for="subjectExcludeFromReviewInput">
+          <input id="subjectExcludeFromReviewInput" type="checkbox" />
+          <span>Exclude from review</span>
+        </label>
+      </div>
+      <div class="subject-edit-field">
+        <label>Palette</label>
+        <div class="palette subject-edit-palette" id="subjectPalette">
+          <button type="button" data-color="#2dd4bf" style="background:#2dd4bf"></button>
+          <button type="button" data-color="#22c55e" style="background:#22c55e"></button>
+          <button type="button" data-color="#f59e0b" style="background:#f59e0b"></button>
+          <button type="button" data-color="#ef4444" style="background:#ef4444"></button>
+          <button type="button" data-color="#60a5fa" style="background:#60a5fa"></button>
+          <button type="button" data-color="#a855f7" style="background:#a855f7"></button>
+          <button type="button" data-color="#f472b6" style="background:#f472b6"></button>
+        </div>
       </div>
     </div>
-    <label>Accent Hex</label>
-    <input class="input" id="subjectAccentText" value="#2dd4bf" />
-    <div class="tiny" style="margin:6px 0 10px;">Pick a color or paste a hex value.</div>
-    <div class="palette" id="subjectPalette">
-      <button type="button" data-color="#2dd4bf" style="background:#2dd4bf"></button>
-      <button type="button" data-color="#22c55e" style="background:#22c55e"></button>
-      <button type="button" data-color="#f59e0b" style="background:#f59e0b"></button>
-      <button type="button" data-color="#ef4444" style="background:#ef4444"></button>
-      <button type="button" data-color="#60a5fa" style="background:#60a5fa"></button>
-      <button type="button" data-color="#a855f7" style="background:#a855f7"></button>
-      <button type="button" data-color="#f472b6" style="background:#f472b6"></button>
-    </div>
-    <div class="controls" style="margin-top:14px;">
-      <button class="btn" id="createSubjectBtn">Create Subject</button>
-      <button class="btn" id="cancelSubjectBtn">Cancel</button>
+    <div class="controls subject-edit-actions">
+      <button class="btn save-primary" id="createSubjectBtn">Create Subject</button>
+      <div class="subject-edit-secondary-actions subject-create-secondary-actions">
+        <button class="btn" id="cancelSubjectBtn">Cancel</button>
+      </div>
     </div>
   </dialog>
 
@@ -719,6 +735,16 @@
       <div class="subject-edit-field">
         <label>Accent Color</label>
         <input type="color" id="editSubjectColor" value="#2dd4bf" />
+      </div>
+      <div class="subject-edit-field">
+        <label>Exam Date</label>
+        <input type="date" id="editSubjectExamDate" />
+      </div>
+      <div class="subject-edit-field subject-edit-checkbox-field">
+        <label class="subject-review-checkbox-label" for="editSubjectExcludeFromReview">
+          <input type="checkbox" id="editSubjectExcludeFromReview" />
+          <span>Exclude from review</span>
+        </label>
       </div>
     </div>
     <div class="controls subject-edit-actions">
@@ -841,6 +867,13 @@
                 <span>Current</span>
                 <button class="progress-check-header-btn" type="button" data-col="current"
                   aria-label="Filter current">▾</button>
+              </div>
+            </th>
+            <th data-col="score">
+              <div class="progress-check-th-content">
+                <span>Score</span>
+                <button class="progress-check-header-btn" type="button" data-col="score"
+                  aria-label="Filter score">▾</button>
               </div>
             </th>
             <th data-col="streak">

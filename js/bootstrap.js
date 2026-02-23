@@ -1890,15 +1890,32 @@ async function boot() {
 
   el('cancelSubjectBtn').onclick = () => closeDialog(el('subjectDialog'));
   el('createSubjectBtn').onclick = addSubjectFromDialog;
-  el('cancelSubjectEditBtn').onclick = () => el('subjectEditDialog').close();
+  el('cancelSubjectEditBtn').onclick = () => {
+    editingSubjectId = null;
+    el('subjectEditDialog').close();
+  };
   el('saveSubjectEditBtn').onclick = async () => {
     if (!editingSubjectId) return;
     const name = el('editSubjectName').value.trim();
     const accent = el('editSubjectColor').value || '#2dd4bf';
+    const examDateRaw = String(el('editSubjectExamDate')?.value || '').trim();
+    const examDate = /^\d{4}-\d{2}-\d{2}$/.test(examDateRaw) ? examDateRaw : '';
+    const excludeFromReview = !!el('editSubjectExcludeFromReview')?.checked;
     if (!name) return;
-    const existingSubject = (await getAll('subjects')).find(subject => subject.id === editingSubjectId);
+    let existingSubject = await getById('subjects', editingSubjectId, {
+      uiBlocking: false,
+      loadingLabel: ''
+    });
+    if (!existingSubject) {
+      existingSubject = (await getAll('subjects')).find(subject => subject.id === editingSubjectId);
+    }
     if (!existingSubject) return;
-    const updatedSubject = buildSubjectRecord(existingSubject, { name, accent });
+    const updatedSubject = buildSubjectRecord(existingSubject, {
+      name,
+      accent,
+      examDate,
+      excludeFromReview
+    });
     await put('subjects', updatedSubject);
     if (selectedSubject?.id === editingSubjectId) {
       selectedSubject = { ...selectedSubject, ...updatedSubject };
@@ -1917,6 +1934,12 @@ async function boot() {
     el('subjectEditDialog').close();
     await deleteSubjectById(id);
   };
+  const subjectEditDialog = el('subjectEditDialog');
+  if (subjectEditDialog) {
+    subjectEditDialog.addEventListener('close', () => {
+      editingSubjectId = null;
+    });
+  }
   el('cancelTopicEditBtn').onclick = () => {
     editingTopicId = null;
     closeDialog(el('topicEditDialog'));

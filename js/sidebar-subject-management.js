@@ -230,11 +230,28 @@ async function refreshSidebar(options = {}) {
     };
     const menuBtn = chip.querySelector('.tile-menu-btn');
     if (menuBtn) {
-      menuBtn.onclick = e => {
+      menuBtn.dataset.subjectId = String(s?.id || '').trim();
+      menuBtn.onclick = async e => {
         e.stopPropagation();
-        editingSubjectId = s.id;
-        el('editSubjectName').value = s.name;
-        el('editSubjectColor').value = s.accent || '#2dd4bf';
+        const subjectId = String(menuBtn.dataset.subjectId || s?.id || '').trim();
+        if (!subjectId) return;
+        let subject = subjectDirectoryById.get(subjectId) || null;
+        if (!subject) {
+          subject = await getById('subjects', subjectId, { uiBlocking: false, loadingLabel: '' });
+        }
+        if (!subject) return;
+        editingSubjectId = subjectId;
+        el('editSubjectName').value = String(subject?.name || '').trim();
+        el('editSubjectColor').value = subject?.accent || '#2dd4bf';
+        const editExamDateInput = el('editSubjectExamDate');
+        if (editExamDateInput) {
+          const examDate = String(subject?.examDate || '').trim();
+          editExamDateInput.value = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? examDate : '';
+        }
+        const editExcludeInput = el('editSubjectExcludeFromReview');
+        if (editExcludeInput) {
+          editExcludeInput.checked = subject?.excludeFromReview === true;
+        }
         el('subjectEditDialog').showModal();
       };
     }

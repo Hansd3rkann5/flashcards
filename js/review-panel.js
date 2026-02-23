@@ -49,6 +49,176 @@ function getDayKeyByOffset(offsetDays = 0, date = new Date()) {
 }
 
 /**
+ * @function normalizeSubjectExamDateForReview
+ * @description Normalizes subject exam-date values to YYYY-MM-DD.
+ */
+
+function normalizeSubjectExamDateForReview(value = '') {
+  const raw = String(value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
+}
+
+/**
+ * @function isSubjectExcludedFromDailyReview
+ * @description Returns true when a subject is configured to be skipped in Daily Review.
+ */
+
+function isSubjectExcludedFromDailyReview(subject = null, todayKey = getTodayKey()) {
+  const src = (subject && typeof subject === 'object') ? subject : {};
+  if (src.excludeFromReview !== true) return false;
+  const examDate = normalizeSubjectExamDateForReview(src.examDate);
+  if (!examDate) return false;
+  return examDate < todayKey;
+}
+
+const REVIEW_PRIORITY_BACKFILL_LIMIT = 180;
+const REVIEW_PRIORITY_BACKFILL_COOLDOWN_MS = 60 * 1000;
+const progressScoreBackfillAttemptAtByCardId = new Map();
+
+/**
+ * @function clampReviewPriorityScore
+ * @description Clamps and normalizes review-priority scores to a stable 0..100 range.
+ */
+
+function clampReviewPriorityScore(value = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(Math.max(0, Math.min(100, num)) * 10) / 10;
+}
+
+/**
+ * @function readProgressReviewPriorityScore
+ * @description Reads a persisted review-priority score from a progress payload.
+ */
+
+function readProgressReviewPriorityScore(record = null) {
+  const src = (record && typeof record === 'object') ? record : {};
+  const candidates = [src.reviewPriorityScore, src.reviewScore, src.score];
+  for (const raw of candidates) {
+    const num = Number(raw);
+    if (!Number.isFinite(num)) continue;
+    return clampReviewPriorityScore(num);
+  }
+  return null;
+}
+
+/**
+ * @function countProgressMasteredDays
+ * @description Counts how many day entries reached mastered state for a card.
+ */
+
+function countProgressMasteredDays(record = null) {
+  const safeRecord = (record && typeof record === 'object') ? record : {};
+  const byDay = (safeRecord.byDay && typeof safeRecord.byDay === 'object') ? safeRecord.byDay : {};
+  let masteredDays = 0;
+  Object.keys(byDay).forEach(dayKey => {
+    const day = normalizeDayProgress(byDay[dayKey]);
+    if (day.mastered === true) masteredDays += 1;
+  });
+  return masteredDays;
+}
+
+/**
+ * @function getReviewPriorityStateRiskWeight
+ * @description Returns the current-state risk weight used by review-priority scoring.
+ */
+
+function getReviewPriorityStateRiskWeight(stateKey = '') {
+  const safeKey = String(stateKey || '').trim();
+  if (safeKey === 'wrong') return 1.0;
+  if (safeKey === 'partial') return 0.7;
+  if (safeKey === 'correct') return 0.35;
+  if (safeKey === 'mastered') return 0.15;
+  if (safeKey === 'in-progress') return 0.55;
+  return 0.5;
+}
+
+/**
+ * @function computeProgressReviewPriorityScore
+ * @description Computes a 0..100 priority score (higher = card should appear earlier in review).
+ */
+
+function computeProgressReviewPriorityScore(record = null, fallbackCardId = '') {
+  const safeRecord = normalizeProgressRecord(record, String(record?.cardId || fallbackCardId || ''));
+  const totals = safeRecord.totals || {};
+  const correct = toCounterInt(totals.correct);
+  const partial = toCounterInt(totals.partial);
+  const wrong = toCounterInt(totals.wrong);
+  const masteredDays = toCounterInt(countProgressMasteredDays(safeRecord));
+  const attemptsTotal = correct + partial + wrong;
+  if (attemptsTotal <= 0) return 0;
+
+  const ratioDenominator = Math.max(1, masteredDays + correct + partial + wrong);
+  const ratioMastered = masteredDays / ratioDenominator;
+  const ratioCorrect = correct / ratioDenominator;
+  const ratioPartial = partial / ratioDenominator;
+  const ratioWrong = wrong / ratioDenominator;
+
+  const ratioRiskRaw = (1.0 * ratioWrong) + (0.55 * ratioPartial) + (0.18 * ratioCorrect) - (0.22 * ratioMastered);
+  const ratioRisk = Math.max(0, Math.min(1, ratioRiskRaw));
+  const wrongPressure = wrong + (0.5 * partial);
+  const historyVolume = 1 - Math.exp(-(wrongPressure / 6));
+  const state = getCurrentProgressState(safeRecord, fallbackCardId);
+  const stateRisk = getReviewPriorityStateRiskWeight(state?.key);
+
+  const latestEntry = getLatestProgressDayEntry(safeRecord, fallbackCardId);
+  const latestDay = normalizeDayProgress(latestEntry?.day);
+  const recovery = Math.min(3, toCounterInt(latestDay.correctStreak)) / 3;
+  const singleSlipFactor = (wrong <= 1 && correct >= 4 && partial <= 1) ? 0.5 : 1;
+
+  const rawPriority = 100 * Math.max(
+    0,
+    Math.min(1, (0.5 * ratioRisk) + (0.3 * historyVolume) + (0.2 * stateRisk) - (0.08 * recovery))
+  ) * singleSlipFactor;
+  return clampReviewPriorityScore(rawPriority);
+}
+
+/**
+ * @function shouldBackfillProgressReviewPriority
+ * @description Returns true when a computed review-priority score differs from persisted data.
+ */
+
+function shouldBackfillProgressReviewPriority(record = null, computedScore = 0) {
+  const persistedScore = readProgressReviewPriorityScore(record);
+  if (!Number.isFinite(persistedScore)) return true;
+  return Math.abs(persistedScore - clampReviewPriorityScore(computedScore)) > 0.05;
+}
+
+/**
+ * @function canAttemptProgressScoreBackfill
+ * @description Rate-limits score backfill writes per card to avoid spamming update requests.
+ */
+
+function canAttemptProgressScoreBackfill(cardId = '') {
+  const safeCardId = String(cardId || '').trim();
+  if (!safeCardId) return false;
+  const ownerKey = String(supabaseOwnerId || 'local').trim() || 'local';
+  const scopedKey = `${ownerKey}::${safeCardId}`;
+  const now = Date.now();
+  const previousTs = Number(progressScoreBackfillAttemptAtByCardId.get(scopedKey) || 0);
+  if (now - previousTs < REVIEW_PRIORITY_BACKFILL_COOLDOWN_MS) return false;
+  progressScoreBackfillAttemptAtByCardId.set(scopedKey, now);
+  return true;
+}
+
+/**
+ * @function queueProgressReviewPriorityBackfill
+ * @description Persists one computed review-priority score in the background.
+ */
+
+function queueProgressReviewPriorityBackfill(record = null, computedScore = 0, nowIso = new Date().toISOString()) {
+  const cardId = String(record?.cardId || '').trim();
+  if (!cardId) return false;
+  if (!canAttemptProgressScoreBackfill(cardId)) return false;
+  const nextRecord = normalizeProgressRecord(record, cardId);
+  nextRecord.reviewPriorityScore = clampReviewPriorityScore(computedScore);
+  nextRecord.reviewPriorityUpdatedAt = nowIso;
+  progressByCardId.set(cardId, nextRecord);
+  void queueProgressRecordPersist(nextRecord);
+  return true;
+}
+
+/**
  * @function createEmptyDailyReviewTodayStats
  * @description Builds an empty "today achievement" stats object for the review home panel.
  */
@@ -110,6 +280,7 @@ function resetDailyReviewState() {
     expandedSubjectKeys: new Set(),
     selectedTopicIds: new Set(),
     statusByCardId: new Map(),
+    reviewPriorityByCardId: new Map(),
     latestStateByCardId: new Map(),
     latestStateCounts: createEmptyDailyReviewLatestStateCounts(),
     dateByCardId: new Map(),
@@ -162,6 +333,7 @@ function normalizeDayProgress(raw = null) {
 
 function normalizeProgressRecord(record, cardId) {
   const src = (record && typeof record === 'object') ? record : {};
+  const persistedReviewPriorityScore = readProgressReviewPriorityScore(src);
   const byDay = {};
   if (src.byDay && typeof src.byDay === 'object') {
     Object.keys(src.byDay).forEach(dayKey => {
@@ -191,7 +363,11 @@ function normalizeProgressRecord(record, cardId) {
       partial: Math.max(persistedTotals.partial, derivedTotals.partial)
     },
     lastGrade: typeof src.lastGrade === 'string' ? src.lastGrade : '',
-    lastAnsweredAt: typeof src.lastAnsweredAt === 'string' ? src.lastAnsweredAt : ''
+    lastAnsweredAt: typeof src.lastAnsweredAt === 'string' ? src.lastAnsweredAt : '',
+    reviewPriorityScore: Number.isFinite(Number(persistedReviewPriorityScore))
+      ? clampReviewPriorityScore(persistedReviewPriorityScore)
+      : null,
+    reviewPriorityUpdatedAt: typeof src.reviewPriorityUpdatedAt === 'string' ? src.reviewPriorityUpdatedAt : ''
   };
 }
 
@@ -236,10 +412,20 @@ async function ensureProgressForCardIds(cardIds, options = {}) {
   if (!toLoad.length) return;
   const records = await getProgressByCardIds(toLoad, opts);
   const loaded = new Set();
+  const backfillNowIso = new Date().toISOString();
   records.forEach(record => {
     const key = String(record?.cardId || '').trim();
     if (!key) return;
-    progressByCardId.set(key, normalizeProgressRecord(record, key));
+    const normalizedRecord = normalizeProgressRecord(record, key);
+    const computedScore = computeProgressReviewPriorityScore(normalizedRecord, key);
+    if (shouldBackfillProgressReviewPriority(normalizedRecord, computedScore)) {
+      normalizedRecord.reviewPriorityScore = computedScore;
+      normalizedRecord.reviewPriorityUpdatedAt = backfillNowIso;
+      if (canAttemptProgressScoreBackfill(key)) {
+        void queueProgressRecordPersist(normalizedRecord);
+      }
+    }
+    progressByCardId.set(key, normalizedRecord);
     loaded.add(key);
   });
   toLoad.forEach(cardId => {
@@ -325,6 +511,8 @@ async function recordCardProgress(cardId, grade, options = {}) {
   record.totals[grade] += 1;
   record.lastGrade = grade;
   record.lastAnsweredAt = nowIso;
+  record.reviewPriorityScore = computeProgressReviewPriorityScore(record, cardId);
+  record.reviewPriorityUpdatedAt = nowIso;
   progressByCardId.set(cardId, record);
   void queueProgressRecordPersist(record);
 }
@@ -1037,6 +1225,46 @@ function getDailyReviewFilteredCardIdsByTopic(topicId) {
 }
 
 /**
+ * @function getDailyReviewCardPriorityScore
+ * @description Returns one card's review-priority score (higher = should appear earlier in Daily Review).
+ */
+
+function getDailyReviewCardPriorityScore(cardId = '') {
+  const safeCardId = String(cardId || '').trim();
+  if (!safeCardId) return 0;
+  const mapped = Number(dailyReviewState.reviewPriorityByCardId?.get(safeCardId));
+  if (Number.isFinite(mapped)) return clampReviewPriorityScore(mapped);
+  const record = progressByCardId.get(safeCardId);
+  if (!record) return 0;
+  return computeProgressReviewPriorityScore(record, safeCardId);
+}
+
+/**
+ * @function compareDailyReviewCardPriority
+ * @description Comparator for Daily Review card ordering (high priority first).
+ */
+
+function compareDailyReviewCardPriority(cardIdA = '', cardIdB = '') {
+  const scoreA = getDailyReviewCardPriorityScore(cardIdA);
+  const scoreB = getDailyReviewCardPriorityScore(cardIdB);
+  const scoreDiff = scoreB - scoreA;
+  if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
+
+  const statusRank = { red: 3, yellow: 2, green: 1 };
+  const rankA = statusRank[String(getDailyReviewCardStatus(cardIdA) || '').trim()] || 0;
+  const rankB = statusRank[String(getDailyReviewCardStatus(cardIdB) || '').trim()] || 0;
+  if (rankA !== rankB) return rankB - rankA;
+
+  const dayA = normalizeDailyReviewDayKey(dailyReviewState.dateByCardId.get(String(cardIdA || '').trim()));
+  const dayB = normalizeDailyReviewDayKey(dailyReviewState.dateByCardId.get(String(cardIdB || '').trim()));
+  if (dayA && dayB && dayA !== dayB) return dayA.localeCompare(dayB);
+  if (dayA && !dayB) return -1;
+  if (!dayA && dayB) return 1;
+
+  return String(cardIdA || '').localeCompare(String(cardIdB || ''));
+}
+
+/**
  * @function getDailyReviewSelectedCardIds
  * @description Returns the daily review selected card IDs.
  */
@@ -1055,6 +1283,7 @@ function getDailyReviewSelectedCardIds() {
       ids.push(cardId);
     });
   });
+  ids.sort(compareDailyReviewCardPriority);
   return ids;
 }
 
@@ -1763,54 +1992,66 @@ async function prepareDailyReviewState(options = {}) {
     });
   }
   const rows = Array.isArray(progressRecords) ? progressRecords : [];
-  const todayStats = buildDailyReviewTodayStats(rows, todayKey);
-  const activityDayKeys = buildProgressActivityDayKeySet(rows);
-  const activityStreakDays = computeCurrentActivityStreakDays(activityDayKeys, todayKey);
-
-  const answeredCardIds = [];
-  const statusByCardId = new Map();
-  const latestStateByCardId = new Map();
-  const latestStateCounts = createEmptyDailyReviewLatestStateCounts();
-  const dateByCardId = new Map();
+  const computedReviewPriorityByCardId = new Map();
+  let queuedScoreBackfills = 0;
+  const scoreBackfillNowIso = new Date().toISOString();
   rows.forEach(row => {
     const cardId = String(row?.cardId || '').trim();
     if (!cardId) return;
-    const state = getCurrentProgressState(row, cardId);
-    const latestStateKey = normalizeDailyReviewLatestStateKey(state.key);
-    latestStateByCardId.set(cardId, latestStateKey);
-    if (Object.prototype.hasOwnProperty.call(latestStateCounts, latestStateKey)) {
-      latestStateCounts[latestStateKey] += 1;
+    const normalizedRecord = normalizeProgressRecord(row, cardId);
+    const computedScore = computeProgressReviewPriorityScore(normalizedRecord, cardId);
+    normalizedRecord.reviewPriorityScore = computedScore;
+    computedReviewPriorityByCardId.set(cardId, computedScore);
+    progressByCardId.set(cardId, normalizedRecord);
+    if (
+      queuedScoreBackfills < REVIEW_PRIORITY_BACKFILL_LIMIT
+      && shouldBackfillProgressReviewPriority(row, computedScore)
+      && queueProgressReviewPriorityBackfill(normalizedRecord, computedScore, scoreBackfillNowIso)
+    ) {
+      queuedScoreBackfills += 1;
     }
+  });
+  if (traceEnabled) {
+    logReviewTrace(traceRunId, 'priority-score-backfill', traceStartedAt, {
+      computedScores: computedReviewPriorityByCardId.size,
+      queued: queuedScoreBackfills
+    });
+  }
+  const candidateCardIdSet = new Set();
+  rows.forEach(row => {
+    const cardId = String(row?.cardId || '').trim();
+    if (!cardId) return;
+    const normalizedRecord = progressByCardId.get(cardId) || normalizeProgressRecord(row, cardId);
+    const state = getCurrentProgressState(normalizedRecord, cardId);
     if (state.attemptsTotal <= 0) return;
-    const latestEntry = getLatestProgressDayEntry(row, cardId);
+    const latestEntry = getLatestProgressDayEntry(normalizedRecord, cardId);
     const latestDayKey = normalizeDailyReviewDayKey(
       latestEntry?.dayKey
       || latestEntry?.day?.lastAnsweredAt
-      || row?.lastAnsweredAt
+      || normalizedRecord?.lastAnsweredAt
     );
     if (!latestDayKey) return;
-    let status = '';
-    if (state.key === 'mastered' || state.key === 'correct') {
-      status = 'green';
-    } else if (state.key === 'partial' || state.key === 'in-progress') {
-      status = 'yellow';
-    } else if (state.key === 'wrong') {
-      status = 'red';
-    }
-    if (!status) return;
-    statusByCardId.set(cardId, status);
-    dateByCardId.set(cardId, latestDayKey);
-    answeredCardIds.push(cardId);
+    candidateCardIdSet.add(cardId);
   });
 
-  const uniqueCardIds = Array.from(new Set(answeredCardIds));
+  const uniqueCardIds = Array.from(candidateCardIdSet);
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'review-candidates-derived', traceStartedAt, {
       uniqueCardIds: uniqueCardIds.length
     });
   }
   const cardsByTopicId = new Map();
+  const allowedCardIds = new Set();
+  const statusByCardId = new Map();
+  const reviewPriorityByCardId = new Map();
+  const latestStateByCardId = new Map();
+  const latestStateCounts = createEmptyDailyReviewLatestStateCounts();
+  const dateByCardId = new Map();
+  let todayStats = createEmptyDailyReviewTodayStats();
+  let activityDayKeys = new Set();
+  let activityStreakDays = 0;
   let topics = [];
+  let subjectMetaById = new Map();
   if (uniqueCardIds.length) {
     await preloadTopicDirectory({
       uiBlocking,
@@ -1832,50 +2073,113 @@ async function prepareDailyReviewState(options = {}) {
         uiBlocking,
         loadingLabel: 'Loading subjects...'
       });
+      const excludedSubjectIds = new Set();
       if (traceEnabled) {
         logReviewTrace(traceRunId, 'subjects-loaded', traceStartedAt, {
           subjects: Array.isArray(subjects) ? subjects.length : 0
         });
       }
-      const subjectMetaById = new Map(
+      subjectMetaById = new Map(
         subjects.map(subject => {
           const id = String(subject?.id || '').trim();
           const name = String(subject?.name || 'Unknown subject').trim() || 'Unknown subject';
           const accent = normalizeHexColor(subject?.accent || '#2dd4bf');
+          if (id && isSubjectExcludedFromDailyReview(subject, todayKey)) {
+            excludedSubjectIds.add(id);
+          }
           return [id, { name, accent }];
         })
       );
+      if (traceEnabled) {
+        logReviewTrace(traceRunId, 'subjects-excluded', traceStartedAt, {
+          excludedSubjects: excludedSubjectIds.size
+        });
+      }
       cardRefs.forEach(card => {
         const cardId = String(card?.id || '').trim();
         const topicId = String(card?.topicId || '').trim();
-        if (!cardId || !topicId || !statusByCardId.has(cardId)) return;
-        if (!dateByCardId.has(cardId)) return;
+        if (!cardId || !topicId) return;
+        const topic = topicDirectoryById.get(topicId) || {};
+        const subjectId = String(topic?.subjectId || '').trim();
+        if (subjectId && excludedSubjectIds.has(subjectId)) return;
+        allowedCardIds.add(cardId);
         if (!cardsByTopicId.has(topicId)) cardsByTopicId.set(topicId, []);
         cardsByTopicId.get(topicId).push(cardId);
       });
-      topics = Array.from(cardsByTopicId.entries()).map(([topicId, cardIds]) => {
-        const topic = topicDirectoryById.get(topicId) || {};
-        const subjectId = String(topic?.subjectId || '').trim();
-        const subjectMeta = subjectMetaById.get(subjectId);
-        const topicName = String(topic?.name || '').trim() || 'Unknown topic';
-        const subjectName = subjectMeta?.name || 'Unknown subject';
-        const subjectAccent = subjectMeta?.accent || '#2dd4bf';
-        return {
-          topicId,
-          subjectId,
-          topicName,
-          subjectName,
-          subjectAccent,
-          count: cardIds.length
-        };
-      });
-      topics.sort((a, b) => {
-        const subjectDiff = a.subjectName.localeCompare(b.subjectName);
-        if (subjectDiff !== 0) return subjectDiff;
-        return a.topicName.localeCompare(b.topicName);
-      });
     }
   }
+
+  const filteredRows = rows.filter(row => {
+    const cardId = String(row?.cardId || '').trim();
+    return cardId && allowedCardIds.has(cardId);
+  });
+
+  todayStats = buildDailyReviewTodayStats(filteredRows, todayKey);
+  activityDayKeys = buildProgressActivityDayKeySet(filteredRows);
+  activityStreakDays = computeCurrentActivityStreakDays(activityDayKeys, todayKey);
+
+  filteredRows.forEach(row => {
+    const cardId = String(row?.cardId || '').trim();
+    if (!cardId) return;
+    const normalizedRecord = progressByCardId.get(cardId) || normalizeProgressRecord(row, cardId);
+    const state = getCurrentProgressState(normalizedRecord, cardId);
+    const priorityScore = Number.isFinite(Number(computedReviewPriorityByCardId.get(cardId)))
+      ? clampReviewPriorityScore(computedReviewPriorityByCardId.get(cardId))
+      : computeProgressReviewPriorityScore(normalizedRecord, cardId);
+    reviewPriorityByCardId.set(cardId, priorityScore);
+    const latestStateKey = normalizeDailyReviewLatestStateKey(state.key);
+    latestStateByCardId.set(cardId, latestStateKey);
+    if (Object.prototype.hasOwnProperty.call(latestStateCounts, latestStateKey)) {
+      latestStateCounts[latestStateKey] += 1;
+    }
+    if (state.attemptsTotal <= 0) return;
+    const latestEntry = getLatestProgressDayEntry(normalizedRecord, cardId);
+    const latestDayKey = normalizeDailyReviewDayKey(
+      latestEntry?.dayKey
+      || latestEntry?.day?.lastAnsweredAt
+      || normalizedRecord?.lastAnsweredAt
+    );
+    if (!latestDayKey) return;
+    let status = '';
+    if (state.key === 'mastered' || state.key === 'correct') {
+      status = 'green';
+    } else if (state.key === 'partial' || state.key === 'in-progress') {
+      status = 'yellow';
+    } else if (state.key === 'wrong') {
+      status = 'red';
+    }
+    if (!status) return;
+    statusByCardId.set(cardId, status);
+    dateByCardId.set(cardId, latestDayKey);
+  });
+
+  for (const [topicId, cardIds] of cardsByTopicId.entries()) {
+    const kept = cardIds.filter(cardId => statusByCardId.has(cardId) && dateByCardId.has(cardId));
+    if (kept.length > 0) cardsByTopicId.set(topicId, kept);
+    else cardsByTopicId.delete(topicId);
+  }
+
+  topics = Array.from(cardsByTopicId.entries()).map(([topicId, cardIds]) => {
+    const topic = topicDirectoryById.get(topicId) || {};
+    const subjectId = String(topic?.subjectId || '').trim();
+    const subjectMeta = subjectMetaById.get(subjectId);
+    const topicName = String(topic?.name || '').trim() || 'Unknown topic';
+    const subjectName = subjectMeta?.name || 'Unknown subject';
+    const subjectAccent = subjectMeta?.accent || '#2dd4bf';
+    return {
+      topicId,
+      subjectId,
+      topicName,
+      subjectName,
+      subjectAccent,
+      count: cardIds.length
+    };
+  });
+  topics.sort((a, b) => {
+    const subjectDiff = a.subjectName.localeCompare(b.subjectName);
+    if (subjectDiff !== 0) return subjectDiff;
+    return a.topicName.localeCompare(b.topicName);
+  });
 
   const selectedTopicIds = new Set(topics.map(topic => topic.topicId));
   const totalCards = topics.reduce((sum, topic) => sum + topic.count, 0);
@@ -1889,6 +2193,7 @@ async function prepareDailyReviewState(options = {}) {
     expandedSubjectKeys: new Set(),
     selectedTopicIds,
     statusByCardId,
+    reviewPriorityByCardId,
     latestStateByCardId,
     latestStateCounts,
     dateByCardId,
@@ -2225,6 +2530,7 @@ function getProgressCheckRowValue(row, columnKey = 'subject') {
   if (key === 'topic') return String(safeRow.topic || '');
   if (key === 'question') return String(safeRow.question || '');
   if (key === 'current') return String(safeRow.currentLabel || '');
+  if (key === 'score') return String(safeRow.scoreText || '');
   if (key === 'streak') return String(Number.isFinite(Number(safeRow.streak)) ? Number(safeRow.streak) : '');
   if (key === 'lastGrade') return String(safeRow.lastGrade || '');
   if (key === 'lastAnsweredAt') return String(safeRow.lastAnsweredAt || '');
@@ -2353,6 +2659,10 @@ function compareProgressCheckRows(a, b, sortColumn = 'subject', sortDirection = 
   if (key === 'streak') {
     const av = Number(a?.streak || 0);
     const bv = Number(b?.streak || 0);
+    if (av !== bv) return (av - bv) * dir;
+  } else if (key === 'score') {
+    const av = Number(a?.score || 0);
+    const bv = Number(b?.score || 0);
     if (av !== bv) return (av - bv) * dir;
   } else if (key === 'lastAnsweredAt') {
     const av = Number(a?.lastAnsweredTs || 0);
@@ -2577,13 +2887,13 @@ function renderProgressCheckRows() {
 
   body.innerHTML = '';
   if (!allRows.length) {
-    body.innerHTML = '<tr><td colspan="9" class="tiny">No cards available.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="tiny">No cards available.</td></tr>';
     meta.textContent = '0 cards';
     renderProgressCheckHeaderStates();
     return;
   }
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="9" class="tiny">No cards match the current filters.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="tiny">No cards match the current filters.</td></tr>';
     meta.textContent = `0 / ${allRows.length} cards`;
     renderProgressCheckHeaderStates();
     return;
@@ -2603,6 +2913,10 @@ function renderProgressCheckRows() {
     const currentCell = document.createElement('td');
     currentCell.className = 'progress-current-cell';
     currentCell.appendChild(buildProgressStateChip({ key: row.currentKey, label: row.currentLabel }));
+
+    const scoreCell = document.createElement('td');
+    scoreCell.className = 'progress-score-cell';
+    scoreCell.textContent = row.scoreText;
 
     const historyCell = document.createElement('td');
     historyCell.className = 'progress-history-cell';
@@ -2630,6 +2944,7 @@ function renderProgressCheckRows() {
       topicCell,
       questionCell,
       currentCell,
+      scoreCell,
       streakCell,
       lastGradeCell,
       lastAnsweredCell,
@@ -2654,7 +2969,7 @@ async function renderProgressCheckTable() {
   const body = el('progressCheckTableBody');
   if (!meta || !body) return;
   meta.textContent = 'Loading...';
-  body.innerHTML = '<tr><td colspan="9" class="tiny">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="10" class="tiny">Loading...</td></tr>';
   try {
     const [subjects, topics] = await Promise.all([
       getAll('subjects', { uiBlocking: false }),
@@ -2700,6 +3015,11 @@ async function renderProgressCheckTable() {
       const topicName = String(topic?.name || 'Unknown topic');
       const record = progressByCardId.get(cardId) || null;
       const current = getCurrentProgressState(record, cardId);
+      const computedScore = computeProgressReviewPriorityScore(record, cardId);
+      const persistedScore = readProgressReviewPriorityScore(record);
+      const score = Number.isFinite(Number(persistedScore))
+        ? clampReviewPriorityScore(persistedScore)
+        : clampReviewPriorityScore(computedScore);
       const history = getProgressHistoryLines(record, cardId);
       const latest = getLatestProgressDayEntry(record, cardId);
       const rawLastAnswered = String(latest?.day?.lastAnsweredAt || record?.lastAnsweredAt || '').trim();
@@ -2712,6 +3032,8 @@ async function renderProgressCheckTable() {
         question: getQuestionPreviewText(card),
         currentKey: current.key,
         currentLabel: current.label,
+        score,
+        scoreText: score.toFixed(1),
         streak: current.streak,
         lastGrade: current.lastGrade,
         lastAnsweredAt: current.lastAnsweredAt,
@@ -2730,7 +3052,7 @@ async function renderProgressCheckTable() {
     initProgressCheckFilterState();
     closeProgressCheckHeaderMenu();
     meta.textContent = 'Could not load progress overview.';
-    body.innerHTML = '<tr><td colspan="9" class="tiny">Could not load progress overview. Please try again.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="tiny">Could not load progress overview. Please try again.</td></tr>';
     renderProgressCheckHeaderStates();
   }
 }

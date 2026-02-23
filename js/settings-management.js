@@ -9,7 +9,21 @@ function openSubjectDialog() {
   el('subjectNameInput').value = '';
   el('subjectAccentPicker').value = '#2dd4bf';
   el('subjectAccentText').value = '#2dd4bf';
+  const examDateInput = el('subjectExamDateInput');
+  if (examDateInput) examDateInput.value = '';
+  const excludeInput = el('subjectExcludeFromReviewInput');
+  if (excludeInput) excludeInput.checked = false;
   showDialog(el('subjectDialog'));
+}
+
+/**
+ * @function normalizeSubjectExamDate
+ * @description Normalizes a subject exam-date value to YYYY-MM-DD or empty string.
+ */
+
+function normalizeSubjectExamDate(value = '') {
+  const raw = String(value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
 }
 
 /**
@@ -21,7 +35,15 @@ async function addSubjectFromDialog() {
   const name = el('subjectNameInput').value.trim();
   if (!name) return;
   const accent = el('subjectAccentText').value.trim() || '#2dd4bf';
-  const subject = buildSubjectRecord({ id: uid(), name, accent });
+  const examDate = normalizeSubjectExamDate(el('subjectExamDateInput')?.value);
+  const excludeFromReview = !!el('subjectExcludeFromReviewInput')?.checked;
+  const subject = buildSubjectRecord({
+    id: uid(),
+    name,
+    accent,
+    examDate,
+    excludeFromReview
+  });
   await put('subjects', subject);
   closeDialog(el('subjectDialog'));
   refreshSidebar();

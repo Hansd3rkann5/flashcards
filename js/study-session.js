@@ -435,9 +435,21 @@ async function startSession(options = {}) {
     renderSessionSizeCounter();
     await preloadTopicDirectory();
 
-    const randomizedEligibleCardIds = [...eligibleCardIds];
-    shuffleArrayInPlace(randomizedEligibleCardIds);
-    const selectedCardIds = randomizedEligibleCardIds.slice(0, sessionSize);
+    const prioritizedEligibleCardIds = [...eligibleCardIds];
+    if (reviewMode && explicitCardIds.length) {
+      const explicitOrder = new Map(
+        explicitCardIds.map((cardId, idx) => [String(cardId || '').trim(), idx])
+      );
+      prioritizedEligibleCardIds.sort((a, b) => {
+        const orderA = explicitOrder.has(a) ? explicitOrder.get(a) : Number.MAX_SAFE_INTEGER;
+        const orderB = explicitOrder.has(b) ? explicitOrder.get(b) : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        return String(a || '').localeCompare(String(b || ''));
+      });
+    } else {
+      shuffleArrayInPlace(prioritizedEligibleCardIds);
+    }
+    const selectedCardIds = prioritizedEligibleCardIds.slice(0, sessionSize);
     const fetchedCards = await getCardsByCardIds(selectedCardIds, {
       payloadLabel: reviewMode ? 'daily-review-session' : 'session-cards'
     });
@@ -458,7 +470,7 @@ async function startSession(options = {}) {
       recordSessionSizeSample(selectedSubject.id, selectedCards.length);
       clearSessionSizeManualOverride();
     }
-    const mixedCards = interleaveCardsByTopic(selectedCards);
+    const mixedCards = reviewMode ? [...selectedCards] : interleaveCardsByTopic(selectedCards);
 
     const reviewCardIdSet = new Set(explicitCardIds);
     const sessionCards = mixedCards.map(card => ({
