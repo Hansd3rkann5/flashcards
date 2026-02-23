@@ -193,8 +193,10 @@ async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString()
 async function refreshSidebar(options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const uiBlocking = opts.uiBlocking !== false;
+  const force = !!opts.force;
   const subjects = sortSubjectsByLastEdited(await getAll('subjects', {
     uiBlocking,
+    force,
     loadingLabel: 'Loading subjects...'
   }));
   rebuildSubjectDirectory(subjects);
@@ -256,7 +258,7 @@ async function refreshSidebar(options = {}) {
     }
     list.appendChild(chip);
   });
-  const stats = await getStats({ uiBlocking, loadingLabel: 'Loading overview...' });
+  const stats = await getStats({ uiBlocking, force, loadingLabel: 'Loading overview...' });
   const summarySubjectsEl = el('summarySubjects');
   const summaryTopicsEl = el('summaryTopics');
   const summaryCardsEl = el('summaryCards');

@@ -2362,11 +2362,11 @@ function openEditDialog(card) {
  */
 
 async function deleteCardById(cardId, options = {}) {
-  const { skipSubjectTouch = false } = options;
+  const { skipSubjectTouch = false, uiBlocking = true } = options;
   const card = await getById('cards', cardId);
-  await del('cards', cardId);
-  await del('progress', cardId);
-  await del('cardbank', cardId);
+  await del('cards', cardId, { uiBlocking });
+  await del('progress', cardId, { uiBlocking });
+  await del('cardbank', cardId, { uiBlocking });
   progressByCardId.delete(cardId);
   if (!skipSubjectTouch && card?.topicId) {
     await touchSubjectByTopicId(card.topicId);

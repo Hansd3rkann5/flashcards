@@ -2794,7 +2794,7 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
     }
     setContentExchangeStatusText('Import finished. Refreshing app view...');
     invalidateApiStoreCache();
-    await refreshSidebar({ uiBlocking: false });
+    await refreshSidebar({ uiBlocking: false, force: true });
     if (selectedSubject) await loadTopics();
     if (selectedTopic) await loadDeck();
     await reloadContentExchangeTree({ preserveLog: true });

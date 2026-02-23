@@ -1039,12 +1039,12 @@ async function openTopicSearchModal() {
  */
 
 async function deleteTopicById(topicId, options = {}) {
-  const { skipSubjectTouch = false } = options;
+  const { skipSubjectTouch = false, uiBlocking = true } = options;
   const topic = await getById('topics', topicId);
   const subjectId = topic?.subjectId || '';
   const cards = await getCardsByTopicIds([topicId], { force: true });
-  for (const c of cards) await deleteCardById(c.id, { skipSubjectTouch: true });
-  await del('topics', topicId);
+  for (const c of cards) await deleteCardById(c.id, { skipSubjectTouch: true, uiBlocking });
+  await del('topics', topicId, { uiBlocking });
   if (subjectId && !skipSubjectTouch) await touchSubject(subjectId);
   selectedTopicIds.delete(topicId);
   topicSelectedIds.delete(topicId);
@@ -1057,16 +1057,21 @@ async function deleteTopicById(topicId, options = {}) {
  */
 
 async function deleteSubjectById(subjectId) {
-  const topics = await getTopicsBySubject(subjectId, { force: true });
-  for (const t of topics) await deleteTopicById(t.id, { skipSubjectTouch: true });
-  await del('subjects', subjectId);
-  if (selectedSubject?.id === subjectId) {
-    selectedSubject = null;
-    selectedTopic = null;
-    setView(0);
+  setAppLoadingState(true, 'Deleting subject...');
+  try {
+    const topics = await getTopicsBySubject(subjectId, { force: true, uiBlocking: false });
+    for (const t of topics) await deleteTopicById(t.id, { skipSubjectTouch: true, uiBlocking: false });
+    await del('subjects', subjectId, { uiBlocking: false });
+    if (selectedSubject?.id === subjectId) {
+      selectedSubject = null;
+      selectedTopic = null;
+      setView(0);
+    }
+    await refreshSidebar({ uiBlocking: false, force: true });
+    if (selectedSubject) await loadTopics({ uiBlocking: false, force: true });
+  } finally {
+    setAppLoadingState(false);
   }
-  refreshSidebar();
-  loadTopics();
 }
 
 /**

@@ -1937,7 +1937,12 @@ async function boot() {
     const id = editingSubjectId;
     editingSubjectId = null;
     el('subjectEditDialog').close();
-    await deleteSubjectById(id);
+    try {
+      await deleteSubjectById(id);
+    } catch (err) {
+      console.error('Failed to delete subject:', err);
+      alert(err?.message || 'Failed to delete subject.');
+    }
   };
   const subjectEditDialog = el('subjectEditDialog');
   if (subjectEditDialog) {
