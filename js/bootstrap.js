@@ -1900,7 +1900,11 @@ async function boot() {
     const name = el('editSubjectName').value.trim();
     const accent = el('editSubjectColor').value || '#2dd4bf';
     const examDateRaw = String(el('editSubjectExamDate')?.value || '').trim();
-    const examDate = /^\d{4}-\d{2}-\d{2}$/.test(examDateRaw) ? examDateRaw : '';
+    const examDate = normalizeSubjectExamDate(examDateRaw);
+    if (examDateRaw && !examDate) {
+      alert('Please use exam date format DD/MM/YYYY.');
+      return;
+    }
     const excludeFromReview = !!el('editSubjectExcludeFromReview')?.checked;
     if (!name) return;
     let existingSubject = await getById('subjects', editingSubjectId, {

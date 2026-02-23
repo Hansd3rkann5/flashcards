@@ -23,7 +23,34 @@ function openSubjectDialog() {
 
 function normalizeSubjectExamDate(value = '') {
   const raw = String(value || '').trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const ddmmyyyy = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!ddmmyyyy) return '';
+  const day = Number(ddmmyyyy[1]);
+  const month = Number(ddmmyyyy[2]);
+  const year = Number(ddmmyyyy[3]);
+  const test = new Date(Date.UTC(year, month - 1, day));
+  if (
+    test.getUTCFullYear() !== year
+    || (test.getUTCMonth() + 1) !== month
+    || test.getUTCDate() !== day
+  ) {
+    return '';
+  }
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/**
+ * @function formatSubjectExamDateForInput
+ * @description Formats stored exam date values as DD/MM/YYYY for subject dialog inputs.
+ */
+
+function formatSubjectExamDateForInput(value = '') {
+  const normalized = normalizeSubjectExamDate(value);
+  if (!normalized) return '';
+  const [year, month, day] = normalized.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 /**
@@ -35,7 +62,12 @@ async function addSubjectFromDialog() {
   const name = el('subjectNameInput').value.trim();
   if (!name) return;
   const accent = el('subjectAccentText').value.trim() || '#2dd4bf';
-  const examDate = normalizeSubjectExamDate(el('subjectExamDateInput')?.value);
+  const examDateRaw = String(el('subjectExamDateInput')?.value || '').trim();
+  const examDate = normalizeSubjectExamDate(examDateRaw);
+  if (examDateRaw && !examDate) {
+    alert('Please use exam date format DD/MM/YYYY.');
+    return;
+  }
   const excludeFromReview = !!el('subjectExcludeFromReviewInput')?.checked;
   const subject = buildSubjectRecord({
     id: uid(),

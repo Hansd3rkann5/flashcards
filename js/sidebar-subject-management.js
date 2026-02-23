@@ -245,8 +245,7 @@ async function refreshSidebar(options = {}) {
         el('editSubjectColor').value = subject?.accent || '#2dd4bf';
         const editExamDateInput = el('editSubjectExamDate');
         if (editExamDateInput) {
-          const examDate = String(subject?.examDate || '').trim();
-          editExamDateInput.value = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? examDate : '';
+          editExamDateInput.value = formatSubjectExamDateForInput(subject?.examDate);
         }
         const editExcludeInput = el('editSubjectExcludeFromReview');
         if (editExcludeInput) {

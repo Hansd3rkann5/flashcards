@@ -55,7 +55,22 @@ function getDayKeyByOffset(offsetDays = 0, date = new Date()) {
 
 function normalizeSubjectExamDateForReview(value = '') {
   const raw = String(value || '').trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const ddmmyyyy = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!ddmmyyyy) return '';
+  const day = Number(ddmmyyyy[1]);
+  const month = Number(ddmmyyyy[2]);
+  const year = Number(ddmmyyyy[3]);
+  const test = new Date(Date.UTC(year, month - 1, day));
+  if (
+    test.getUTCFullYear() !== year
+    || (test.getUTCMonth() + 1) !== month
+    || test.getUTCDate() !== day
+  ) {
+    return '';
+  }
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /**
