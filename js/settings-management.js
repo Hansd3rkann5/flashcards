@@ -2711,6 +2711,37 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
   contentExchangeImporting = true;
   setContentExchangeBusyState();
   setContentExchangeStatusText(`Importing ${safeLevel}...`);
+  const importOverlayBase = safeLevel === 'subject'
+    ? 'Importing subject'
+    : 'Importing content';
+  let importOverlayOpened = false;
+  const setImportOverlayLabel = (text = '') => {
+    const labelEl = el('appLoadingLabel');
+    const safeText = String(text || '').trim();
+    if (labelEl && safeText) {
+      labelEl.textContent = safeText;
+      return;
+    }
+    if (!importOverlayOpened && safeText) {
+      setAppLoadingState(true, safeText);
+      importOverlayOpened = true;
+    }
+  };
+  const updateImportOverlayProgress = (done = 0, total = 1, phase = '') => {
+    const safeTotal = Math.max(1, Math.trunc(Number(total) || 1));
+    const safeDone = Math.max(0, Math.min(safeTotal, Math.trunc(Number(done) || 0)));
+    const percent = Math.round((safeDone / safeTotal) * 100);
+    const phaseText = String(phase || '').trim();
+    const suffix = phaseText ? ` • ${phaseText}` : '';
+    const label = `${importOverlayBase}... ${percent}%${suffix}`;
+    if (!importOverlayOpened) {
+      setAppLoadingState(true, label);
+      importOverlayOpened = true;
+      return;
+    }
+    setImportOverlayLabel(label);
+  };
+  updateImportOverlayProgress(0, 1, 'starting');
   const startedAt = performance.now();
   appendContentExchangeLogLine(
     `Import started (${safeLevel}): subjects=${selection.subjectIds.length}, topics=${selection.topicIds.length}, cards=${selection.cardIds.length}.`
@@ -2731,6 +2762,11 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
       `Loaded payloads: subjects=${subjectRows.length}, topics=${topicRows.length}, cards=${cardRows.length}.`
     );
 
+    const refreshUnits = 3; // refresh sidebar x2 + reload exchange tree
+    const totalWorkUnits = Math.max(1, 1 + subjectRows.length + topicRows.length + cardRows.length + refreshUnits);
+    let completedWorkUnits = 1; // payload fetch completed
+    updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'writing subjects');
+
     const nowIso = new Date().toISOString();
     for (let idx = 0; idx < subjectRows.length; idx += 1) {
       const row = subjectRows[idx];
@@ -2741,8 +2777,11 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
         uiBlocking: false,
         loadingLabel: ''
       });
+      completedWorkUnits += 1;
+      updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'writing subjects');
     }
 
+    updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'writing topics');
     for (let idx = 0; idx < topicRows.length; idx += 1) {
       const row = topicRows[idx];
       const id = String(row?.id || '').trim();
@@ -2752,9 +2791,12 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
         uiBlocking: false,
         loadingLabel: ''
       });
+      completedWorkUnits += 1;
+      updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'writing topics');
     }
 
     let externalRefCount = 0;
+    updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'writing cards');
     for (let idx = 0; idx < cardRows.length; idx += 1) {
       const row = cardRows[idx];
       const rawId = String(row?.id || '').trim();
@@ -2782,6 +2824,8 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
         uiBlocking: false,
         loadingLabel: ''
       });
+      completedWorkUnits += 1;
+      updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'writing cards');
     }
 
     appendContentExchangeLogLine(
@@ -2794,10 +2838,19 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
     }
     setContentExchangeStatusText('Import finished. Refreshing app view...');
     invalidateApiStoreCache();
+    completedWorkUnits += 1;
+    updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'refreshing sidebar');
+    await refreshSidebar({ uiBlocking: false, force: true });
+    // One extra pass avoids stale in-flight cache wins after heavy import runs.
+    completedWorkUnits += 1;
+    updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'refreshing sidebar');
     await refreshSidebar({ uiBlocking: false, force: true });
     if (selectedSubject) await loadTopics();
     if (selectedTopic) await loadDeck();
+    completedWorkUnits += 1;
+    updateImportOverlayProgress(completedWorkUnits, totalWorkUnits, 'finalizing');
     await reloadContentExchangeTree({ preserveLog: true });
+    updateImportOverlayProgress(totalWorkUnits, totalWorkUnits, 'done');
   } catch (err) {
     const message = String(err?.message || 'Unknown error');
     appendContentExchangeLogLine(`Import failed: ${message}`);
@@ -2806,6 +2859,7 @@ async function importContentExchangeSelection(level = '', sourceUid = '', entity
   } finally {
     contentExchangeImporting = false;
     setContentExchangeBusyState();
+    if (importOverlayOpened) setAppLoadingState(false);
   }
 }
 

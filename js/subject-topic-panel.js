@@ -282,6 +282,10 @@ async function loadTopics(options = {}) {
   } else {
     topics = await getTopicsBySubject(subjectId, { includeCounts: true, force, uiBlocking });
   }
+  topics = (Array.isArray(topics) ? topics : []).filter(topic => {
+    const topicId = String(topic?.id || '').trim();
+    return !!topicId && !pendingTopicDeletionIds.has(topicId);
+  });
   // Subject may have changed while data was loading in the background.
   if (!selectedSubject || String(selectedSubject.id || '').trim() !== subjectId) return;
 

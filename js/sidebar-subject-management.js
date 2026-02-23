@@ -210,6 +210,7 @@ async function refreshSidebar(options = {}) {
   visibleSubjects.forEach(s => {
     const chip = document.createElement('div');
     chip.className = 'tile subject-tile';
+    chip.dataset.subjectId = String(s?.id || '').trim();
     const accent = normalizeHexColor(s.accent || '#2dd4bf');
     chip.style.setProperty('--tile-accent', accent);
     chip.style.setProperty('--subject-accent', accent);

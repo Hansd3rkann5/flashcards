@@ -22,6 +22,7 @@ let selectedSubject = null;
 let selectedTopic = null;
 let selectedTopicIds = new Set();
 let pendingSubjectDeletionIds = new Set();
+let pendingTopicDeletionIds = new Set();
 let sessionSize = 10;
 let pillBarResizeObserver = null;
 let pillResizeTimeout = null;

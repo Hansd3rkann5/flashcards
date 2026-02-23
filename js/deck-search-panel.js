@@ -69,6 +69,112 @@ function getTopicSelectionIds() {
 }
 
 /**
+ * @function escapeDataSelectorValue
+ * @description Escapes attribute selector values for querySelector.
+ */
+
+function escapeDataSelectorValue(value = '') {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
+}
+
+/**
+ * @function findSubjectTileById
+ * @description Finds one rendered subject tile by subject id.
+ */
+
+function findSubjectTileById(subjectId = '') {
+  const safeId = String(subjectId || '').trim();
+  if (!safeId) return null;
+  return document.querySelector(`#subjectList .subject-tile[data-subject-id="${escapeDataSelectorValue(safeId)}"]`);
+}
+
+/**
+ * @function findTopicTileById
+ * @description Finds one rendered topic tile by topic id.
+ */
+
+function findTopicTileById(topicId = '') {
+  const safeId = String(topicId || '').trim();
+  if (!safeId) return null;
+  return document.querySelector(`#topicList .topic-tile[data-topic-id="${escapeDataSelectorValue(safeId)}"]`);
+}
+
+/**
+ * @function playTileShatterAnimation
+ * @description Plays a short "break into pieces" animation for one tile before deletion.
+ */
+
+function playTileShatterAnimation(tileEl, options = {}) {
+  const tile = tileEl instanceof HTMLElement ? tileEl : null;
+  if (!tile || !tile.isConnected) return Promise.resolve(false);
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return Promise.resolve(false);
+  }
+
+  const opts = options && typeof options === 'object' ? options : {};
+  const holdMsRaw = Number(opts.holdMs);
+  const holdMs = Number.isFinite(holdMsRaw) ? Math.max(120, Math.trunc(holdMsRaw)) : 560;
+  const persistHide = opts.persistHide === true;
+  const rect = tile.getBoundingClientRect();
+  if (rect.width < 20 || rect.height < 20) return Promise.resolve(false);
+
+  const cols = 7;
+  const rows = 4;
+  const pieceWidth = rect.width / cols;
+  const pieceHeight = rect.height / rows;
+  const style = window.getComputedStyle(tile);
+  const tileBackground = style.backgroundImage && style.backgroundImage !== 'none'
+    ? style.backgroundImage
+    : style.backgroundColor;
+  const accent = String(style.getPropertyValue('--subject-accent') || style.getPropertyValue('--tile-accent') || style.borderColor || '#2dd4bf').trim() || '#2dd4bf';
+
+  const layer = document.createElement('div');
+  layer.className = 'tile-shatter-layer';
+  layer.style.left = `${Math.round(rect.left)}px`;
+  layer.style.top = `${Math.round(rect.top)}px`;
+  layer.style.width = `${Math.round(rect.width)}px`;
+  layer.style.height = `${Math.round(rect.height)}px`;
+  layer.style.setProperty('--piece-accent', accent);
+  layer.setAttribute('aria-hidden', 'true');
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const piece = document.createElement('span');
+      piece.className = 'tile-shatter-piece';
+      piece.style.left = `${Math.floor(col * pieceWidth)}px`;
+      piece.style.top = `${Math.floor(row * pieceHeight)}px`;
+      piece.style.width = `${Math.ceil(pieceWidth) + 1}px`;
+      piece.style.height = `${Math.ceil(pieceHeight) + 1}px`;
+      piece.style.background = tileBackground;
+      piece.style.backgroundSize = `${Math.round(rect.width)}px ${Math.round(rect.height)}px`;
+      piece.style.backgroundPosition = `${Math.round(-col * pieceWidth)}px ${Math.round(-row * pieceHeight)}px`;
+      const tx = (Math.random() - 0.5) * rect.width * 1.35;
+      const ty = (0.45 + Math.random() * 1.35) * rect.height;
+      const rz = (Math.random() - 0.5) * 240;
+      const delay = Math.random() * 110;
+      piece.style.setProperty('--tx', `${tx.toFixed(1)}px`);
+      piece.style.setProperty('--ty', `${ty.toFixed(1)}px`);
+      piece.style.setProperty('--rz', `${rz.toFixed(1)}deg`);
+      piece.style.setProperty('--delay', `${delay.toFixed(0)}ms`);
+      layer.appendChild(piece);
+    }
+  }
+
+  document.body.appendChild(layer);
+  tile.classList.add('tile-shattering');
+
+  return new Promise(resolve => {
+    setTimeout(() => {
+      layer.remove();
+      if (tile.isConnected && !persistHide) tile.classList.remove('tile-shattering');
+      resolve(true);
+    }, holdMs);
+  });
+}
+
+/**
  * @function updateTopicSelectionUi
  * @description Updates topic selection UI.
  */
@@ -300,10 +406,16 @@ async function moveSelectedTopics() {
 
 async function deleteSelectedTopics() {
   const ids = getTopicSelectionIds();
-  if (!ids.length) return;
-  const label = ids.length === 1 ? 'this topic' : `these ${ids.length} topics`;
+  const safeIds = Array.from(new Set(
+    (Array.isArray(ids) ? ids : []).map(topicId => String(topicId || '').trim()).filter(Boolean)
+  ));
+  if (!safeIds.length) return;
+  const label = safeIds.length === 1 ? 'this topic' : `these ${safeIds.length} topics`;
   if (!confirm(`Delete ${label} and all cards inside?`)) return;
-  setAppLoadingState(true, 'Deleting topics...');
+  safeIds.forEach(topicId => pendingTopicDeletionIds.add(topicId));
+  const topicTiles = safeIds.map(topicId => findTopicTileById(topicId)).filter(Boolean);
+  await Promise.all(topicTiles.map(tile => playTileShatterAnimation(tile, { persistHide: true })));
+  let hadError = false;
   try {
     let ownerId = '';
     let tenantColumn = '';
@@ -314,12 +426,13 @@ async function deleteSelectedTopics() {
       tenantColumn = String(supabaseTenantColumn || '').trim() || 'uid';
     }
 
-    for (const topicId of ids) {
+    for (const topicId of safeIds) {
       await deleteTopicById(topicId, {
         skipSubjectTouch: true,
         uiBlocking: false,
         ownerId,
         tenantColumn,
+        animate: false,
         invalidateCache: false
       });
     }
@@ -336,8 +449,16 @@ async function deleteSelectedTopics() {
       renderSessionPills();
       setView(1);
     }
+  } catch (err) {
+    hadError = true;
+    console.error('Failed to delete selected topics:', err);
+    alert(err?.message || 'Failed to delete selected topics.');
   } finally {
-    setAppLoadingState(false);
+    safeIds.forEach(topicId => pendingTopicDeletionIds.delete(topicId));
+    if (hadError) {
+      await refreshSidebar({ uiBlocking: false, force: true });
+      if (selectedSubject) await loadTopics({ uiBlocking: false, force: true });
+    }
   }
 }
 
@@ -1065,10 +1186,14 @@ async function deleteTopicById(topicId, options = {}) {
     uiBlocking = true,
     ownerId = '',
     tenantColumn = '',
+    animate = true,
     invalidateCache = true
   } = options;
   const safeTopicId = String(topicId || '').trim();
   if (!safeTopicId) return;
+  if (animate) {
+    await playTileShatterAnimation(findTopicTileById(safeTopicId), { persistHide: true });
+  }
 
   const topic = await getById('topics', safeTopicId, { uiBlocking });
   const subjectId = topic?.subjectId || '';
@@ -1168,6 +1293,7 @@ async function deleteSubjectById(subjectId) {
   if (!safeSubjectId) return;
   if (pendingSubjectDeletionIds.has(safeSubjectId)) return;
 
+  await playTileShatterAnimation(findSubjectTileById(safeSubjectId), { persistHide: true });
   pendingSubjectDeletionIds.add(safeSubjectId);
   const wasSelectedSubject = String(selectedSubject?.id || '').trim() === safeSubjectId;
   if (wasSelectedSubject) {
