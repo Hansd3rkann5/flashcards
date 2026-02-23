@@ -7,7 +7,7 @@ const SUPABASE_URL = String(window.__SUPABASE_URL__ || '').trim();
 const SUPABASE_ANON_KEY = String(window.__SUPABASE_ANON_KEY__ || '').trim();
 const SUPABASE_PICTURES_BUCKET = String(window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures').trim() || 'Pictures';
 const SUPABASE_TABLE = 'records';
-const LOCAL_SNAPSHOT_MODE = window.__LOCAL_SNAPSHOT_MODE__ === false;
+const LOCAL_SNAPSHOT_MODE = window.__LOCAL_SNAPSHOT_MODE__ === true;
 const LOCAL_SNAPSHOT_PATH = String(window.__LOCAL_SNAPSHOT_PATH__ || '').trim();
 const STORE_KEYS = {
   subjects: 'id',
@@ -21,6 +21,7 @@ let dbReady = false;
 let selectedSubject = null;
 let selectedTopic = null;
 let selectedTopicIds = new Set();
+let pendingSubjectDeletionIds = new Set();
 let sessionSize = 10;
 let pillBarResizeObserver = null;
 let pillResizeTimeout = null;

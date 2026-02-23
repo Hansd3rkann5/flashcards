@@ -199,10 +199,15 @@ async function refreshSidebar(options = {}) {
     force,
     loadingLabel: 'Loading subjects...'
   }));
+  const visibleSubjects = subjects.filter(subject => {
+    const id = String(subject?.id || '').trim();
+    if (!id) return false;
+    return !pendingSubjectDeletionIds.has(id);
+  });
   rebuildSubjectDirectory(subjects);
   const list = el('subjectList');
   list.innerHTML = '';
-  subjects.forEach(s => {
+  visibleSubjects.forEach(s => {
     const chip = document.createElement('div');
     chip.className = 'tile subject-tile';
     const accent = normalizeHexColor(s.accent || '#2dd4bf');
@@ -262,7 +267,7 @@ async function refreshSidebar(options = {}) {
   const summarySubjectsEl = el('summarySubjects');
   const summaryTopicsEl = el('summaryTopics');
   const summaryCardsEl = el('summaryCards');
-  if (summarySubjectsEl) summarySubjectsEl.textContent = `${subjects.length} Subjects`;
+  if (summarySubjectsEl) summarySubjectsEl.textContent = `${visibleSubjects.length} Subjects`;
   if (summaryTopicsEl) summaryTopicsEl.textContent = `${stats.topics} Topics`;
   if (summaryCardsEl) summaryCardsEl.textContent = `${stats.cards} Cards`;
   applySubjectTheme(selectedSubject?.accent || '#2dd4bf');

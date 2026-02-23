@@ -3836,6 +3836,38 @@ dialog.modal.subject-edit-modal {
   user-select: none;
 }
 
+.subject-review-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subject-review-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+
+.subject-review-info-icon:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.subject-review-info-icon:focus-visible {
+  outline: 2px solid var(--accent, #2dd4bf);
+  outline-offset: 2px;
+}
+
 .subject-review-checkbox-label input[type="checkbox"] {
   margin: 0;
   width: 18px;
@@ -4183,7 +4215,8 @@ dialog.modal.subject-edit-modal {
 }
 
 .content-exchange-card-tile.selection-mode {
-  padding-top: calc(var(--space-3) + 34px);
+  padding-top: 0;
+  /* padding-top: calc(var(--space-3) + 34px); */
 }
 
 .content-exchange-card-tile:hover {
