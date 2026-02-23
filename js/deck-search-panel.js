@@ -303,20 +303,41 @@ async function deleteSelectedTopics() {
   if (!ids.length) return;
   const label = ids.length === 1 ? 'this topic' : `these ${ids.length} topics`;
   if (!confirm(`Delete ${label} and all cards inside?`)) return;
-  for (const topicId of ids) {
-    await deleteTopicById(topicId, { skipSubjectTouch: true });
-  }
-  if (selectedSubject?.id) await touchSubject(selectedSubject.id);
-  setTopicSelectionMode(false);
-  await refreshSidebar();
-  await loadTopics();
-  if (!selectedTopic && currentView === 2) {
-    setDeckSelectionMode(false);
-    session.active = false;
-    el('cardsOverviewSection').classList.remove('hidden');
-    el('studySessionSection')?.classList.add('hidden');
-    renderSessionPills();
-    setView(1);
+  setAppLoadingState(true, 'Deleting topics...');
+  try {
+    let ownerId = '';
+    let tenantColumn = '';
+    if (!isLocalSnapshotModeEnabled()) {
+      await initSupabaseBackend();
+      await resolveSupabaseTenantColumn();
+      ownerId = await getSupabaseOwnerId();
+      tenantColumn = String(supabaseTenantColumn || '').trim() || 'uid';
+    }
+
+    for (const topicId of ids) {
+      await deleteTopicById(topicId, {
+        skipSubjectTouch: true,
+        uiBlocking: false,
+        ownerId,
+        tenantColumn,
+        invalidateCache: false
+      });
+    }
+    invalidateApiStoreCache();
+    if (selectedSubject?.id) await touchSubject(selectedSubject.id, new Date().toISOString(), { uiBlocking: false });
+    setTopicSelectionMode(false);
+    await refreshSidebar({ uiBlocking: false, force: true });
+    await loadTopics({ uiBlocking: false, force: true });
+    if (!selectedTopic && currentView === 2) {
+      setDeckSelectionMode(false);
+      session.active = false;
+      el('cardsOverviewSection').classList.remove('hidden');
+      el('studySessionSection')?.classList.add('hidden');
+      renderSessionPills();
+      setView(1);
+    }
+  } finally {
+    setAppLoadingState(false);
   }
 }
 
@@ -1039,16 +1060,47 @@ async function openTopicSearchModal() {
  */
 
 async function deleteTopicById(topicId, options = {}) {
-  const { skipSubjectTouch = false, uiBlocking = true } = options;
-  const topic = await getById('topics', topicId);
+  const {
+    skipSubjectTouch = false,
+    uiBlocking = true,
+    ownerId = '',
+    tenantColumn = '',
+    invalidateCache = true
+  } = options;
+  const safeTopicId = String(topicId || '').trim();
+  if (!safeTopicId) return;
+
+  const topic = await getById('topics', safeTopicId, { uiBlocking });
   const subjectId = topic?.subjectId || '';
-  const cards = await getCardsByTopicIds([topicId], { force: true });
-  for (const c of cards) await deleteCardById(c.id, { skipSubjectTouch: true, uiBlocking });
-  await del('topics', topicId, { uiBlocking });
+  const cardRefs = await getCardRefsByTopicIds([safeTopicId], {
+    force: true,
+    uiBlocking: false,
+    payloadLabel: 'topic-delete-refs'
+  });
+  const cardIds = Array.from(new Set(
+    cardRefs.map(card => String(card?.id || '').trim()).filter(Boolean)
+  ));
+
+  let resolvedOwnerId = String(ownerId || '').trim();
+  let resolvedTenantColumn = String(tenantColumn || '').trim();
+  if (!isLocalSnapshotModeEnabled() && (!resolvedOwnerId || !resolvedTenantColumn)) {
+    await initSupabaseBackend();
+    await resolveSupabaseTenantColumn();
+    resolvedOwnerId = await getSupabaseOwnerId();
+    resolvedTenantColumn = String(supabaseTenantColumn || '').trim() || 'uid';
+  }
+
+  await deleteStoreRecordsByKeysFast('progress', cardIds, { ownerId: resolvedOwnerId, tenantColumn: resolvedTenantColumn });
+  await deleteStoreRecordsByKeysFast('cardbank', cardIds, { ownerId: resolvedOwnerId, tenantColumn: resolvedTenantColumn });
+  await deleteStoreRecordsByKeysFast('cards', cardIds, { ownerId: resolvedOwnerId, tenantColumn: resolvedTenantColumn });
+  await deleteStoreRecordsByKeysFast('topics', [safeTopicId], { ownerId: resolvedOwnerId, tenantColumn: resolvedTenantColumn });
+
+  cardIds.forEach(cardId => progressByCardId.delete(cardId));
   if (subjectId && !skipSubjectTouch) await touchSubject(subjectId);
-  selectedTopicIds.delete(topicId);
-  topicSelectedIds.delete(topicId);
-  if (selectedTopic?.id === topicId) selectedTopic = null;
+  selectedTopicIds.delete(safeTopicId);
+  topicSelectedIds.delete(safeTopicId);
+  if (selectedTopic?.id === safeTopicId) selectedTopic = null;
+  if (invalidateCache) invalidateApiStoreCache();
 }
 
 /**
