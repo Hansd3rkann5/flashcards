@@ -30,7 +30,7 @@ function updateDeckSelectionUi() {
     bulkBar.classList.toggle('hidden', !deckSelectionMode);
   }
   if (count) {
-    count.textContent = `${deckSelectedCardIds.size} ausgewaehlt`;
+    count.textContent = `${deckSelectedCardIds.size} selected`;
   }
   if (moveBtn) moveBtn.disabled = !hasSelection;
   if (deleteBtn) deleteBtn.disabled = !hasSelection;
@@ -504,12 +504,12 @@ async function populateMoveTopics(subjectId) {
 async function openMoveCardsDialog() {
   const ids = getDeckSelectionIds();
   if (!ids.length) {
-    alert('Bitte waehle zuerst Karten aus.');
+    alert('Please select cards first.');
     return;
   }
   const subjects = sortSubjectsByLastEdited(await getAll('subjects'));
   if (!subjects.length) {
-    alert('Keine Subjects verfuegbar.');
+    alert('No subjects available.');
     return;
   }
   const subjectSelect = el('moveCardsSubjectSelect');
@@ -528,8 +528,8 @@ async function openMoveCardsDialog() {
   subjectSelect.value = preferredSubjectId;
   await populateMoveTopics(subjectSelect.value);
   if (info) {
-    const cardWord = ids.length === 1 ? 'Karte' : 'Karten';
-    info.textContent = `${ids.length} ${cardWord} ausgewaehlt`;
+    const cardWord = ids.length === 1 ? 'card' : 'cards';
+    info.textContent = `${ids.length} ${cardWord} selected`;
   }
   showDialog(el('moveCardsDialog'));
 }
@@ -544,7 +544,7 @@ async function moveSelectedDeckCards() {
   if (!ids.length) return;
   const targetTopicId = el('moveCardsTopicSelect')?.value || '';
   if (!targetTopicId) {
-    alert('Bitte waehle ein Ziel-Topic aus.');
+    alert('Please select a target topic.');
     return;
   }
 
@@ -552,7 +552,7 @@ async function moveSelectedDeckCards() {
     const sourceSubjectId = selectedSubject?.id || '';
     const targetTopic = await getById('topics', targetTopicId);
     if (!targetTopic) {
-      alert('Das Ziel-Topic konnte nicht geladen werden.');
+      alert('Could not load the target topic.');
       return;
     }
     const targetSubjectId = String(targetTopic.subjectId || '').trim();
@@ -563,7 +563,7 @@ async function moveSelectedDeckCards() {
       payloadLabel: `bulk-move-${ids.length}`
     });
     if (!selectedCards.length) {
-      alert('Die ausgewaehlten Karten konnten nicht geladen werden. Bitte Seite neu laden und erneut versuchen.');
+      alert('Could not load the selected cards. Please reload the page and try again.');
       return;
     }
 
@@ -584,8 +584,8 @@ async function moveSelectedDeckCards() {
 
     if (!movedCount) {
       const msg = missingCount
-        ? `Es wurden keine Karten verschoben (${missingCount} Karten konnten nicht geladen werden).`
-        : 'Es wurden keine Karten verschoben.';
+        ? `No cards were moved (${missingCount} cards could not be loaded).`
+        : 'No cards were moved.';
       alert(msg);
       return;
     }
@@ -600,7 +600,7 @@ async function moveSelectedDeckCards() {
     if (selectedSubject) await refreshTopicSessionMeta();
   } catch (err) {
     console.error('moveSelectedDeckCards failed:', err);
-    alert(`Verschieben fehlgeschlagen: ${err?.message || err}`);
+    alert(`Move failed: ${err?.message || err}`);
   }
 }
 
@@ -612,8 +612,8 @@ async function moveSelectedDeckCards() {
 async function deleteSelectedDeckCards() {
   const ids = getDeckSelectionIds();
   if (!ids.length) return;
-  const label = ids.length === 1 ? 'diese Karte' : `diese ${ids.length} Karten`;
-  if (!confirm(`Moechtest du ${label} loeschen?`)) return;
+  const label = ids.length === 1 ? 'this card' : `these ${ids.length} cards`;
+  if (!confirm(`Do you want to delete ${label}?`)) return;
   for (const cardId of ids) {
     await deleteCardById(cardId, { skipSubjectTouch: true });
   }
@@ -775,7 +775,7 @@ function buildCardTile(card, idx, compact = false) {
   } else {
     const selectWrap = document.createElement('label');
     selectWrap.className = 'card-select-control';
-    selectWrap.innerHTML = `<input type="checkbox" aria-label="Karte auswaehlen" />`;
+    selectWrap.innerHTML = `<input type="checkbox" aria-label="Select card" />`;
     const checkbox = selectWrap.querySelector('input');
     checkbox.checked = deckSelectedCardIds.has(card.id);
     checkbox.addEventListener('click', e => e.stopPropagation());

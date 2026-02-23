@@ -1348,7 +1348,7 @@ async function gradeCard(result) {
     session.activeQueue.splice(target, 0, card);
     session.gradeMap[card.id] = result;
   } else {
-    session.activeQueue.push(card); // correct, aber noch nicht mastered
+    session.activeQueue.push(card); // correct, but not mastered yet
     session.gradeMap[card.id] = result;
   }
 
@@ -1444,21 +1444,21 @@ function renderSessionPills() {
     return;
   }
 
-  // 1. Berechnung der dynamischen Breite
+  // 1. Calculate dynamic width.
   const totalCards = session.activeQueue.length + session.mastered.length;
   const bar = el('sessionPillBar');
   const barWidth = bar.offsetWidth;
-  const availableWidth = barWidth * 0.7; // 80% der Breite
-  const gapSum = (totalCards - 1) * 4; // 4px Gap zwischen den Elementen
-  // Verfügbare Breite minus Gaps geteilt durch Anzahl der Karten
+  const availableWidth = barWidth * 0.7; // 80% of the bar width
+  const gapSum = (totalCards - 1) * 4; // 4px gap between dots
+  // Available width minus gaps divided by card count
   let dynamicWidth = (availableWidth - gapSum) / totalCards;
 
-  // Grenzen setzen (analog zu deinem clamp)
+  // Clamp bounds can be applied here if needed
   // dynamicWidth = Math.max(10, Math.min(dynamicWidth, 30));
   console.log({ barWidth, availableWidth, gapSum, totalCards, dynamicWidth });
 
-  // 2. Den Wert als CSS-Variable an den Parent übergeben
-  // So müssen wir nicht jedes einzelne Element anfassen
+  // 2. Pass value to parent via CSS variable
+  // This avoids touching each element individually
   bar.style.setProperty('--dynamic-pill-width', `${dynamicWidth}px`);
   bar.style.setProperty('--dynamic-pill-height', `${dynamicWidth * 0.4}px`);
 

@@ -110,12 +110,17 @@
     <button id="homeBtn">🏠 Home</button>
     <button id="settingsBtn">⚙️ Settings</button>
     <div class="sidebar-subjects">
-      <strong>Subjects</strong>
+      <div class="sidebar-subjects-header">
+        <strong>Subjects</strong>
+        <button class="btn select-cards-btn" id="addSubjectBtn" style="background-color: var(--success)">
+          <img src="icons/plus.svg" alt="" />
+        </button>
+      </div>
       <div id="subjectList" class="tile-grid"></div>
-      <button class="btn" id="addSubjectBtn" style="margin-top:10px;width: 100%;">+ Add Subject</button>
+      <!-- <button class="btn" id="addSubjectBtn" style="margin-top:10px;width: 100%;">+ Add Subject</button> -->
     </div>
     <div class="sidebar-meta" id="sidebarMeta">
-      <div class="tiny sidebar-meta-line">by SimonBader, <span id="appVersionLabel">v2026.02.23.15</span></div>
+      <div class="tiny sidebar-meta-line">by SimonBader, <span id="appVersionLabel">v2026.02.23.16</span></div>
     </div>
   </aside>
 
@@ -327,24 +332,26 @@
               <div id="deckTopicCardCount" class="tiny deck-topic-card-count hidden"></div>
             </div>
             <div class="deck-actions">
-              <button class="btn select-cards-btn" id="toggleCardSelectBtn" aria-label="Karten auswählen"
-                title="Karten auswählen" type="button">
+              <button class="btn select-cards-btn" id="toggleCardSelectBtn" aria-label="Select cards"
+                title="Select cards" type="button">
                 <img src="icons/check.svg" alt="" />
               </button>
               <button class="btn select-cards-btn topic-more-btn" id="openTopicEditBtn" aria-label="Rename topic"
                 title="Rename topic" type="button">⋯</button>
-              <button class="btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
-                aria-label="Create flashcard" title="Create flashcard">+</button>
+              <button class="btn select-cards-btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
+                aria-label="Create flashcard" title="Create flashcard">
+                <img src="icons/plus.svg" alt="" />
+              </button>
             </div>
             <!-- </div> -->
             <!-- <div class="tiny deck-separator-row">
               <separator class="card-tile-separator"></separator>
             </div> -->
             <div class="deck-bulk-actions hidden" id="deckBulkActions">
-              <div class="tiny" id="deckSelectionCount">0 ausgewählt</div>
-              <button class="btn" id="moveSelectedCardsBtn" type="button">Verschieben</button>
-              <button class="btn delete" id="deleteSelectedCardsBtn" type="button">Löschen</button>
-              <button class="btn" id="cancelCardSelectionBtn" type="button">Abbrechen</button>
+              <div class="tiny" id="deckSelectionCount">0 selected</div>
+              <button class="btn" id="moveSelectedCardsBtn" type="button">Move</button>
+              <button class="btn delete" id="deleteSelectedCardsBtn" type="button">Delete</button>
+              <button class="btn" id="cancelCardSelectionBtn" type="button">Cancel</button>
             </div>
           </div>
           <div id="cardsGrid" class="card-grid"></div>
@@ -375,77 +382,77 @@
             <div class="session-scale-debug-grid">
               <label class="session-scale-debug-field">Start H Fraction
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Horizontal: ab diesem Anteil der Commit-Strecke startet das Next-Card-Scaling. Bereich 0.00 bis 0.95.">i</span>
+                  data-tip="Horizontal: next-card scaling starts at this fraction of the commit distance. Range 0.00 to 0.95.">i</span>
                 <input id="sessionScaleDebugRevealStartH" type="number" step="0.01" min="0" max="0.95" />
               </label>
               <label class="session-scale-debug-field">End H Fraction
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Horizontal: bei diesem Anteil ist Progress=1 erreicht. Höher = langsameres Wachstum. Bereich 0.05 bis 2.00.">i</span>
+                  data-tip="Horizontal: progress reaches 1 at this fraction. Higher values make scaling grow more slowly. Range 0.05 to 2.00.">i</span>
                 <input id="sessionScaleDebugRevealEndH" type="number" step="0.01" min="0.05" max="2" />
               </label>
               <label class="session-scale-debug-field">Start V Fraction
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Vertikal (nach unten): Startpunkt des Scalings relativ zur Commit-Strecke. Bereich 0.00 bis 0.95.">i</span>
+                  data-tip="Vertical (downward): start point of scaling relative to commit distance. Range 0.00 to 0.95.">i</span>
                 <input id="sessionScaleDebugRevealStartV" type="number" step="0.01" min="0" max="0.95" />
               </label>
               <label class="session-scale-debug-field">End V Fraction
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Vertikal (nach unten): Punkt für vollen Progress=1. Bereich 0.05 bis 2.00.">i</span>
+                  data-tip="Vertical (downward): point where progress reaches 1. Range 0.05 to 2.00.">i</span>
                 <input id="sessionScaleDebugRevealEndV" type="number" step="0.01" min="0.05" max="2" />
               </label>
               <label class="session-scale-debug-field">Side Swipe Ratio
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Richtungs-Erkennung links/rechts: je kleiner, desto toleranter bei diagonaler Geste. Bereich 0.40 bis 1.40.">i</span>
+                  data-tip="Left/right direction detection: lower values are more tolerant for diagonal gestures. Range 0.40 to 1.40.">i</span>
                 <input id="sessionScaleDebugSideRatio" type="number" step="0.01" min="0.4" max="1.4" />
               </label>
               <label class="session-scale-debug-field">Commit X Fraction
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Horizontaler Commit-Threshold als Anteil der Kartenbreite. Bereich 0.05 bis 0.45.">i</span>
+                  data-tip="Horizontal commit threshold as a fraction of card width. Range 0.05 to 0.45.">i</span>
                 <input id="sessionScaleDebugCommitXFraction" type="number" step="0.01" min="0.05" max="0.45" />
               </label>
               <label class="session-scale-debug-field">Commit X Min (px)
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Mindest-Commitstrecke horizontal in Pixeln. Wirkt zusätzlich zur Fraction. Bereich 8 bis 200.">i</span>
+                  data-tip="Minimum horizontal commit distance in pixels. Applies in addition to the fraction. Range 8 to 200.">i</span>
                 <input id="sessionScaleDebugCommitXMin" type="number" step="1" min="8" max="200" />
               </label>
               <label class="session-scale-debug-field">Commit Y Fraction
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Vertikaler Commit-Threshold als Anteil der Kartenhöhe. Bereich 0.10 bis 0.60.">i</span>
+                  data-tip="Vertical commit threshold as a fraction of card height. Range 0.10 to 0.60.">i</span>
                 <input id="sessionScaleDebugCommitYFraction" type="number" step="0.01" min="0.1" max="0.6" />
               </label>
               <label class="session-scale-debug-field">Commit Y Min (px)
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Mindest-Commitstrecke vertikal in Pixeln. Wirkt zusätzlich zur Fraction. Bereich 20 bis 320.">i</span>
+                  data-tip="Minimum vertical commit distance in pixels. Applies in addition to the fraction. Range 20 to 320.">i</span>
                 <input id="sessionScaleDebugCommitYMin" type="number" step="1" min="20" max="320" />
               </label>
               <label class="session-scale-debug-field">Scale Min
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Minimaler Scale-Wert der nächsten Karte (Progress=0). Bereich 0.00 bis 2.00.">i</span>
+                  data-tip="Minimum scale value of the next card (progress=0). Range 0.00 to 2.00.">i</span>
                 <input id="sessionScaleDebugScaleMin" type="number" step="0.01" min="0" max="2" />
               </label>
               <label class="session-scale-debug-field">Scale Max
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Maximaler Scale-Wert (Progress=1). Bereich 0.00 bis 2.50.">i</span>
+                  data-tip="Maximum scale value (progress=1). Range 0.00 to 2.50.">i</span>
                 <input id="sessionScaleDebugScaleMax" type="number" step="0.01" min="0" max="2.5" />
               </label>
               <label class="session-scale-debug-field">Depth Start (px)
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Z-Starttiefe der nächsten Karte. Negativ = weiter hinten. Bereich -1600 bis 600.">i</span>
+                  data-tip="Initial Z depth of the next card. Negative values place it farther back. Range -1600 to 600.">i</span>
                 <input id="sessionScaleDebugDepthStart" type="number" step="10" min="-1600" max="600" />
               </label>
               <label class="session-scale-debug-field">Depth End (px)
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Z-Endtiefe bei Progress=1. Bereich -1600 bis 800.">i</span>
+                  data-tip="Final Z depth at progress=1. Range -1600 to 800.">i</span>
                 <input id="sessionScaleDebugDepthEnd" type="number" step="10" min="-1600" max="800" />
               </label>
               <label class="session-scale-debug-field">Tilt Start (deg)
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Startneigung der nächsten Karte bei Progress=0. Bereich -35 bis 35 Grad.">i</span>
+                  data-tip="Initial tilt of the next card at progress=0. Range -35 to 35 degrees.">i</span>
                 <input id="sessionScaleDebugTiltStart" type="number" step="0.1" min="-35" max="35" />
               </label>
               <label class="session-scale-debug-field">Tilt End (deg)
                 <span class="session-scale-debug-info" tabindex="0"
-                  data-tip="Endneigung bei Progress=1. Bereich -35 bis 35 Grad.">i</span>
+                  data-tip="Final tilt at progress=1. Range -35 to 35 degrees.">i</span>
                 <input id="sessionScaleDebugTiltEnd" type="number" step="0.1" min="-35" max="35" />
               </label>
             </div>
@@ -659,7 +666,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.15';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.16';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -777,8 +784,8 @@
   </dialog>
 
   <dialog id="moveCardsDialog" class="modal">
-    <h3>Karten verschieben</h3>
-    <div class="tiny" id="moveCardsSelectionInfo" style="margin-bottom:10px;">0 Karten ausgewählt</div>
+    <h3>Move Cards</h3>
+    <div class="tiny" id="moveCardsSelectionInfo" style="margin-bottom:10px;">0 cards selected</div>
     <div class="grid two">
       <div>
         <label>Subject</label>
@@ -790,8 +797,8 @@
       </div>
     </div>
     <div class="controls" style="margin-top:12px; margin-inline: 0">
-      <button class="btn" id="confirmMoveCardsBtn" type="button">Verschieben</button>
-      <button class="btn" id="cancelMoveCardsBtn" type="button">Abbrechen</button>
+      <button class="btn" id="confirmMoveCardsBtn" type="button">Move</button>
+      <button class="btn" id="cancelMoveCardsBtn" type="button">Cancel</button>
     </div>
   </dialog>
 
