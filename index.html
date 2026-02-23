@@ -65,7 +65,9 @@
       </div>
       <div class="onboarding-controls">
         <button class="btn onboarding-nav-btn" id="onboardingTutorialPrevBtn" type="button"
-          aria-label="Previous step">←</button>
+          aria-label="Previous step">
+          <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+        </button>
         <div id="onboardingTutorialDots" class="onboarding-dots" aria-label="Tutorial progress"></div>
         <button class="btn onboarding-nav-btn" id="onboardingTutorialNextBtn" type="button"
           aria-label="Next step">→</button>
@@ -120,7 +122,7 @@
       <!-- <button class="btn" id="addSubjectBtn" style="margin-top:10px;width: 100%;">+ Add Subject</button> -->
     </div>
     <div class="sidebar-meta" id="sidebarMeta">
-      <div class="tiny sidebar-meta-line">by SimonBader, <span id="appVersionLabel">v2026.02.23.16</span></div>
+      <div class="tiny sidebar-meta-line">© SimonBader, <span id="appVersionLabel">v2026.02.23.28</span></div>
     </div>
   </aside>
 
@@ -293,11 +295,11 @@
               <span id="topicListTotalCards" class="tiny topic-list-total-cards">0 cards</span>
             </div>
             <div class="topic-list-actions">
-              <button class="btn select-cards-btn topic-search-btn" id="openTopicSearchBtn" aria-label="Search cards"
+              <button class="btn select-cards-btn topic-search-btn scale" id="openTopicSearchBtn" aria-label="Search cards"
                 title="Search cards" type="button">
                 <img src="icons/icons8-suche-48.svg" alt="" />
               </button>
-              <button class="btn topic-all-btn" id="selectAllSessionTopicsBtn" type="button">All</button>
+              <button class="btn select-cards-btn" id="selectAllSessionTopicsBtn" type="button">All</button>
               <button class="btn select-cards-btn" id="toggleTopicSelectBtn" aria-label="Select topics"
                 title="Select topics" type="button">
                 <img src="icons/check.svg" alt="" />
@@ -326,7 +328,9 @@
         <div class="section" id="cardsOverviewSection">
           <!-- <div class="deck-sticky-stack"> -->
           <div class="controls deck-controls deck-header-tile">
-            <button class="btn" id="backToTopicsBtn">←</button>
+            <button class="btn" id="backToTopicsBtn" aria-label="Back to topics">
+              <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+            </button>
             <div class="deck-title-wrap">
               <h2 id="deckTitle" class="deck-title">Deck</h2>
               <div id="deckTopicCardCount" class="tiny deck-topic-card-count hidden"></div>
@@ -337,7 +341,9 @@
                 <img src="icons/check.svg" alt="" />
               </button>
               <button class="btn select-cards-btn topic-more-btn" id="openTopicEditBtn" aria-label="Rename topic"
-                title="Rename topic" type="button">⋯</button>
+                title="Rename topic" type="button">
+                <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+              </button>
               <button class="btn select-cards-btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
                 aria-label="Create flashcard" title="Create flashcard">
                 <img src="icons/plus.svg" alt="" />
@@ -359,7 +365,9 @@
 
         <div class="section hidden" id="studySessionSection" style="height: 100%;">
           <div class="session-top">
-            <button class="btn" id="backToTopicsBtnSession" style="position: absolute;">←</button>
+            <button class="btn" id="backToTopicsBtnSession" style="position: absolute;" aria-label="Back to topics">
+              <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+            </button>
             <div id="sessionPillBar" class="session-pill-bar">
               <div id="masteredPills" class="pill-row mastered"></div>
               <div id="activePills" class="pill-row active"></div>
@@ -465,9 +473,9 @@
                   <span class="session-label-short">Q</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="frontTopicPill"></div>
-                <button class="btn card-edit-btn" id="editSessionCardBtn">
-                  <span class="session-label-full">Edit</span>
-                  <span class="session-label-short">…</span>
+                <button class="btn card-edit-btn" id="editSessionCardBtn" type="button" aria-label="Edit card"
+                  title="Edit card">
+                  <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="frontContent"></div>
               </div>
@@ -477,9 +485,9 @@
                   <span class="session-label-short">A</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="backTopicPill"></div>
-                <button class="btn card-edit-btn" id="editSessionCardBtnBack">
-                  <span class="session-label-full">Edit</span>
-                  <span class="session-label-short">…</span>
+                <button class="btn card-edit-btn" id="editSessionCardBtnBack" type="button" aria-label="Edit card"
+                  title="Edit card">
+                  <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="backContent"></div>
               </div>
@@ -494,8 +502,7 @@
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="nextTopicPill"></div>
                 <button class="btn card-edit-btn" type="button" tabindex="-1" aria-hidden="true" disabled>
-                  <span class="session-label-full">Edit</span>
-                  <span class="session-label-short">…</span>
+                  <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="nextContent"></div>
               </div>
@@ -512,7 +519,9 @@
       <section class="panel" id="editorPanel">
         <div class="section editor-shell">
           <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
-            <button class="btn" id="backToDeckBtn">←</button>
+            <button class="btn" id="backToDeckBtn" aria-label="Back to deck">
+              <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+            </button>
             <div>
               <h2 id="editorTitle" style="margin:0;">+</h2>
               <!-- <div class="tiny" id="editorSubtitle">Autosaved locally</div> -->
@@ -666,7 +675,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.16';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.28';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>

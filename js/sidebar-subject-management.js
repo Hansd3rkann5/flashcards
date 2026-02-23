@@ -222,7 +222,9 @@ async function refreshSidebar(options = {}) {
               <div>${escapeHTML(s.name)}</div>
             </div>
             <div class="tile-menu">
-              <button class="btn tile-menu-btn" type="button">⋯</button>
+              <button class="btn tile-menu-btn" type="button" aria-label="Edit subject" title="Edit subject">
+                <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+              </button>
             </div>
           </div>
         `;
