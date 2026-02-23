@@ -53,6 +53,18 @@ function updateRuntimeHostHint() {
 }
 
 /**
+ * @function updateSidebarMetaInfo
+ * @description Applies runtime version info to the sidebar footer.
+ */
+
+function updateSidebarMetaInfo() {
+  const versionLabel = el('appVersionLabel');
+  if (!versionLabel) return;
+  const safeVersion = String(window.__APP_VERSION__ || '').trim() || 'dev';
+  versionLabel.textContent = safeVersion;
+}
+
+/**
  * @function setAuthMessage
  * @description Updates authentication status text.
  */
@@ -877,6 +889,7 @@ async function ensureAuthenticatedSession() {
 async function boot() {
   void registerOfflineServiceWorker();
   updateRuntimeHostHint();
+  updateSidebarMetaInfo();
   try {
     await ensureAuthenticatedSession();
   } catch (err) {

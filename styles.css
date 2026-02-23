@@ -612,6 +612,30 @@ body.app-loading {
   margin-bottom: var(--space-2);
 }
 
+.sidebar-meta {
+  margin-top: auto;
+  padding-top: 8px;
+  opacity: 0.72;
+  position: absolute;
+  bottom: 10px;
+}
+
+.sidebar-meta-line {
+  margin: 0;
+  color: #8da3cd;
+  font-size: 0.66rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px !important;
+}
+
+#appVersionLabel {
+  color: inherit;
+  font-weight: 600;
+}
+
 .sidebar button,
 .btn {
   border: none;
