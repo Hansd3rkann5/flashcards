@@ -253,12 +253,14 @@ function confirmImportFormatRequirements(format = 'json') {
       '- Minimum required columns: subject, topic, question, answer.',
       '- IDs are optional (card id/topicId can be empty).',
       '- Supported columns: id, topicId, topic, topicName, subject, subjectName, type, prompt/question, answer, options, imagesQ, imagesA.',
+      '- Inline image markers in question/answer are supported: [Image] <url or sb://...>.',
       '- Best compatibility: use files exported via "Export CSV".'
     ].join('\n')
     : [
       '- JSON array of cards OR object with cards/subjects/topics/progress arrays.',
       '- Minimum required per card: subject, topic, question, answer.',
       '- IDs are optional (card id/topicId can be empty).',
+      '- Inline image markers in question/answer are supported: [Image] <url or sb://...>.',
       '- Best compatibility: use files exported via "Export JSON".'
     ].join('\n');
   return confirm(`${title}\n\n${body}\n\nContinue and choose a file?`);
@@ -473,6 +475,124 @@ function getImportAnswerText(row = null) {
 }
 
 /**
+ * @function decodeImportHtmlEntities
+ * @description Decodes basic HTML entities in import text/image sources.
+ */
+
+function decodeImportHtmlEntities(raw = '') {
+  const safe = String(raw || '');
+  if (!safe || !safe.includes('&')) return safe;
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = safe;
+  return textarea.value || safe;
+}
+
+/**
+ * @function supabaseUrlToStorageRef
+ * @description Converts Supabase object URLs to stable sb://bucket/path refs when possible.
+ */
+
+function supabaseUrlToStorageRef(raw = '') {
+  const safe = String(raw || '').trim();
+  if (!safe) return '';
+  if (isSupabaseStorageRef(safe)) return safe;
+
+  let candidateUrl = safe;
+  if (/^\/storage\/v1\/object\//i.test(safe)) {
+    const base = String(SUPABASE_URL || '').trim().replace(/\/+$/, '');
+    if (base) candidateUrl = `${base}${safe}`;
+  }
+
+  let parsed = null;
+  try {
+    parsed = new URL(candidateUrl);
+  } catch (_) {
+    parsed = null;
+  }
+  if (!parsed) return safe;
+
+  const match = String(parsed.pathname || '').match(
+    /^\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/(.+)$/i
+  );
+  if (!match) return safe;
+
+  const safeDecode = value => {
+    try {
+      return decodeURIComponent(String(value || ''));
+    } catch (_) {
+      return String(value || '');
+    }
+  };
+  const bucket = safeDecode(String(match[1] || '').trim());
+  const path = safeDecode(String(match[2] || '').trim()).replace(/^\/+/, '');
+  const storageRef = buildSupabaseStorageRef(bucket, path);
+  return storageRef || safe;
+}
+
+/**
+ * @function normalizeImportImageSource
+ * @description Normalizes one imported image source for persistence.
+ */
+
+function normalizeImportImageSource(raw = '') {
+  const decoded = decodeImportHtmlEntities(raw).trim().replace(/^['"]|['"]$/g, '');
+  if (!decoded) return '';
+  if (isSupabaseStorageRef(decoded)) return decoded;
+  return supabaseUrlToStorageRef(decoded);
+}
+
+/**
+ * @function extractImportTextAndImages
+ * @description Extracts image refs from text and returns cleaned text plus image list.
+ */
+
+function extractImportTextAndImages(raw = '') {
+  const input = decodeImportHtmlEntities(raw).replace(/\r\n?/g, '\n');
+  const images = [];
+  const seenImages = new Set();
+  const pushImage = value => {
+    const normalized = normalizeImportImageSource(value);
+    if (!normalized || seenImages.has(normalized)) return;
+    seenImages.add(normalized);
+    images.push(normalized);
+  };
+
+  let text = String(input || '');
+
+  text = text.replace(/<img\b[^>]*>/ig, tag => {
+    const dataSrc = tag.match(/\bdata-image-source\s*=\s*(['"])(.*?)\1/i)?.[2]
+      || tag.match(/\bdata-image-source\s*=\s*([^\s>]+)/i)?.[1]
+      || '';
+    const src = tag.match(/\bsrc\s*=\s*(['"])(.*?)\1/i)?.[2]
+      || tag.match(/\bsrc\s*=\s*([^\s>]+)/i)?.[1]
+      || '';
+    if (dataSrc) pushImage(dataSrc);
+    else if (src) pushImage(src);
+    return ' ';
+  });
+
+  text = text.replace(
+    /\[image\]\s*(sb:\/\/\S+|https?:\/\/\S+|\/storage\/v1\/object\/\S+)/ig,
+    (_match, src) => {
+      pushImage(src);
+      return ' ';
+    }
+  );
+
+  // Strip remaining HTML tags and normalize whitespace/newlines.
+  text = text.replace(/<[^>]+>/g, ' ');
+  const lines = text
+    .split('\n')
+    .map(line => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  return {
+    text: lines.join('\n'),
+    images: normalizeImageList(images)
+  };
+}
+
+/**
  * @function parseCsvStringList
  * @description Parses a CSV cell into a string list (JSON array, "|" list, or single string).
  */
@@ -566,7 +686,9 @@ function parseCsvOptions(raw = '') {
  * @description Ensures a subject exists for CSV import and returns it.
  */
 
-async function ensureCsvImportSubject(subjectName = '', cache = null) {
+async function ensureCsvImportSubject(subjectName = '', cache = null, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
   const safeName = String(subjectName || '').trim() || 'Imported';
   const key = normalizeImportLookupName(safeName);
   const subjectByName = cache?.subjectByName;
@@ -580,7 +702,7 @@ async function ensureCsvImportSubject(subjectName = '', cache = null) {
     name: safeName,
     accent: '#2dd4bf'
   });
-  await put('subjects', subject);
+  await put('subjects', subject, { uiBlocking });
   if (subjectByName instanceof Map) subjectByName.set(key, subject);
   if (subjectById instanceof Map) subjectById.set(String(subject.id || '').trim(), subject);
   return { subject, created: true };
@@ -591,7 +713,9 @@ async function ensureCsvImportSubject(subjectName = '', cache = null) {
  * @description Ensures a topic exists for CSV import and returns it.
  */
 
-async function ensureCsvImportTopic(topicName = '', subjectId = '', topicIdHint = '', cache = null) {
+async function ensureCsvImportTopic(topicName = '', subjectId = '', topicIdHint = '', cache = null, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
   const safeSubjectId = String(subjectId || '').trim();
   const safeTopicName = String(topicName || '').trim() || 'Imported Topic';
   const safeTopicIdHint = String(topicIdHint || '').trim();
@@ -615,7 +739,7 @@ async function ensureCsvImportTopic(topicName = '', subjectId = '', topicIdHint 
     subjectId: safeSubjectId,
     name: safeTopicName
   };
-  await put('topics', topic);
+  await put('topics', topic, { uiBlocking });
   if (topicById instanceof Map) topicById.set(nextTopicId, topic);
   if (topicByLookup instanceof Map) topicByLookup.set(lookupKey, topic);
   return { topic, created: true };
@@ -626,8 +750,19 @@ async function ensureCsvImportTopic(topicName = '', subjectId = '', topicIdHint 
  * @description Imports flashcards from CSV rows.
  */
 
-async function importCSV(file) {
+async function importCSV(file, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const onStatus = typeof opts.onStatus === 'function' ? opts.onStatus : null;
+  const reportStatus = text => {
+    if (!onStatus) return;
+    const safeText = String(text || '').trim();
+    if (!safeText) return;
+    onStatus(safeText);
+  };
+  reportStatus('Reading CSV file...');
   const text = await file.text();
+  reportStatus('Parsing CSV rows...');
   const parsed = parseCsvObjectRows(text);
   const rows = Array.isArray(parsed?.rows) ? parsed.rows : [];
   if (!rows.length) {
@@ -635,10 +770,11 @@ async function importCSV(file) {
     return;
   }
 
+  reportStatus('Loading existing subjects, topics, and cards...');
   const [subjects, topics, cards] = await Promise.all([
-    getAll('subjects'),
-    getAll('topics'),
-    getAll('cards')
+    getAll('subjects', { uiBlocking }),
+    getAll('topics', { uiBlocking }),
+    getAll('cards', { uiBlocking })
   ]);
 
   const subjectById = new Map();
@@ -675,21 +811,34 @@ async function importCSV(file) {
   let skippedRows = 0;
 
   for (let idx = 0; idx < rows.length; idx += 1) {
+    if (idx === 0 || idx === rows.length - 1 || (idx + 1) % 25 === 0) {
+      reportStatus(`Importing CSV cards (${idx + 1}/${rows.length})...`);
+    }
     const row = rows[idx] || {};
     const rowLabel = `Row ${idx + 2}`; // +2 because CSV row 1 is header.
     const rawSubjectName = getImportSubjectName(row);
     const rawTopicName = getImportTopicName(row);
-    const prompt = getImportPromptText(row);
-    const answer = getImportAnswerText(row);
+    const promptPayload = extractImportTextAndImages(getImportPromptText(row));
+    const answerPayload = extractImportTextAndImages(getImportAnswerText(row));
+    const prompt = promptPayload.text;
+    const answer = answerPayload.text;
     const rawTopicId = String(row.topicId || '').trim();
+    const imageDataQ = normalizeImageList([
+      ...parseCsvStringList(row.imagesQ || row.imageDataQ || row.imageData || ''),
+      ...promptPayload.images
+    ]);
+    const imageDataA = normalizeImageList([
+      ...parseCsvStringList(row.imagesA || row.imageDataA || ''),
+      ...answerPayload.images
+    ]);
 
-    if (!rawSubjectName || !rawTopicName || !prompt || !answer) {
-      console.warn(`${rowLabel}: skipped because subject/topic/question/answer are required.`);
+    if (!rawSubjectName || !rawTopicName || (!prompt && !imageDataQ.length) || (!answer && !imageDataA.length)) {
+      console.warn(`${rowLabel}: skipped because subject/topic and question/answer content are required.`);
       skippedRows += 1;
       continue;
     }
 
-    const ensureSubject = await ensureCsvImportSubject(rawSubjectName, cache);
+    const ensureSubject = await ensureCsvImportSubject(rawSubjectName, cache, { uiBlocking });
     const subject = ensureSubject.subject;
     if (ensureSubject.created) createdSubjects += 1;
 
@@ -700,7 +849,7 @@ async function importCSV(file) {
     }
 
     if (!topic) {
-      const ensureTopic = await ensureCsvImportTopic(rawTopicName, subject.id, rawTopicId, cache);
+      const ensureTopic = await ensureCsvImportTopic(rawTopicName, subject.id, rawTopicId, cache, { uiBlocking });
       topic = ensureTopic.topic;
       if (ensureTopic.created) createdTopics += 1;
     }
@@ -714,8 +863,6 @@ async function importCSV(file) {
     const rawCardId = String(row.id || '').trim();
     const cardId = rawCardId || uid();
     const existing = cardById.get(cardId) || null;
-    const imageDataQ = parseCsvStringList(row.imagesQ || row.imageDataQ || '');
-    const imageDataA = parseCsvStringList(row.imagesA || row.imageDataA || '');
 
     const type = String(row.type || existing?.type || '').trim().toLowerCase() === 'mcq' ? 'mcq' : 'qa';
     let options = parseCsvOptions(row.options || '');
@@ -768,20 +915,22 @@ async function importCSV(file) {
       }
     };
 
-    await put('cards', nextCard);
-    await putCardBank(nextCard);
+    await put('cards', nextCard, { uiBlocking });
+    await putCardBank(nextCard, { uiBlocking });
     cardById.set(cardId, nextCard);
     importedCards += 1;
   }
 
   progressByCardId = new Map();
+  reportStatus('Refreshing subjects, topics, and cards...');
+  await refreshSidebar({ uiBlocking, force: true });
+  if (selectedSubject) await loadTopics({ uiBlocking, force: true });
+  if (selectedTopic) await loadDeck({ uiBlocking, force: true });
+  reportStatus(`CSV import complete. Imported ${importedCards} card${importedCards === 1 ? '' : 's'}.`);
   const skipNote = skippedRows > 0 ? ` Skipped rows: ${skippedRows}.` : '';
   alert(
     `CSV import complete.\nImported cards: ${importedCards}\nCreated subjects: ${createdSubjects}\nCreated topics: ${createdTopics}.${skipNote}`
   );
-  refreshSidebar();
-  if (selectedSubject) loadTopics();
-  if (selectedTopic) loadDeck();
 }
 
 /**
@@ -819,17 +968,29 @@ function normalizeJsonImportPayload(raw = null) {
  * @description Imports JSON.
  */
 
-async function importJSON(file) {
+async function importJSON(file, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const onStatus = typeof opts.onStatus === 'function' ? opts.onStatus : null;
+  const reportStatus = text => {
+    if (!onStatus) return;
+    const safeText = String(text || '').trim();
+    if (!safeText) return;
+    onStatus(safeText);
+  };
+  reportStatus('Reading JSON file...');
   const text = await file.text();
+  reportStatus('Parsing JSON payload...');
   const parsed = normalizeJsonImportPayload(JSON.parse(text));
   if (!parsed.subjects.length && !parsed.topics.length && !parsed.cards.length && !parsed.progress.length) {
     throw new Error('JSON contains no importable rows.');
   }
 
+  reportStatus('Loading existing subjects, topics, and cards...');
   const [subjects, topics, cards] = await Promise.all([
-    getAll('subjects'),
-    getAll('topics'),
-    getAll('cards')
+    getAll('subjects', { uiBlocking }),
+    getAll('topics', { uiBlocking }),
+    getAll('cards', { uiBlocking })
   ]);
 
   const subjectById = new Map();
@@ -866,7 +1027,11 @@ async function importJSON(file) {
   let importedProgress = 0;
   let skippedCards = 0;
 
-  for (const row of parsed.subjects) {
+  for (let idx = 0; idx < parsed.subjects.length; idx += 1) {
+    if (idx === 0 || idx === parsed.subjects.length - 1 || (idx + 1) % 25 === 0) {
+      reportStatus(`Importing subjects (${idx + 1}/${parsed.subjects.length})...`);
+    }
+    const row = parsed.subjects[idx];
     const safeRow = (row && typeof row === 'object') ? row : {};
     const rowName = String(safeRow.name || safeRow.subjectName || safeRow.subject || '').trim();
     const rowId = String(safeRow.id || '').trim();
@@ -884,13 +1049,17 @@ async function importJSON(file) {
       name: nextName,
       accent: normalizeHexColor(safeRow.accent || existing?.accent || '#2dd4bf')
     });
-    await put('subjects', nextSubject);
+    await put('subjects', nextSubject, { uiBlocking });
     if (!existing) createdSubjects += 1;
     subjectById.set(nextId, nextSubject);
     subjectByName.set(normalizeImportLookupName(nextName), nextSubject);
   }
 
-  for (const row of parsed.topics) {
+  for (let idx = 0; idx < parsed.topics.length; idx += 1) {
+    if (idx === 0 || idx === parsed.topics.length - 1 || (idx + 1) % 25 === 0) {
+      reportStatus(`Importing topics (${idx + 1}/${parsed.topics.length})...`);
+    }
+    const row = parsed.topics[idx];
     const safeRow = (row && typeof row === 'object') ? row : {};
     const rowTopicName = getImportTopicName(safeRow) || String(safeRow.name || '').trim();
     const rowTopicId = String(safeRow.id || '').trim();
@@ -898,7 +1067,7 @@ async function importJSON(file) {
     const rowSubjectName = getImportSubjectName(safeRow);
     let subject = rowSubjectId ? subjectById.get(rowSubjectId) : null;
     if (!subject && rowSubjectName) {
-      const ensured = await ensureCsvImportSubject(rowSubjectName, cache);
+      const ensured = await ensureCsvImportSubject(rowSubjectName, cache, { uiBlocking });
       subject = ensured.subject;
       if (ensured.created) createdSubjects += 1;
     }
@@ -915,26 +1084,39 @@ async function importJSON(file) {
       subjectId: String(subject.id || '').trim(),
       name: rowTopicName
     };
-    await put('topics', nextTopic);
+    await put('topics', nextTopic, { uiBlocking });
     if (!existing) createdTopics += 1;
     topicById.set(nextTopicId, nextTopic);
     topicByLookup.set(lookupKey, nextTopic);
   }
 
   for (let idx = 0; idx < parsed.cards.length; idx += 1) {
+    if (idx === 0 || idx === parsed.cards.length - 1 || (idx + 1) % 25 === 0) {
+      reportStatus(`Importing cards (${idx + 1}/${parsed.cards.length})...`);
+    }
     const row = parsed.cards[idx] || {};
     const rowLabel = `Card row ${idx + 1}`;
     const rawSubjectName = getImportSubjectName(row);
     const rawTopicName = getImportTopicName(row);
-    const prompt = getImportPromptText(row);
-    const answer = getImportAnswerText(row);
-    if (!rawSubjectName || !rawTopicName || !prompt || !answer) {
-      console.warn(`${rowLabel}: skipped because subject/topic/question/answer are required.`);
+    const promptPayload = extractImportTextAndImages(getImportPromptText(row));
+    const answerPayload = extractImportTextAndImages(getImportAnswerText(row));
+    const prompt = promptPayload.text;
+    const answer = answerPayload.text;
+    const imagesQ = normalizeImageList([
+      ...getCardImageList(row, 'Q'),
+      ...promptPayload.images
+    ]);
+    const imagesA = normalizeImageList([
+      ...getCardImageList(row, 'A'),
+      ...answerPayload.images
+    ]);
+    if (!rawSubjectName || !rawTopicName || (!prompt && !imagesQ.length) || (!answer && !imagesA.length)) {
+      console.warn(`${rowLabel}: skipped because subject/topic and question/answer content are required.`);
       skippedCards += 1;
       continue;
     }
 
-    const ensureSubject = await ensureCsvImportSubject(rawSubjectName, cache);
+    const ensureSubject = await ensureCsvImportSubject(rawSubjectName, cache, { uiBlocking });
     const subject = ensureSubject.subject;
     if (ensureSubject.created) createdSubjects += 1;
 
@@ -945,7 +1127,7 @@ async function importJSON(file) {
       topic = null;
     }
     if (!topic) {
-      const ensureTopic = await ensureCsvImportTopic(rawTopicName, safeSubjectId, rawTopicId, cache);
+      const ensureTopic = await ensureCsvImportTopic(rawTopicName, safeSubjectId, rawTopicId, cache, { uiBlocking });
       topic = ensureTopic.topic;
       if (ensureTopic.created) createdTopics += 1;
     }
@@ -973,8 +1155,8 @@ async function importJSON(file) {
 
     const migratedImagePayload = await buildCardImagePayloadForSave(
       cardId,
-      getCardImageList(row, 'Q'),
-      getCardImageList(row, 'A')
+      imagesQ,
+      imagesA
     );
     const questionTextAlign = normalizeTextAlign(
       row.questionTextAlign
@@ -1017,28 +1199,34 @@ async function importJSON(file) {
         updatedAt: nowIso
       }
     };
-    await put('cards', nextCard);
-    await putCardBank(nextCard);
+    await put('cards', nextCard, { uiBlocking });
+    await putCardBank(nextCard, { uiBlocking });
     cardById.set(cardId, nextCard);
     importedCards += 1;
   }
 
-  for (const row of parsed.progress) {
+  for (let idx = 0; idx < parsed.progress.length; idx += 1) {
+    if (idx === 0 || idx === parsed.progress.length - 1 || (idx + 1) % 50 === 0) {
+      reportStatus(`Importing progress records (${idx + 1}/${parsed.progress.length})...`);
+    }
+    const row = parsed.progress[idx];
     const safeRow = (row && typeof row === 'object') ? row : {};
     const cardId = String(safeRow.cardId || '').trim();
     if (!cardId) continue;
-    await put('progress', { ...safeRow, cardId });
+    await put('progress', { ...safeRow, cardId }, { uiBlocking });
     importedProgress += 1;
   }
 
   progressByCardId = new Map();
+  reportStatus('Refreshing subjects, topics, and cards...');
+  await refreshSidebar({ uiBlocking, force: true });
+  if (selectedSubject) await loadTopics({ uiBlocking, force: true });
+  if (selectedTopic) await loadDeck({ uiBlocking, force: true });
+  reportStatus(`JSON import complete. Imported ${importedCards} card${importedCards === 1 ? '' : 's'}.`);
   const skippedNote = skippedCards > 0 ? `\nSkipped cards: ${skippedCards}` : '';
   alert(
     `JSON import complete.\nImported cards: ${importedCards}\nImported progress: ${importedProgress}\nCreated subjects: ${createdSubjects}\nCreated topics: ${createdTopics}${skippedNote}`
   );
-  refreshSidebar();
-  if (selectedSubject) loadTopics();
-  if (selectedTopic) loadDeck();
 }
 
 /**

@@ -507,6 +507,16 @@ body.app-loading {
   pointer-events: auto;
 }
 
+.app-loading-import .app-loading-overlay {
+  background: rgba(7, 12, 24, 0.32);
+  backdrop-filter: blur(6px);
+}
+
+.app-loading-import .app-loading-inner {
+  border-color: rgba(108, 136, 186, 0.48);
+  background: linear-gradient(180deg, rgba(19, 29, 52, 0.78) 0%, rgba(14, 22, 42, 0.78) 100%);
+}
+
 .app-loading-inner {
   min-width: 176px;
   display: flex;
@@ -6598,3 +6608,4 @@ dialog::backdrop {
     }
   }
 }
+

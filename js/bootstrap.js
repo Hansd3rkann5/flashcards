@@ -1022,27 +1022,57 @@ async function boot() {
   const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
   if (migrateImagesToStorageBtn) migrateImagesToStorageBtn.onclick = migrateImagesToStorage;
   const importInput = el('importInput');
+  const runFileImportFromSettings = async (file, format = 'json') => {
+    const safeFormat = String(format || '').trim().toLowerCase() === 'csv' ? 'csv' : 'json';
+    const settingsDialog = el('settingsDialog');
+    if (settingsDialog?.open) closeDialog(settingsDialog);
+
+    document.body.classList.add('app-loading-import');
+    const initialLabel = safeFormat === 'csv'
+      ? 'Preparing CSV import...'
+      : 'Preparing JSON import...';
+    setAppLoadingState(true, initialLabel);
+    try {
+      const updateStatus = text => setAppLoadingLabel(text);
+      if (safeFormat === 'csv') {
+        await importCSV(file, {
+          uiBlocking: false,
+          onStatus: updateStatus
+        });
+      } else {
+        await importJSON(file, {
+          uiBlocking: false,
+          onStatus: updateStatus
+        });
+      }
+    } catch (err) {
+      if (safeFormat === 'csv') {
+        console.error('CSV import failed:', err);
+        alert(err?.message || 'CSV import failed.');
+      } else {
+        console.error('JSON import failed:', err);
+        alert(err?.message || 'JSON import failed.');
+      }
+    } finally {
+      setAppLoadingState(false);
+      document.body.classList.remove('app-loading-import');
+    }
+  };
   if (importInput) {
-    importInput.addEventListener('change', e => {
+    importInput.addEventListener('change', async e => {
       const file = e.target?.files?.[0];
       if (file) {
-        importJSON(file).catch(err => {
-          console.error('JSON import failed:', err);
-          alert(err?.message || 'JSON import failed.');
-        });
+        await runFileImportFromSettings(file, 'json');
       }
       importInput.value = '';
     });
   }
   const importCsvInput = el('importCsvInput');
   if (importCsvInput) {
-    importCsvInput.addEventListener('change', e => {
+    importCsvInput.addEventListener('change', async e => {
       const file = e.target?.files?.[0];
       if (file) {
-        importCSV(file).catch(err => {
-          console.error('CSV import failed:', err);
-          alert(err?.message || 'CSV import failed.');
-        });
+        await runFileImportFromSettings(file, 'csv');
       }
       importCsvInput.value = '';
     });

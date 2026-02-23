@@ -557,6 +557,19 @@ function queueSessionSizeModelSync() {
 }
 
 /**
+ * @function setAppLoadingLabel
+ * @description Updates the global loader label text without touching visibility/reference count.
+ */
+
+function setAppLoadingLabel(label = 'Loading...') {
+  const labelEl = el('appLoadingLabel');
+  if (!labelEl) return;
+  const nextLabel = String(label || '').trim();
+  if (!nextLabel) return;
+  labelEl.textContent = nextLabel;
+}
+
+/**
  * @function setAppLoadingState
  * @description Toggles the global loading overlay with reference counting so overlapping async flows do not flicker.
  */
@@ -565,10 +578,9 @@ function setAppLoadingState(active = false, label = 'Loading...') {
   const overlay = el('appLoadingOverlay');
   if (!overlay) return;
   const nextLabel = String(label || '').trim();
-  const labelEl = el('appLoadingLabel');
   if (active) {
     appLoadingOverlayCount += 1;
-    if (labelEl && nextLabel) labelEl.textContent = nextLabel;
+    if (nextLabel) setAppLoadingLabel(nextLabel);
     overlay.classList.add('is-visible');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('app-loading');
