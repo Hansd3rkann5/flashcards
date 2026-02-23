@@ -127,6 +127,17 @@ function sortSubjectsByLastEdited(subjects = []) {
   });
 }
 
+let subjectTileMenuCloseBound = false;
+
+/**
+ * @function isSubjectArchived
+ * @description Returns true when the subject is currently archived.
+ */
+
+function isSubjectArchived(subject = null) {
+  return !!(subject && typeof subject === 'object' && subject.isArchived === true);
+}
+
 /**
  * @function buildSubjectRecord
  * @description Builds subject record.
@@ -190,6 +201,494 @@ async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString()
  * @description Loads and renders the sidebar subject list with sorting and accent colors.
  */
 
+function closeSubjectTileMenus() {
+  document.querySelectorAll('.tile-menu.open').forEach(menu => menu.classList.remove('open'));
+}
+
+function bindSubjectTileMenuCloseHandler() {
+  if (subjectTileMenuCloseBound) return;
+  subjectTileMenuCloseBound = true;
+  document.addEventListener('click', event => {
+    if (event.target.closest('.tile-menu')) return;
+    closeSubjectTileMenus();
+  });
+}
+
+async function getSubjectRecordById(subjectId = '', options = {}) {
+  const safeId = String(subjectId || '').trim();
+  if (!safeId) return null;
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  let subject = subjectDirectoryById.get(safeId) || null;
+  if (subject) return subject;
+  subject = await getById('subjects', safeId, { uiBlocking, loadingLabel: '' });
+  return subject || null;
+}
+
+async function openSubjectEditDialogById(subjectId = '', options = {}) {
+  const safeId = String(subjectId || '').trim();
+  if (!safeId) return;
+  const subject = await getSubjectRecordById(safeId, options);
+  if (!subject) return;
+  editingSubjectId = safeId;
+  el('editSubjectName').value = String(subject?.name || '').trim();
+  el('editSubjectColor').value = subject?.accent || '#2dd4bf';
+  const editExamDateInput = el('editSubjectExamDate');
+  if (editExamDateInput) {
+    editExamDateInput.value = formatSubjectExamDateForInput(subject?.examDate);
+  }
+  const editExcludeInput = el('editSubjectExcludeFromReview');
+  if (editExcludeInput) {
+    editExcludeInput.checked = subject?.excludeFromReview === true;
+  }
+  showDialog(el('subjectEditDialog'));
+}
+
+async function setSubjectArchivedState(subjectId = '', archived = true, options = {}) {
+  const safeId = String(subjectId || '').trim();
+  if (!safeId) return false;
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const subject = await getSubjectRecordById(safeId, { uiBlocking });
+  if (!subject) return false;
+  const nowIso = new Date().toISOString();
+  const shouldArchive = !!archived;
+  const nextSubject = buildSubjectRecord(subject, {
+    isArchived: shouldArchive,
+    archivedAt: shouldArchive ? nowIso : '',
+    archivedBy: shouldArchive ? String(supabaseOwnerId || '').trim() : ''
+  }, nowIso);
+  await put('subjects', nextSubject, { uiBlocking });
+
+  if (String(selectedSubject?.id || '').trim() === safeId) {
+    if (shouldArchive) {
+      selectedSubject = null;
+      selectedTopic = null;
+      clearSessionSizeManualOverride();
+      setTopicSelectionMode(false);
+      setView(0);
+    } else {
+      selectedSubject = { ...selectedSubject, ...nextSubject };
+    }
+  }
+
+  closeSubjectTileMenus();
+  await refreshSidebar({ uiBlocking: false, force: true });
+  return true;
+}
+
+function buildSubjectTileMenu(subject = null, options = {}) {
+  const safeSubject = (subject && typeof subject === 'object') ? subject : {};
+  const safeId = String(safeSubject?.id || '').trim();
+  const isArchiveView = options?.archiveView === true;
+  const secondaryLabel = isArchiveView ? 'Restore' : 'Archive';
+  const secondaryClass = isArchiveView ? 'card-menu-item-restore' : 'card-menu-item-archive';
+
+  const menu = document.createElement('div');
+  menu.className = 'tile-menu';
+  menu.innerHTML = `
+    <button class="btn tile-menu-btn" type="button" aria-label="Subject actions" title="Subject actions">
+      <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+    </button>
+    <div class="tile-menu-list">
+      <button class="btn card-menu-item card-menu-item-edit" data-action="edit" type="button">Edit</button>
+      <button class="btn card-menu-item ${secondaryClass}" data-action="secondary" type="button">${secondaryLabel}</button>
+      <button class="btn delete card-menu-item" data-action="delete" type="button">Delete</button>
+    </div>
+  `;
+  menu.addEventListener('click', e => e.stopPropagation());
+
+  const menuBtn = menu.querySelector('.tile-menu-btn');
+  if (menuBtn) {
+    menuBtn.onclick = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const alreadyOpen = menu.classList.contains('open');
+      closeSubjectTileMenus();
+      if (!alreadyOpen) menu.classList.add('open');
+    };
+  }
+
+  const editBtn = menu.querySelector('[data-action="edit"]');
+  if (editBtn) {
+    editBtn.onclick = async e => {
+      e.preventDefault();
+      e.stopPropagation();
+      menu.classList.remove('open');
+      await openSubjectEditDialogById(safeId, { uiBlocking: false });
+    };
+  }
+
+  const secondaryBtn = menu.querySelector('[data-action="secondary"]');
+  if (secondaryBtn) {
+    secondaryBtn.onclick = async e => {
+      e.preventDefault();
+      e.stopPropagation();
+      menu.classList.remove('open');
+      if (!safeId) return;
+      if (!isArchiveView) {
+        if (!confirm('Archive this subject?')) return;
+        await setSubjectArchivedState(safeId, true, { uiBlocking: false, force: true });
+      } else {
+        await setSubjectArchivedState(safeId, false, { uiBlocking: false, force: true });
+      }
+      if (el('subjectArchiveDialog')?.open) {
+        await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+      }
+    };
+  }
+
+  const deleteBtn = menu.querySelector('[data-action="delete"]');
+  if (deleteBtn) {
+    deleteBtn.onclick = async e => {
+      e.preventDefault();
+      e.stopPropagation();
+      menu.classList.remove('open');
+      if (!safeId) return;
+      if (!confirm('Delete this subject and all its topics/cards permanently?')) return;
+      await deleteSubjectById(safeId);
+      if (el('subjectArchiveDialog')?.open) {
+        await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+      }
+    };
+  }
+  return menu;
+}
+
+function buildSubjectTile(subject = null, options = {}) {
+  const safeSubject = (subject && typeof subject === 'object') ? subject : {};
+  const safeId = String(safeSubject?.id || '').trim();
+  const isArchiveView = options?.archiveView === true;
+  const chip = document.createElement('div');
+  chip.className = 'tile subject-tile';
+  chip.dataset.subjectId = safeId;
+
+  const accent = normalizeHexColor(safeSubject?.accent || '#2dd4bf');
+  chip.style.setProperty('--tile-accent', accent);
+  chip.style.setProperty('--subject-accent', accent);
+  chip.style.setProperty('--subject-accent-bg', hexToRgba(accent, 0.18));
+  chip.style.setProperty('--subject-accent-glow', hexToRgba(accent, 0.34));
+
+  const row = document.createElement('div');
+  row.className = 'tile-row';
+  const titleWrap = document.createElement('div');
+  titleWrap.style.display = 'flex';
+  titleWrap.style.alignItems = 'center';
+  titleWrap.style.gap = '10px';
+  const title = document.createElement('div');
+  title.textContent = String(safeSubject?.name || '').trim() || 'Untitled subject';
+  titleWrap.appendChild(title);
+  row.appendChild(titleWrap);
+  row.appendChild(buildSubjectTileMenu(safeSubject, { archiveView: isArchiveView }));
+  chip.appendChild(row);
+
+  if (!isArchiveView) {
+    chip.onclick = () => {
+      selectedSubject = safeSubject;
+      selectedTopic = null;
+      clearSessionSizeManualOverride();
+      setTopicSelectionMode(false);
+      applySubjectTheme(safeSubject.accent || '#2dd4bf');
+      loadTopics();
+      setView(1);
+      document.body.classList.remove('sidebar-open');
+    };
+  }
+  return chip;
+}
+
+function getArchiveSubjectTreeStyle(subject = null) {
+  const accent = normalizeHexColor(subject?.accent || '#2dd4bf');
+  return [
+    `--subject-accent:${accent}`,
+    `--subject-accent-bg:${hexToRgba(accent, 0.18)}`,
+    `--subject-accent-glow:${hexToRgba(accent, 0.34)}`,
+    `--daily-review-subject-accent:${accent}`,
+    `--daily-review-subject-accent-bg:${hexToRgba(accent, 0.14)}`,
+    `--daily-review-subject-accent-glow:${hexToRgba(accent, 0.36)}`,
+    `--daily-review-subject-accent-glow-soft:${hexToRgba(accent, 0.2)}`
+  ].join(';');
+}
+
+function getArchiveCardCreatedAt(card = null) {
+  if (typeof getCardCreatedAt === 'function') return getCardCreatedAt(card);
+  const raw = card?.meta?.createdAt ?? card?.createdAt ?? 0;
+  if (!raw) return 0;
+  if (typeof raw === 'number') return raw;
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function buildArchiveCardTile(card = null) {
+  const safeCard = (card && typeof card === 'object') ? card : {};
+  const tile = document.createElement('article');
+  tile.className = 'card-tile card-tile-overview content-exchange-card-tile';
+
+  const previewBtn = document.createElement('button');
+  previewBtn.className = 'btn card-preview-btn content-exchange-card-preview-btn';
+  previewBtn.type = 'button';
+  previewBtn.textContent = 'Preview';
+  previewBtn.setAttribute('aria-label', 'Open card preview');
+  previewBtn.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof openCardPreviewDialog === 'function') openCardPreviewDialog(safeCard);
+  });
+  tile.appendChild(previewBtn);
+
+  const qTitle = document.createElement('div');
+  qTitle.className = 'card-tile-title';
+  qTitle.textContent = 'Q';
+
+  const qBody = document.createElement('div');
+  qBody.className = 'card-tile-body';
+  renderRich(qBody, safeCard.prompt || safeCard.question || '', {
+    textAlign: safeCard.questionTextAlign || safeCard.textAlign || 'center'
+  });
+  appendCardImages(qBody, getCardImageList(safeCard, 'Q'), 'card-thumb', 'Question image');
+
+  const separator = document.createElement('div');
+  separator.className = 'card-tile-separator';
+
+  const aTitle = document.createElement('div');
+  aTitle.className = 'card-tile-title';
+  aTitle.textContent = 'A';
+
+  const aBody = document.createElement('div');
+  aBody.className = 'card-tile-body';
+  if (typeof renderCardTileAnswerContent === 'function') {
+    renderCardTileAnswerContent(aBody, safeCard, { compact: false });
+  } else {
+    renderRich(aBody, safeCard.answer || '', {
+      textAlign: safeCard.answerTextAlign || safeCard.textAlign || 'center'
+    });
+  }
+  appendCardImages(aBody, getCardImageList(safeCard, 'A'), 'card-thumb', 'Answer image');
+  tile.append(qTitle, qBody, separator, aTitle, aBody);
+  return tile;
+}
+
+async function refreshArchivedSubjectsDialog(options = {}) {
+  const list = el('archiveSubjectList');
+  const countEl = el('archiveSubjectCount');
+  if (!list) return;
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking !== false;
+  const force = !!opts.force;
+  const subjects = sortSubjectsByLastEdited(await getAll('subjects', {
+    uiBlocking,
+    force,
+    loadingLabel: 'Loading subjects...'
+  }));
+  const archivedSubjects = subjects.filter(subject => {
+    const id = String(subject?.id || '').trim();
+    if (!id) return false;
+    if (pendingSubjectDeletionIds.has(id)) return false;
+    return isSubjectArchived(subject);
+  });
+  if (!archivedSubjects.length) {
+    list.innerHTML = '';
+    if (countEl) countEl.textContent = '0 archived subjects';
+    list.innerHTML = '<div class="archive-empty-message">No archived subjects.</div>';
+    return;
+  }
+
+  const archivedSubjectIds = new Set(
+    archivedSubjects.map(subject => String(subject?.id || '').trim()).filter(Boolean)
+  );
+  const allTopics = archivedSubjectIds.size
+    ? await getAll('topics', { uiBlocking: false, force, loadingLabel: 'Loading topics...' })
+    : [];
+  const archivedTopics = (Array.isArray(allTopics) ? allTopics : [])
+    .filter(topic => archivedSubjectIds.has(String(topic?.subjectId || '').trim()))
+    .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
+
+  const topicsBySubjectId = new Map();
+  archivedTopics.forEach(topic => {
+    const subjectId = String(topic?.subjectId || '').trim();
+    if (!subjectId) return;
+    if (!topicsBySubjectId.has(subjectId)) topicsBySubjectId.set(subjectId, []);
+    topicsBySubjectId.get(subjectId).push(topic);
+  });
+
+  const topicIds = archivedTopics
+    .map(topic => String(topic?.id || '').trim())
+    .filter(Boolean);
+  const cards = topicIds.length
+    ? await getCardsByTopicIds(topicIds, { uiBlocking: false, force, payloadLabel: 'archive-tree-cards' })
+    : [];
+  const cardsByTopicId = new Map();
+  (Array.isArray(cards) ? cards : []).forEach(card => {
+    const topicId = String(card?.topicId || '').trim();
+    if (!topicId) return;
+    if (!cardsByTopicId.has(topicId)) cardsByTopicId.set(topicId, []);
+    cardsByTopicId.get(topicId).push(card);
+  });
+  cardsByTopicId.forEach(topicCards => {
+    topicCards.sort((a, b) => {
+      const timeDiff = getArchiveCardCreatedAt(b) - getArchiveCardCreatedAt(a);
+      if (timeDiff !== 0) return timeDiff;
+      const aPrompt = String(a?.prompt || a?.question || '').trim();
+      const bPrompt = String(b?.prompt || b?.question || '').trim();
+      return aPrompt.localeCompare(bPrompt);
+    });
+  });
+
+  const totalTopicCount = archivedTopics.length;
+  const totalCardCount = (Array.isArray(cards) ? cards : []).length;
+  if (countEl) {
+    countEl.textContent = `${archivedSubjects.length} archived ${archivedSubjects.length === 1 ? 'subject' : 'subjects'} • ${totalTopicCount} ${totalTopicCount === 1 ? 'topic' : 'topics'} • ${totalCardCount} ${totalCardCount === 1 ? 'card' : 'cards'}`;
+  }
+
+  list.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+
+  archivedSubjects.forEach(subject => {
+    const subjectId = String(subject?.id || '').trim();
+    if (!subjectId) return;
+    const subjectTopics = topicsBySubjectId.get(subjectId) || [];
+    const subjectCardCount = subjectTopics.reduce((sum, topic) => {
+      const safeTopicId = String(topic?.id || '').trim();
+      const topicCards = cardsByTopicId.get(safeTopicId) || [];
+      return sum + topicCards.length;
+    }, 0);
+
+    const subjectDetails = document.createElement('details');
+    subjectDetails.className = 'content-exchange-subject daily-review-subject-group';
+    subjectDetails.setAttribute('style', getArchiveSubjectTreeStyle(subject));
+
+    const subjectSummary = document.createElement('summary');
+    subjectSummary.className = 'daily-review-subject-toggle';
+
+    const subjectTitleWrap = document.createElement('div');
+    subjectTitleWrap.className = 'daily-review-subject-title-wrap';
+    const subjectTitle = document.createElement('div');
+    subjectTitle.className = 'daily-review-subject-title';
+    subjectTitle.textContent = String(subject?.name || '').trim() || 'Untitled subject';
+    const subjectMeta = document.createElement('div');
+    subjectMeta.className = 'tiny';
+    subjectMeta.textContent = `${subjectTopics.length} ${subjectTopics.length === 1 ? 'topic' : 'topics'} • ${subjectCardCount} ${subjectCardCount === 1 ? 'card' : 'cards'}`;
+    subjectTitleWrap.append(subjectTitle, subjectMeta);
+
+    const subjectActions = document.createElement('div');
+    subjectActions.className = 'content-exchange-summary-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-small archive-tree-action-edit';
+    editBtn.type = 'button';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      await openSubjectEditDialogById(subjectId, { uiBlocking: false });
+    });
+
+    const restoreBtn = document.createElement('button');
+    restoreBtn.className = 'btn btn-small archive-tree-action-restore';
+    restoreBtn.type = 'button';
+    restoreBtn.textContent = 'Restore';
+    restoreBtn.addEventListener('click', async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      await setSubjectArchivedState(subjectId, false, { uiBlocking: false, force: true });
+      await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-small delete';
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!confirm('Delete this subject and all its topics/cards permanently?')) return;
+      await deleteSubjectById(subjectId);
+      await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+    });
+
+    const subjectChevron = document.createElement('span');
+    subjectChevron.className = 'daily-review-subject-chevron';
+    subjectChevron.setAttribute('aria-hidden', 'true');
+    subjectChevron.textContent = '▾';
+
+    subjectActions.append(editBtn, restoreBtn, deleteBtn, subjectChevron);
+    subjectSummary.append(subjectTitleWrap, subjectActions);
+    subjectDetails.appendChild(subjectSummary);
+
+    const topicList = document.createElement('div');
+    topicList.className = 'content-exchange-topic-list daily-review-subject-topics';
+    if (!subjectTopics.length) {
+      const emptyTopics = document.createElement('div');
+      emptyTopics.className = 'tiny';
+      emptyTopics.textContent = 'No topics in this subject.';
+      topicList.appendChild(emptyTopics);
+    } else {
+      subjectTopics.forEach(topic => {
+        const topicId = String(topic?.id || '').trim();
+        if (!topicId) return;
+        const topicCards = cardsByTopicId.get(topicId) || [];
+
+        const topicDetails = document.createElement('details');
+        topicDetails.className = 'content-exchange-topic daily-review-subject-group';
+
+        const topicSummary = document.createElement('summary');
+        topicSummary.className = 'daily-review-subject-toggle';
+
+        const topicTitleWrap = document.createElement('div');
+        topicTitleWrap.className = 'daily-review-subject-title-wrap';
+        const topicTitle = document.createElement('div');
+        topicTitle.className = 'daily-review-subject-title';
+        topicTitle.textContent = String(topic?.name || '').trim() || 'Untitled topic';
+        const topicMeta = document.createElement('div');
+        topicMeta.className = 'tiny';
+        topicMeta.textContent = `${topicCards.length} ${topicCards.length === 1 ? 'card' : 'cards'}`;
+        topicTitleWrap.append(topicTitle, topicMeta);
+
+        const topicActions = document.createElement('div');
+        topicActions.className = 'content-exchange-summary-actions';
+        const topicChevron = document.createElement('span');
+        topicChevron.className = 'daily-review-subject-chevron';
+        topicChevron.setAttribute('aria-hidden', 'true');
+        topicChevron.textContent = '▾';
+        topicActions.appendChild(topicChevron);
+
+        topicSummary.append(topicTitleWrap, topicActions);
+        topicDetails.appendChild(topicSummary);
+
+        const topicBody = document.createElement('div');
+        topicBody.className = 'content-exchange-topic-body daily-review-subject-topics';
+        if (!topicCards.length) {
+          const emptyCards = document.createElement('div');
+          emptyCards.className = 'tiny content-exchange-card-list-empty';
+          emptyCards.textContent = 'No cards in this topic.';
+          topicBody.appendChild(emptyCards);
+        } else {
+          const cardList = document.createElement('div');
+          cardList.className = 'content-exchange-card-list card-grid';
+          topicCards.forEach(card => {
+            cardList.appendChild(buildArchiveCardTile(card));
+          });
+          topicBody.appendChild(cardList);
+        }
+        topicDetails.appendChild(topicBody);
+        topicList.appendChild(topicDetails);
+      });
+    }
+    subjectDetails.appendChild(topicList);
+    fragment.appendChild(subjectDetails);
+  });
+  list.appendChild(fragment);
+}
+
+async function openSubjectArchiveDialog(options = {}) {
+  const dialog = el('subjectArchiveDialog');
+  if (!dialog) return;
+  document.body.classList.remove('sidebar-open');
+  const opts = options && typeof options === 'object' ? options : {};
+  await refreshArchivedSubjectsDialog({ uiBlocking: opts.uiBlocking !== false, force: !!opts.force });
+  showDialog(dialog);
+}
+
 async function refreshSidebar(options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const uiBlocking = opts.uiBlocking !== false;
@@ -202,70 +701,14 @@ async function refreshSidebar(options = {}) {
   const visibleSubjects = subjects.filter(subject => {
     const id = String(subject?.id || '').trim();
     if (!id) return false;
-    return !pendingSubjectDeletionIds.has(id);
+    if (pendingSubjectDeletionIds.has(id)) return false;
+    return !isSubjectArchived(subject);
   });
   rebuildSubjectDirectory(subjects);
   const list = el('subjectList');
   list.innerHTML = '';
-  visibleSubjects.forEach(s => {
-    const chip = document.createElement('div');
-    chip.className = 'tile subject-tile';
-    chip.dataset.subjectId = String(s?.id || '').trim();
-    const accent = normalizeHexColor(s.accent || '#2dd4bf');
-    chip.style.setProperty('--tile-accent', accent);
-    chip.style.setProperty('--subject-accent', accent);
-    chip.style.setProperty('--subject-accent-bg', hexToRgba(accent, 0.18));
-    chip.style.setProperty('--subject-accent-glow', hexToRgba(accent, 0.34));
-    chip.innerHTML = `
-          <div class="tile-row">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div>${escapeHTML(s.name)}</div>
-            </div>
-            <div class="tile-menu">
-              <button class="btn tile-menu-btn" type="button" aria-label="Edit subject" title="Edit subject">
-                <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        `;
-    chip.onclick = () => {
-      selectedSubject = s;
-      selectedTopic = null;
-      clearSessionSizeManualOverride();
-      setTopicSelectionMode(false);
-      applySubjectTheme(s.accent || '#2dd4bf');
-      loadTopics();
-      setView(1);
-      document.body.classList.remove('sidebar-open');
-    };
-    const menuBtn = chip.querySelector('.tile-menu-btn');
-    if (menuBtn) {
-      menuBtn.dataset.subjectId = String(s?.id || '').trim();
-      menuBtn.onclick = async e => {
-        e.stopPropagation();
-        const subjectId = String(menuBtn.dataset.subjectId || s?.id || '').trim();
-        if (!subjectId) return;
-        let subject = subjectDirectoryById.get(subjectId) || null;
-        if (!subject) {
-          subject = await getById('subjects', subjectId, { uiBlocking: false, loadingLabel: '' });
-        }
-        if (!subject) return;
-        editingSubjectId = subjectId;
-        el('editSubjectName').value = String(subject?.name || '').trim();
-        el('editSubjectColor').value = subject?.accent || '#2dd4bf';
-        const editExamDateInput = el('editSubjectExamDate');
-        if (editExamDateInput) {
-          editExamDateInput.value = formatSubjectExamDateForInput(subject?.examDate);
-        }
-        const editExcludeInput = el('editSubjectExcludeFromReview');
-        if (editExcludeInput) {
-          editExcludeInput.checked = subject?.excludeFromReview === true;
-        }
-        el('subjectEditDialog').showModal();
-      };
-    }
-    list.appendChild(chip);
-  });
+  bindSubjectTileMenuCloseHandler();
+  visibleSubjects.forEach(subject => list.appendChild(buildSubjectTile(subject)));
   const stats = await getStats({ uiBlocking, force, loadingLabel: 'Loading overview...' });
   const summarySubjectsEl = el('summarySubjects');
   const summaryTopicsEl = el('summaryTopics');
@@ -275,6 +718,9 @@ async function refreshSidebar(options = {}) {
   if (summaryCardsEl) summaryCardsEl.textContent = `${stats.cards} Cards`;
   applySubjectTheme(selectedSubject?.accent || '#2dd4bf');
   loadHomeTopics({ uiBlocking });
+  if (el('subjectArchiveDialog')?.open) {
+    void refreshArchivedSubjectsDialog({ uiBlocking: false, force });
+  }
 }
 
 /**

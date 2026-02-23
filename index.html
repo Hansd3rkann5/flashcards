@@ -111,6 +111,12 @@
     </div>
     <button id="homeBtn">🏠 Home</button>
     <button id="settingsBtn">⚙️ Settings</button>
+    <button id="archiveBtn">📁 Archive</button>
+<!--     
+    <button id="archiveBtn" class="sidebar-archive-btn" type="button" aria-label="Open archived subjects">
+      <img src="icons/archive.png" alt="" class="sidebar-action-icon" aria-hidden="true" />
+      <span>Archive</span>
+    </button> -->
     <div class="sidebar-subjects">
       <div class="sidebar-subjects-header">
         <strong>Subjects</strong>
@@ -122,7 +128,7 @@
       <!-- <button class="btn" id="addSubjectBtn" style="margin-top:10px;width: 100%;">+ Add Subject</button> -->
     </div>
     <div class="sidebar-meta" id="sidebarMeta">
-      <div class="tiny sidebar-meta-line">© SimonBader, <span id="appVersionLabel">v2026.02.23.28</span></div>
+      <div class="tiny sidebar-meta-line">© SimonBader, <span id="appVersionLabel">v2026.02.23.32</span></div>
     </div>
   </aside>
 
@@ -675,7 +681,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.28';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.32';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -773,10 +779,18 @@
     </div>
     <div class="controls subject-edit-actions">
       <button class="btn save-primary" id="saveSubjectEditBtn">Save</button>
-      <div class="subject-edit-secondary-actions">
-        <button class="btn delete" id="deleteSubjectBtn">Delete</button>
+      <div class="subject-edit-secondary-actions subject-edit-secondary-actions-single">
         <button class="btn" id="cancelSubjectEditBtn">Cancel</button>
       </div>
+    </div>
+  </dialog>
+
+  <dialog id="subjectArchiveDialog" class="modal">
+    <h3>Archived Subjects</h3>
+    <div class="tiny archive-dialog-meta" id="archiveSubjectCount">0 archived subjects</div>
+    <div id="archiveSubjectList" class="content-exchange-tree archive-subject-list"></div>
+    <div class="controls" style="margin-top:12px; margin-inline:0;">
+      <button class="btn" id="closeSubjectArchiveBtn" type="button">Close</button>
     </div>
   </dialog>
 

@@ -685,6 +685,21 @@ body.app-loading {
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
+.sidebar-archive-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sidebar-action-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+}
+
 .create-card-icon-btn {
   width: 48px;
   min-width: 48px;
@@ -963,7 +978,6 @@ body.app-loading {
   .topic-more-btn:hover,
   .close-icon-btn:hover,
   .refresh-icon-btn:hover,
-  .tile-menu-btn:hover,
   .card-menu-btn:hover,
   #addSubjectBtn:hover,
   #backToTopicsBtn:hover,
@@ -973,6 +987,20 @@ body.app-loading {
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.16),
       inset 0 0 16px rgba(255, 255, 255, 0.12);
+  }
+
+  .subject-tile .tile-menu-btn:hover,
+  .subject-tile .tile-menu-btn:focus-visible {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .card-menu-item:hover,
+  .card-menu-item:focus-visible {
+    transform: none;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+      inset 0 0 14px rgba(255, 255, 255, 0.14);
   }
 }
 
@@ -3086,13 +3114,28 @@ body.session-image-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
+  min-height: 32px;
+  height: 32px;
+  padding: 4px 8px;
   font-size: 0.9rem;
   line-height: 1;
 }
 
 .tile-menu-list {
   display: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: #1a2440;
+  border: 1px solid #2a3f66;
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 120px;
+  z-index: 7;
+}
+
+.tile-menu.open .tile-menu-list {
+  display: block;
 }
 
 .card-menu-btn {
@@ -3130,9 +3173,25 @@ body.session-image-open {
   margin: 2px 0;
 }
 
+.tile-menu-list .card-menu-item {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+}
+
 .card-menu-item.card-menu-item-edit {
   background: var(--success);
   border-color: var(--success);
+}
+
+.card-menu-item.card-menu-item-archive {
+  background: #475569;
+  border-color: #475569;
+}
+
+.card-menu-item.card-menu-item-restore {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
 }
 
 .card-menu-item.delete {
@@ -3976,6 +4035,56 @@ dialog.modal.subject-edit-modal {
   border-color: #435479;
 }
 
+#subjectArchiveDialog {
+  width: min(760px, calc(100vw - (2 * var(--space-6))));
+}
+
+#subjectArchiveDialog h3 {
+  margin: 0;
+  text-align: center;
+}
+
+.archive-dialog-meta {
+  margin-top: 6px;
+  text-align: center;
+}
+
+.archive-subject-list {
+  margin-top: var(--space-3);
+  max-height: min(64vh, 640px);
+  overflow: auto;
+  padding: var(--space-2);
+  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  overscroll-behavior: contain;
+}
+
+.archive-subject-list .content-exchange-card-list {
+  --card-grid-min: 260px;
+}
+
+.archive-subject-list .content-exchange-card-list .card-tile:last-child {
+  margin-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+.archive-tree-action-edit {
+  background: var(--success);
+  border: 1px solid var(--success);
+}
+
+.archive-tree-action-restore {
+  background: #0ea5e9;
+  border: 1px solid #0ea5e9;
+}
+
+.archive-empty-message {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--space-4);
+}
+
 :is(#subjectDialog, #subjectEditDialog) h3 {
   margin: 0 0 var(--space-3);
   text-align: center;
@@ -4089,6 +4198,10 @@ dialog.modal.subject-edit-modal {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
+}
+
+:is(#subjectDialog, #subjectEditDialog) .subject-edit-secondary-actions.subject-edit-secondary-actions-single {
+  grid-template-columns: 1fr;
 }
 
 :is(#subjectDialog, #subjectEditDialog) .subject-edit-secondary-actions .btn {

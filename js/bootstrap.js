@@ -944,8 +944,16 @@ async function boot() {
     document.body.classList.remove('sidebar-open');
     showDialog(settingsDialog);
   };
+  const archiveBtn = el('archiveBtn');
+  if (archiveBtn) {
+    archiveBtn.onclick = () => {
+      void openSubjectArchiveDialog({ uiBlocking: false });
+    };
+  }
   const closeSettingsBtn = el('closeSettingsBtn');
   if (closeSettingsBtn) closeSettingsBtn.onclick = () => closeDialog(el('settingsDialog'));
+  const closeSubjectArchiveBtn = el('closeSubjectArchiveBtn');
+  if (closeSubjectArchiveBtn) closeSubjectArchiveBtn.onclick = () => closeDialog(el('subjectArchiveDialog'));
   const signOutBtn = el('signOutBtn');
   if (signOutBtn) {
     if (isLocalSnapshotModeEnabled()) {
@@ -1960,19 +1968,6 @@ async function boot() {
     el('subjectEditDialog').close();
     refreshSidebar();
     if (selectedSubject) loadTopics();
-  };
-  el('deleteSubjectBtn').onclick = async () => {
-    if (!editingSubjectId) return;
-    if (!confirm('Delete this subject and all its topics/cards?')) return;
-    const id = editingSubjectId;
-    editingSubjectId = null;
-    el('subjectEditDialog').close();
-    try {
-      await deleteSubjectById(id);
-    } catch (err) {
-      console.error('Failed to delete subject:', err);
-      alert(err?.message || 'Failed to delete subject.');
-    }
   };
   const subjectEditDialog = el('subjectEditDialog');
   if (subjectEditDialog) {
