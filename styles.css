@@ -113,9 +113,17 @@ body::before {
   top: 0;
   bottom: 0;
   left: 0;
-  overflow: auto;
+  overflow: hidden;
   z-index: 6;
   box-sizing: border-box;
+}
+
+.sidebar-subjects {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
 }
 
 .sidebar-toggle {
@@ -623,11 +631,13 @@ body.app-loading {
 }
 
 .sidebar-meta {
-  margin-top: auto;
+  margin-top: 0;
   padding-top: 8px;
   opacity: 0.72;
-  position: absolute;
-  bottom: 10px;
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 2px);
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(12, 18, 34, 0) 0%, rgba(12, 18, 34, 0.92) 38%);
 }
 
 .sidebar-meta-line {
@@ -6608,4 +6618,3 @@ dialog::backdrop {
     }
   }
 }
-

@@ -1,0 +1,1455 @@
+{
+  "cards": [
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la respuesta",
+      "answer": "die Antwort / Reaktion"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la ventaja",
+      "answer": "der Vorteil / Vorsprung,\ndie Vergünstigung"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la tarea",
+      "answer": "die Aufgabe (-nstellung),\nder Auftrag"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el medio ambiente",
+      "answer": "die Umwelt"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el gobierno",
+      "answer": "die Regierung"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "conseguir (algo)\nyo consigo\ntú consigues\nél/ella/Ud. consigue\nnosotros conseguimos\nvosotros conseguís\nellos/ellas/Uds. consiguen",
+      "answer": "(etwas) erreichen / erlangen / erzielen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "tocar\nyo toco\ntú tocas\nél/ella/Ud. toca\nnosotros tocamos\nvosotros tocáis\nellos/ellas/Uds. tocan",
+      "answer": "berühren,\nspielen,\nanfassen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "encanta wird ___ mit Mengenangaben verwendet!",
+      "answer": "nicht",
+      "type": "mcq",
+      "options": [
+        {
+          "text": "nicht",
+          "correct": true
+        },
+        {
+          "text": "natürlich",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "sociable",
+      "answer": "sozial, umgänglich, gesellig"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "cerrado/a",
+      "answer": "verschlossen, zurückhaltend"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "el dedo",
+      "answer": "der Finger"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "el oida",
+      "answer": "das Ohr / Gehör,\nder Gehörsinn"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "la boca",
+      "answer": "der Mund"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "el cuello",
+      "answer": "der Hals"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "la panza",
+      "answer": "der Bauch"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "la rodilla",
+      "answer": "das Knie"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "el hombro",
+      "answer": "die Schulter"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "el pie",
+      "answer": "der Fuß"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "la pierna",
+      "answer": "das Bein"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "el brazo",
+      "answer": "der Arm"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "la mano",
+      "answer": "die Hand"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Körper",
+      "question": "la cabeza",
+      "answer": "der Kopf"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la naturaleza",
+      "answer": "die Natur"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "ambos/as",
+      "answer": "beide"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "el idificio",
+      "answer": "das Gebäude"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "delante de la catedral",
+      "answer": "vor der Kathedrale"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Wohngemeinschaft",
+      "answer": "un piso compartido"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "está <-> esta",
+      "answer": "sich befindet, liegt <-> diese"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el capital",
+      "answer": "das Kapital / Vermögen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "21",
+      "answer": "veintiúno (EIN und zwanzig)"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Welches Verb wird mit Temperaturen benutzt?",
+      "answer": "Haber -> HACE\nEn el sur hace mucho calor"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "In welchen Fällen wird die Präposition „a“ verwendet?",
+      "answer": "Wenn es sich auf Menschen bezieht --> Dativ (Wem?) und Akkusativ (Wen?)"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "salir\nyo salgo\ntú sales\nél/ella/Ud. sale\nnosotros salimos\nvosotros salís\nellos/ellas/Uds. salen",
+      "answer": "verlassen, ausgehen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "Was ist der Unterschied zwischen „a“ und „en“?",
+      "answer": "a --> wohin?\nen --> wo ich mich befinde"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "tomar\nyo tomo\ntú tomas\nél/ella/Ud. toma\nnosotros tomamos\nvosotros tomáis\nellos/ellas/Uds. toman",
+      "answer": "nehmen\nergreifen\neinnehmen\ntrinken"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "tener\nyo tengo\ntú tienes\nél/ella/Ud. tiene\nnosotros tenemos\nvosotros tenéis\nellos/ellas/Uds. tienen",
+      "answer": "haben, müssen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "hacer\nyo hago\ntú haces\nél/ella/Ud. hace\nnosotros hacemos\nvosotros hacéis\nellos/ellas/Uds. hacen",
+      "answer": "tun, machen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "ganar\nyo gano\ntú ganas\nél/ella/Ud. gana\nnosotros ganamos\nvosotros ganáis\nellos/ellas/Uds. ganan",
+      "answer": "gewinnen, bekommen, erlangen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "alguna vez",
+      "answer": "einmal (irgendwann)\ngelegentlich"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "recibir\nyo recibo\ntú recibes\nél/ella/Ud. recibe\nnosotros recibimos\nvosotros recibís\nellos/ellas/Uds. reciben",
+      "answer": "erhalten,\nempfangen,\nbekommen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "varias razones",
+      "answer": "verschiedene Gründe"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la razón",
+      "answer": "der Grund"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "quedar(se)\n(me) quedo\n(te) quedas\n(se) queda\n(nos) quedamos\n(os) quedáis\n(se) quedan",
+      "answer": "bleiben,\nzurückbleiben,\nübrig bleiben"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "zeitlich",
+      "question": "en la actualidad",
+      "answer": "heutzutage, zurzeit"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el inicio",
+      "answer": "der Start / Beginn"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el conocimiento",
+      "answer": "das Wissen, die Kenntnis"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el alojamiento",
+      "answer": "die Unterkunft / Unterbringung / Beherbergung"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "así como",
+      "answer": "ebenso wie"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "rodear\nyo rodeo\ntú rodeas\nél/ella/Ud. rodea\nnosotros rodeamos\nvosotros rodeáis\nellos/ellas/Uds. rodean",
+      "answer": "umgeben\numkreisen\numgehen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "rodeado/a",
+      "answer": "umschlossen, umgeben von"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "enviara\nyo envío\ntú envías\nél/ella/Ud. envía\nnosotros enviamos\nvosotros enviáis\nellos/ellas/Uds. envían",
+      "answer": "senden, versenden, schicken"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "ayudar - ayudo, ayudas, ayuda, ayudamos, ayudaís, ayudan",
+      "answer": "helfen, unterstützen, beitragen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "sobre todo",
+      "answer": "vor allem, insbesondere"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "lleno/a",
+      "answer": "voll, füllig"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "sobre",
+      "answer": "über, oberhalb von"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "escuchar - escucho, escuchas, escucha, escuchamos,\nescuchais, escuchan",
+      "answer": "hören, zuhören, anhören"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "porque -- para -- por",
+      "answer": "weil -- um zu -- wegen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "ir - voy, vas, va, vamos, vais, van",
+      "answer": "gehen, kommen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "Hago deporte",
+      "answer": "Ich treibe sport"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "De nueve a doce....",
+      "answer": "Von 9 bis 12"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "mi <-> a mí\ntu <-> tú\nel <-> él",
+      "answer": "mein / meine <-> mir\ndein / deine <-> du\nder / das <-> er"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "se <-> sé",
+      "answer": "sich (se duchar) - ich weiß"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el senderismo",
+      "answer": "die Wanderung, das Wandern"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la maleta",
+      "answer": "der Koffer, die Tasche"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el extranjero",
+      "answer": "der Ausländer, das Fremde"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la empresa",
+      "answer": "das Vorhaben / Unternehmen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "por eso",
+      "answer": "deshalb, deswegen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "mejor",
+      "answer": "beste, besser"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la duda",
+      "answer": "der Zweifel"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "nadar - nado, nadas, nada, nadamos, nadáis, nadan",
+      "answer": "schwimmen, baden"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la querida / el querido",
+      "answer": "die / der Geliebte, Liebste(r)"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "comprar (algo) - compro, compras, compra",
+      "answer": "etwas kaufen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "vender -\nvendo, vendes, vende, vendemos, vendéis, venden",
+      "answer": "verkaufen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "en el cruce de",
+      "answer": "an der Kreuzung von"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "enfrente de",
+      "answer": "gegenüber von"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el taller",
+      "answer": "die Werkstatt"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "servir -\nsirvo, sirves, sirve, servimos, servis, sirven",
+      "answer": "(be-)dienen, servieren"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "el lugar",
+      "answer": "der Ort / Platz, die Stelle"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "lejos",
+      "answer": "weit"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "a lado",
+      "answer": "neben"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "de la izquierda\n/ derecha",
+      "answer": "links /\nrechts von"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "además",
+      "answer": "außerdem"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "Lo que mas /\nmenos me\ngusta...",
+      "answer": "Was ich am meisten /\nwenigsten\nmag..."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "ruidoso/a - tranquilo/a",
+      "answer": "laut - ruhig"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "sucio/a - limpio/a",
+      "answer": "dreckig - sauber"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "caro/a - barato/a",
+      "answer": "teuer - billig"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "En mi barrio no hay ninguna iglesias.",
+      "answer": "In meiner Nachbarrschaft gibt\nes keine Kirchen."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "En mi barrio hay poco tráfico.",
+      "answer": "In meinem Viertel gibt es wenig Verkehr."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "En mi barrio hay demasiada gente.",
+      "answer": "In meinem Viertel gibt es zu viele Menschen."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la tienda",
+      "answer": "der Laden / das Geschäfft"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Vergangenheit",
+      "question": "Bilde das Partizip zu den unregelmäßigen Verben und übersetze die Grundform:\nhacer\ndecir\nescribir\nponer\nabrir\nvolver\nromper",
+      "answer": "hecho - machen\ndicho - sagen\nescrito - schreiben\npuesto - setzen\nabierto - öffnen\nvuelto - zurückkehren\nroto - kaputt machen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Vergangenheit",
+      "question": "Bilde das Partizip des Verbs, das Perfekt mit haber in\naufsteigender Person und übersetze:\nviajar\nestudiar\ngustar\nconocer\ncomer\nsalir",
+      "answer": "he viajado - ich bin gereist\nhas estudiado - du hast studiert\nha gustado - er mochte\nhemos conocido - wir haben kennengelernt\nhabéis comido - ihr habt gegessen\nhan salido - sie sind gegangen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Vergangenheit",
+      "question": "he viajado",
+      "answer": "ich bin gereist"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "haber - he, has, ha, hemos, habéis, han",
+      "answer": "haben, geben, sollen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "conducir - conduzco, conduces, conduce, conducimos, conducís,\nconducen",
+      "answer": "fahren, leiten, steuern"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "traer - traigo, traes, trae, traemos, traéis, traen",
+      "answer": "bringen, mitbringen, holen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "¿Qué le pongo?",
+      "answer": "Was darfs denn sein? Was darf ich ihnen bringen?"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "saber - yo sé, tú sabes, él sabe, sabemos, sabéis, saben",
+      "answer": "wissen, erfahren, herausfinden"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "¿Cuál es la diferencia entre sabes y puedes?",
+      "answer": "sabes - (no) saben cómo hacerlo\npuedes - (no) puedo hacerlo ahora (por ejemplo, debido a una\nlesión)"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "tener que + infinitivo",
+      "answer": "müssen + infinitiv"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "¡Estupendo!",
+      "answer": "Großartig!"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "¡Qué bien!",
+      "answer": "Wie schön!"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "¡Qué pena!",
+      "answer": "Wie schade!"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "Hoy me he levantado tarde.",
+      "answer": "Heute bin ich spät aufgestanden."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "las noticias",
+      "answer": "die Nachrichten"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "zeitlich",
+      "question": "un rato",
+      "answer": "eine Weile / Zeit lang"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "örtlich",
+      "question": "al lado",
+      "answer": "neben"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "A las ocho de la mañana me ducho.",
+      "answer": "Um 8 Uhr vormittags dusche ich mich.\n(Wenn etwas mit Uhrzeit, dann de la...)"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "3 453 276",
+      "answer": "tres millones cuatrocientos cincuenta y tres mil doscientos setenta y seis"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "despertarse -\nme despierto, te despiertas, se despierta,\nnos despertamos, os despertáis, se despiertan",
+      "answer": "aufwachen, aufstehen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "limpiar - limpio, limpias, limpia",
+      "answer": "reinigen, säubern"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "cosas interesantes",
+      "answer": "interessante Dinge/Sachen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "1 000 000 000",
+      "answer": "mil millones"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "2 000 000",
+      "answer": "dos millones"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "1 000 000",
+      "answer": "un millón"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "200 000",
+      "answer": "doscientos mil"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "100 000",
+      "answer": "cien mil"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "10 000",
+      "answer": "diez mil"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "2000",
+      "answer": "dos mil"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "1000",
+      "answer": "mil"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "900",
+      "answer": "novecientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "800",
+      "answer": "ochocientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "700",
+      "answer": "setecientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "600",
+      "answer": "seiscientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "500",
+      "answer": "quinientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "400",
+      "answer": "cuatrocientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "300",
+      "answer": "trescientos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "200, 201, 202",
+      "answer": "doscientos, doscientos uno, doscientos dos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Zahl",
+      "question": "100, 101, 102",
+      "answer": "cien, ciento uno, ciento dos"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "¿Qué te parece (…)?",
+      "answer": "Wie gefällt es dir…? Was hältst du von...?"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "poder -\npuedo, puedes, puede, podemos, podéis, pueden",
+      "answer": "können, dürfen, verstehen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "contar - cuento, cuentas, cuenta, contamos, contais, cuentan",
+      "answer": "zählen, erzählen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "conocer\nyo conozco\ntú conoces\nél/ella/Ud. conoce\nnosotros conocemos\nvosotros conocéis\nellos/ellas/Uds. conocen",
+      "answer": "kennen, kennenlernen, treffen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "algunas/os",
+      "answer": "verschiedene, einige"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el habito",
+      "answer": "die Gewohnheit"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "mirar - miro, miras, mira",
+      "answer": "schauen - ich schaue, du schaust, er schaut"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "empezar -\nempiezo, empiezas, empieza, empezamos, empezáis,\nempiezan",
+      "answer": "starten, beginnen, anfangen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "zeitlich",
+      "question": "Por las mañanas",
+      "answer": "Am Vormittag"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "zeitlich",
+      "question": "de vez en cuando",
+      "answer": "ab und zu"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "A veces",
+      "answer": "manchmal"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "A menudo...",
+      "answer": "Oft"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "quizás",
+      "answer": "vielleicht"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "Una vez a la semana...",
+      "answer": "Einmal pro Woche..."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "Casi todos los dias...",
+      "answer": "Fast jeden Tag..."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "raro/a",
+      "answer": "komisch, seltsam"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "¿Qué tiempo hacé?",
+      "answer": "Wie ist das Wetter?"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Primero..., después..., antes de..., más tarde..., finalmente",
+      "answer": "Zuerste..., danach..., davor..., später..., am Ende"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "... le interesa",
+      "answer": "... interessiert sich für"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "serio/a",
+      "answer": "ernst/seriös"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "confiado/a",
+      "answer": "anvertraut"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "cariñoso/a",
+      "answer": "liebevoll"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "desatento/a",
+      "answer": "unaufmerksam"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el ojo",
+      "answer": "das Auge"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "delgo/a - delgadito/a",
+      "answer": "schlank - schlankchen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "cordo/a - gordito/a",
+      "answer": "dick - dickerchen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "cada semana/dia/año",
+      "answer": "jede/n/s Woche/Tag/Jahr"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el tiempo",
+      "answer": "das Wetter"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "feo/a",
+      "answer": "hässlich"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "guapa/o",
+      "answer": "schön"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "irrespetuosa/o",
+      "answer": "unrespektvoll"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "insociable",
+      "answer": "unsozial"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "frio/a",
+      "answer": "kalt"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Es bajito, moreno y tiene el pelo rizado.",
+      "answer": "Er ist klein, dunkel und hat lockiges Haar."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Es alta, rubia y tiene el pelo largo.",
+      "answer": "Sie ist groß, blond und hat langes Haar."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el reloj",
+      "answer": "die Uhr"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "vestirse",
+      "answer": "ankleiden / sich anziehen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "lavarse los dientes",
+      "answer": "Zähne putzen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "ducharse",
+      "answer": "duschen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "desayunar - desayuno, desayunas, desayuna,\ndesayunamos, desayunaís, desayunan",
+      "answer": "frühstücken"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "hacer la cama",
+      "answer": "das Bett machen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Verb",
+      "question": "levantarse",
+      "answer": "aufstehen, aufwachen, erheben"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "estar viudo/a",
+      "answer": "verwittwet sein"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "separado/a",
+      "answer": "getrennt"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "divorciado/a",
+      "answer": "geschieden"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "soltero/a",
+      "answer": "ledig"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "casado/a",
+      "answer": "verheiratet"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "tio materno / paterno",
+      "answer": "Onkel mütterlicher- / väterlichserseits"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "esposa",
+      "answer": "Ehefrau / Handschelle"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "esposo",
+      "answer": "Ehemann"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "callado/a",
+      "answer": "ruhig, still"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "abierto/a",
+      "answer": "offen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "aburrido/a",
+      "answer": "langweilig"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "bastante",
+      "answer": "ziemlich"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "perezoso/a",
+      "answer": "faul"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "alegre",
+      "answer": "fröhlich"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "divertido/a",
+      "answer": "lustig, unterhaltend, amüsant"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el patrimonio",
+      "answer": "das Erbe"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Wann wird querer / encanta verwendet und was bedeutet\nes?",
+      "answer": "lieben / wollen\nquerer: Für\nMenschen und Tiere\nencanta:\nFür Gegenstände\nwird\nMe encanta Munich."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "No hablo francés ni portugués.",
+      "answer": "ni -> y no\nIch spreche nicht französisch und nicht portugiesisch."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Hay unas 15 personas.",
+      "answer": "Es sind ungefähr 15 Personen."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Phrase",
+      "question": "Hace unos 20 grados.",
+      "answer": "Es hat ungefähr 20 grad."
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el cinturón",
+      "answer": "der Gürtel"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la pulsera",
+      "answer": "das Armband"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el vestido",
+      "answer": "das Kleid"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el zapato",
+      "answer": "der Schuh"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la camiseta",
+      "answer": "das T-Shirt"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "los pantalones",
+      "answer": "die Hose"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "los vaqueros",
+      "answer": "die Jeans"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la bufanda",
+      "answer": "der Schal"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el abrigo",
+      "answer": "der Mantel"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la falda",
+      "answer": "der Rock"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la camisa",
+      "answer": "das Hemd"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el gorro",
+      "answer": "die Mütze"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "beis",
+      "answer": "beige"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "marron/ones",
+      "answer": "braun"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "gris",
+      "answer": "grau"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "azul",
+      "answer": "blau"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "verde",
+      "answer": "grün"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "naranja",
+      "answer": "orange"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "blanco",
+      "answer": "weiß"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "amarillo",
+      "answer": "gelb"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "rojo/a/os/as",
+      "answer": "rot"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "negro/a/os/as",
+      "answer": "schwarz"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el deporte",
+      "answer": "der Sport"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la idioma",
+      "answer": "die Sprache"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "hay nubes",
+      "answer": "es gibt Wolken"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el invierno",
+      "answer": "der Winter"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la lluvia",
+      "answer": "der Regen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "El clima es\ntemplado\ntropical\nfrío\narido\nseco\ncálido\nhúmedo",
+      "answer": "Das Klima ist\ngemäßigt\ntropisch\nkalt\ntrocken\nheiß\nwarm\nfeucht"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la isla",
+      "answer": "die Insel"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la peninsula",
+      "answer": "die Halbinsel"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la costa",
+      "answer": "die Küste"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el bosque",
+      "answer": "der Wald"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el lago",
+      "answer": "der See"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el rio",
+      "answer": "der Fluss"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el desierto",
+      "answer": "die Wüste"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la cordillera",
+      "answer": "das Gebirge"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el volcan",
+      "answer": "der Vulkan"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "la nieva",
+      "answer": "Schnee"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "el pais",
+      "answer": "das Land"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "habitantes",
+      "answer": "Einwohner*innen"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Wann/Wie wird \"muy\" und \"mucho\" verwendet?",
+      "answer": "muy + Adjektiv\nVerb + mucho/a/os/as + Substantiv"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Freitag\nSamstag\nSonntag",
+      "answer": "Viernes\nSabado\nDomingo"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Mittwoch\nDonnerstag",
+      "answer": "Miercoles\nJueves"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Montag\nDienstag",
+      "answer": "Lunes\nMartes"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Diciembre",
+      "answer": "Dezember"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Noviembre",
+      "answer": "November"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Octubre",
+      "answer": "Oktober"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Septiembre",
+      "answer": "September"
+    },
+    {
+      "subject": "Spanish",
+      "topic": "Imported Topic",
+      "question": "Agosto",
+      "answer": "August"
+    }
+  ]
+}

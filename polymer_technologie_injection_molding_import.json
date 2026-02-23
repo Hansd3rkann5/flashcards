@@ -2,627 +2,655 @@
   "cards": [
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Cooling begins with 1 and ends\nwith 2.",
+      "topic": "Injection Mold\nLab",
+      "question": "Cooling begins with 1 and\nends with 2.",
       "answer": "1. injection\n2. demolding"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "When does the shrinkage of the polymer occur?",
       "answer": "During cooling down."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Which point during the injection phase is of high importance and what happens if\nthe timing isn't right?",
-      "answer": "Switching point from\ncompression to holding\npressure\nWhen switching too early -> volume of the part is too low -> sink\nmarks are visible on surface"
+      "topic": "Injection Mold\nLab",
+      "question": "Which point during the injection phase is of high importance and what\nhappens if the timing isn't right?",
+      "answer": "Switching point from\ncompression to holding\npressure\nWhen switching too early -> volume of the part is too low\n-> sink marks are visible on surface"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "When is the injection phase finished?",
       "answer": "When the gate freezes."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name the 3 phases of the injection stage and marked point at the end of the\ncurve.\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_09.13.16.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T174659Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=796fff04d49b55d817665ae8e38cc6ea9561ae308a7dd0b1aac67e0272508b55",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_09.14.01.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T174659Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=ed087f83fb0f660a509373b893b14d0e362e1327937743f5a651478f81c2f7ba"
+      "topic": "Injection Mold\nLab",
+      "question": "Name the 3 phases of the injection stage and marked point at the\nend of the curve.\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_09.13.16.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191809Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=95f27e8459de1c0a49591e511004bac6d3d7ea9524bb7ab5c858e14be3d8e9cf",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_09.14.01.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191809Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=ea4e803e9495fcf4a9de6c6dd8164b184b92ca814014c0706d7d3670ff40c58f"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name the 3 stages of the melt flow.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_09.06.23.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T174659Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=afc83083bd995cc4a05e8b68274db4b91383359f2aab8cbe44f78565849ff654"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_09.06.23.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191809Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=e0b8a45d1e6a199f2f50a09a074cfb610034ff4ae610baa831eac824bf9a5f92"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
+      "question": "The maximum injection pressure is a 1\nparamater and an 2\nlimit for the variable during\ninjection stage.",
+      "answer": "1. prefixed\n2. upper",
+      "type": "mcq",
+      "options": [
+        {
+          "text": "1. prefixed",
+          "correct": true
+        },
+        {
+          "text": "2. upper",
+          "correct": true
+        },
+        {
+          "text": "1. variable",
+          "correct": false
+        },
+        {
+          "text": "2. lower",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "subject": "Polymer Technologie",
+      "topic": "Injection Mold\nLab",
       "question": "What happens during the injection?",
-      "answer": "Screw moves forward without rotating\ninjection of the metered material through the nozzle into the mold"
+      "answer": "Screw moves forward without rotating\ninjection of the metered material through the nozzle into the\nmold"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What has to be adjusted for each new molding process?",
       "answer": "Back pressure and metering stroke"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What defines the metering volume and how is it called?",
       "answer": "Screw position / screw backward travel\nName: Feeding / metering stroke"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
+      "question": "The back pressure during the metering phase is ______.",
+      "answer": "adjustable",
+      "type": "mcq",
+      "options": [
+        {
+          "text": "adjustable",
+          "correct": true
+        },
+        {
+          "text": "fixed",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "subject": "Polymer Technologie",
+      "topic": "Injection Mold\nLab",
       "question": "How does back pressure affect the melt?",
       "answer": "Better homogenization\nImproved dissipation heating"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What causes the back pressure during metering?",
       "answer": "Conglomerated melt at screw tip."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Why does the screw move backward during metering?",
       "answer": "Melt accumulates at screw tip\npressure builds up"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What happens to the material in the plasticizing cylinder during\nmetering?",
+      "topic": "Injection Mold\nLab",
+      "question": "What happens to the material in the plasticizing cylinder\nduring metering?",
       "answer": "It gets\nconveyed\ndensified\nmelted"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name the 7 steps of the Injection Molding Process.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_08.51.15.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T174659Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=929b5654ba2f309a5770145c4b93d8fbf028abc923615581be347ec15d6836ab"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-09_um_08.51.15.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191809Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=a5113c74202e034f1590a02a1d0277e76192eb21df4cdf3d113ae90bd1830489"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "When and why is cooling of the mold helpful?",
-      "answer": "For molding parts with complicated geometry, different cooling rates can avoid\nwarpage of the whole part."
+      "answer": "For molding parts with complicated geometry, different cooling rates\ncan avoid warpage of the whole part."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What mediums are chosen as a cooling fluid in mold plates?",
       "answer": "water or oil"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What is important if you use more than one cavity in a runner system?",
-      "answer": "Each cavity has to fill at the same time\nMelt has to have the same pressure and temperature when entering cavity"
+      "answer": "Each cavity has to fill at the same time\nMelt has to have the same pressure and temperature when entering\ncavity"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "How can you improve the efficiency of an injection mold process and how is it\nachieved?",
-      "answer": "By using more than one cavity per mold\nMain runner channel coming from the nozzle splits into several channels"
+      "topic": "Injection Mold\nLab",
+      "question": "How can you improve the efficiency of an injection mold process and\nhow is it achieved?",
+      "answer": "By using more than one cavity per mold\nMain runner channel coming from the nozzle splits into several\nchannels"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What is the price range for an injection molding tool?",
       "answer": "5.000€ - 500.000€"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What tasks do the elements of a mold fulfill?",
       "answer": "• Melt intake and spreading\n• Drawing of the pattern\n• Quenching of the melt\n• Demolding"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name the 4 elements a mold generally consists of.",
       "answer": "• Plate with cavity\n• Runner system\n• Heating system\n• Ejector system"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Which distance on a machine limits the size of a mold?",
       "answer": "The distance between the adjacent tie bars."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name at least 3 advantages of a fully electric clamping unit.",
-      "answer": "• Higher precision due to fast reaction times of the electro-mechanical\ndrives\n• Energy saving by higher efficiency\n• Low maintenance of electro-mechanical drives\n• High reproducibility by direct mechanical connection of motors and axes\n• Higher output due to parallel operation mode\n• No use of hydraulic oil results in cleaner production"
+      "answer": "• Higher precision due to fast reaction times of the\nelectro-mechanical drives\n• Energy saving by higher efficiency\n• Low maintenance of electro-mechanical drives\n• High reproducibility by direct mechanical connection of motors\nand axes\n• Higher output due to parallel operation mode\n• No use of hydraulic oil results in cleaner production"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What is an advantage/disadvantage of hydraulic clamping units?",
-      "answer": "advantage:\nno tie bar breakage\ncost-saving design due to fewer flexible parts and less maintenance\nhigher precision\nvariable positioning\nno unacceptable mold deformation\ndisadvantages:\nSlower clamping speed\nOil compression → lower stiffness\nHigh energy demand\nOil leakage risk\nHigher system complexity (hydraulics)"
+      "answer": "advantage:\nno tie bar breakage\ncost-saving design due to fewer flexible parts and less\nmaintenance\nhigher precision\nvariable positioning\nno unacceptable mold deformation\ndisadvantages:\nSlower clamping speed\nOil compression → lower stiffness\nHigh energy demand\nOil leakage risk\nHigher system complexity (hydraulics)"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
+      "question": "Which clamping system is faster?",
+      "answer": "toggle clamping system",
+      "type": "mcq",
+      "options": [
+        {
+          "text": "toggle clamping system",
+          "correct": true
+        },
+        {
+          "text": "hydraulic clamping system",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "subject": "Polymer Technologie",
+      "topic": "Injection Mold\nLab",
       "question": "What is an advantage/disadvantage of toggle clamping units?",
-      "answer": "advantage:\nself locking -> no energy requirement to keep the mold closed\ndisadvantage:\npermanent deformation of the mold after poor adjustment of the toggle and the\nhigh maintenance due to many moving parts"
+      "answer": "advantage:\nself locking -> no energy requirement to keep the mold closed\ndisadvantage:\npermanent deformation of the mold after poor adjustment of the\ntoggle and the high maintenance due to many moving parts"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "For which machine sizes are hydraulically driven toggles (Kniehebel) normally\nused?",
+      "topic": "Injection Mold\nLab",
+      "question": "For which machine sizes are hydraulically driven toggles (Kniehebel)\nnormally used?",
       "answer": "smaller and medium sized machines"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name the 3 common clamping systems.",
       "answer": "• Toggle Clamping unit (electrically or hydraulically driven)\n• Fully hydraulic clamping unit or\n• Fully electrical clamping unit"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Which component holds back the injected polymer?",
       "answer": "Non-return valve"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "How does the plasticizing take place in the screw?",
       "answer": "by internal friction and heat supply by heating tapes"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name the 3 sections of a common injection molding screw.",
       "answer": "• Feed section\n• Compression section\n• Metering section"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What are the most important elements of the plasticizing unit to realize the\ntasks?",
+      "topic": "Injection Mold\nLab",
+      "question": "What are the most important elements of the plasticizing unit to\nrealize the tasks?",
       "answer": "• Hopper\n• Screw in heated barrel\n• Drive system\n• Non-return valve\n• Nozzle"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name at least 3 main procedural tasks performed by the plasticizing unit.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_17.05.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181121Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4700bdac75113816658b8d43fc3c100c2f5c8f46b98cc3a5a952e61067fed9e7"
+      "topic": "Injection Mold\nLab",
+      "question": "Name at least 3 main procedural tasks performed by the plasticizing\nunit.",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_17.05.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191815Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=de705f2632e6d75b89b083ec95ba8916993f9799e3303ec1a4eb37c39d2efa2c"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name the parts that make up an Injection Molding Machine.",
-      "answer": "Injection molding machines consist of following component assemblies:\n• Plasticizing unit\n• Clamping unit\n• Measurement and control unit\n• Machine bed\n• Mold\n• Temperature control for the mold\nMold and temperature control do not belong directly to the machine setup.\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_17.04.54.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181121Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=5ae3a9f8deb475685b97d3abeffb2c6f8a9c8b754792dd5488c44231e24914e2"
+      "answer": "Injection molding machines consist of following component\nassemblies:\n• Plasticizing unit\n• Clamping unit\n• Measurement and control unit\n• Machine bed\n• Mold\n• Temperature control for the mold\nMold and temperature control do not belong directly to the\nmachine setup.\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_17.04.54.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191815Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fe71e3d74a8a9f2a90d722c69846706dd961a9d5483b59cbe301223a106521dd"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "How is the task for a Injection Molding Machine defined?",
-      "answer": "Discontinuous production of molding from primarily macromolecular substances,\nwhereas primary shaping is performed under pressure."
+      "answer": "Discontinuous production of molding from primarily macromolecular\nsubstances, whereas primary shaping is performed under pressure."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "Name at least 3 characteristics of injection molding.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_17.02.07.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181121Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f65eb28c5d2afaee718cbdf9ed1c51d4c35b4bf9d610c5693f3f5619bb6cadff"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_17.02.07.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T191815Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=ab77bdca37c8e61f65baa7c02dd7af4f87c140ef45e383d10e06ccb7a4ac8e7b"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "How is the mathematical connection between cycle and cooling time?",
-      "answer": "The cooling time (tcool) increases proportionally with the wall\nthickness (dwall) in second power.\ntcool = C •\ndwall2\nC: Proportionality constant depending on\nmaterial and process conditions"
+      "answer": "The cooling time (tcool) increases proportionally with\nthe wall thickness (dwall) in second power.\ntcool = C\n• dwall2\nC: Proportionality constant\ndepending on material and process conditions"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What measurement is crucial for productivity and on which part of the process\ndoes it depend on?",
+      "topic": "Injection Mold\nLab",
+      "question": "What measurement is crucial for productivity and on which part of\nthe process does it depend on?",
       "answer": "The cycle time; depends particularly on the cooling time"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What happens in this step?\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.58.52.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4e16a60f919d6e5b6130c0dc69e274fe98fa5cb0a9e36764fb04207ea48db883",
-      "answer": "The ejectors demold the frozen part from the open mold\nthe screw conveys new material to the screw tip\nthe injection unit moves backward"
+      "topic": "Injection Mold\nLab",
+      "question": "What happens in this step?\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.58.52.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=93bd1a581b21b9078249a68217a97a3bb48c9da065c6ccb919d2720e7b01df74",
+      "answer": "The ejectors demold the frozen part from the open\nmold\nthe screw conveys new material to the screw tip\nthe injection unit moves backward"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What happens in this step?\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.58.22.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=eb2d3046ceb3ae258660beefbcefca63c4a5c395408dd54e52cf3add4585cf74",
-      "answer": "The mold closes\nthe injection unit moves forward to the sprue bush\nthe screw presses the molten polymer like a piston into the mold\n➡️Injection"
+      "topic": "Injection Mold\nLab",
+      "question": "What happens in this step?\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.58.22.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=04b90b727583930cbcafaaf030a6828f00abfd9eef4831d95289c17fb408410f",
+      "answer": "The mold closes\nthe injection unit moves forward to the sprue bush\nthe screw presses the molten polymer like a piston\ninto the mold ➡️Injection"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What happens in this step?\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.57.58.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=dd27e9d4321d565a2e5b9c6ddb41f8569d76fe1cfc29a309e7d697366ce14ccd",
-      "answer": "The rotating screw conveys the granulate from the feed hopper through the\nscrew channels to the screw tip"
+      "topic": "Injection Mold\nLab",
+      "question": "What happens in this step?\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.57.58.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=2f9b90706a46551869effc32af4d090849d477241ba32598eec2b163d31c8853",
+      "answer": "The rotating screw conveys the granulate from the feed hopper\nthrough the screw channels to the screw tip"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What are the 3 main steps of the process?",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.57.36.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=9f9ba3acd79084f3838a1dfc71463ccea78a9f643abf3da39be96c6e4a04543d"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-07_um_16.57.36.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=563b98efd6d23b16e41a0689ed13b2c116718f405abf5630e1ffe1efc90ca959"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What are 2 main advantages of Injection Molding?",
       "answer": "minor further treatment of parts\nability to produce parts with complex geometry"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection Mold\nLab",
       "question": "What is the weight ratio of parts that can be produced?",
       "answer": "less than 1mg to more than 100kg"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "How high is the percentage of injection molding machines of all produced\nplastics and why?",
-      "answer": "about 60%\nInjection Molding is a very important processing strategy for thermoplastics"
+      "topic": "Injection Mold\nLab",
+      "question": "How high is the percentage of injection molding machines of all\nproduced plastics and why?",
+      "answer": "about 60%\nInjection Molding is a very important processing strategy for\nthermoplastics"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name at least 4 criteria for a mold\ndesign.",
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name at least 4 criteria for a\nmold design.",
       "answer": "Component design suitable for plastics\nDetermination of the plastic type\nDetermination of the mold design:\nNumber of cavities\nInjection points\nShrinkage\nDefinition of the melt distribution system:\nCold runner\nHot runner\nVenting of the cavities\nEjection of the component from the cavity\nCooling/tempering (circuits/ cooling holes)\nThermal expansion of the mold"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Why does a mold need to be heated?",
-      "answer": "Depending on the used material the crystallization temperature is so high (160°C)"
+      "answer": "Depending on the used material the crystallization temperature is so\nhigh (160°C)"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name the components of an injection mold.\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_17.12.13.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=1e4ba2eadad1b02c5ea5a5c5ce142c79ca7914a8ba4a93cc9fe0e15033d4b5cb",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_17.12.40.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=7943bd533fd97be5913a6d744f33d720faa867fc610800f0c92b85ff49d9407d"
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name the components of an injection mold.\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_17.12.13.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=0ed27ee993f29d37489bfac554ddf84ecc4af1f0d91c48485baaa649da302d72",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_17.12.40.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=58bd36aa598203d2ffa23f1fa4241ec381bebe1678c428c663a6ab7c30eed243"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Which two halves form the cavity?",
       "answer": "Female mold half = cavity\nMale mold half = core."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What is an injection mold, and what is its purpose?",
-      "answer": "Mold with one/more cavities\nshape of desired product\nproduces plastic parts in large numbers, required quality, dimensional\naccuracy, low cost."
+      "answer": "Mold with one/more cavities\nshape of desired product\nproduces plastic parts in large numbers, required quality,\ndimensional accuracy, low cost."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What are the 3 main nozzle designs and which one is\nthe standard?",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_17.05.11.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181123Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4e718cbbf197d6188d380df865e3121dee1ab0b6d9ea416ee8399692571e8d26"
+      "topic": "Injection\nMolding Lecture",
+      "question": "What are the 3 main nozzle designs and which\none is the standard?",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_17.05.11.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192145Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=86155b23fcec5d2e7692837b0b8e93206cce218567548fb600bba203dacdc8f3"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What is the purpose of plasticizing unit nozzle?",
       "answer": "• The nozzle connects the injection unit to the\ninjection mold.\n• The nozzle reduces the screw diameter to a few\nmillimeters"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What happens to the lock ring during injection?",
       "answer": "lock ring is pressed against pressure ring\nscrew flights are closed -> no backflow"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What happens to the lock ring during metering?",
       "answer": "It is ressed against screw tip during metering\ncreates gap between the lock ring and pressure ring\nmelt flows through gap"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What do lock ring and pressure ring do together with the screw tip?",
+      "topic": "Injection\nMolding Lecture",
+      "question": "What do lock ring and pressure ring do together with the screw\ntip?",
       "answer": "Act as a stop for the melt"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Which three parts make up the non‑return valve?",
       "answer": "Screw tip\nlock ring\npressure ring"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Where is the non‑return valve located?",
       "answer": "At the tip of the metering screw."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What is the main function of the non‑return valve?",
       "answer": "Prevent melt backflow; the screw acts as a piston."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Name the 3 zones of an universal\nscrew and describe their\ntask.",
-      "answer": "feed zone: rear end of the screw with the greatest flight\ndepth, used for conveying\ncompression zone: transition from the feed zone to the\ndischarge zone with increasing core thickness and decreasing flight depth,\nalso transition zone\ndischarge zone / metering: front part of the screw with the\nlowest flight depth, also discharge or metering zone"
+      "answer": "feed zone: rear end of the screw with the\ngreatest flight depth, used for conveying\ncompression zone: transition from the feed zone\nto the discharge zone with increasing core thickness and\ndecreasing flight depth, also transition zone\ndischarge zone / metering: front part of the\nscrew with the lowest flight depth, also discharge or metering\nzone"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What are disadvantages of a screw unit?",
-      "answer": "Effective screw length is shortened during plasticizing (limited metering\nstroke, inhomogeneous T-distribution)\nNon-return valves (NRV) are required"
+      "topic": "Injection\nMolding Lecture",
+      "question": "What are disadvantages of a screw\nunit?",
+      "answer": "Effective screw length is shortened during plasticizing (limited\nmetering stroke, inhomogeneous T-distribution)\nNon-return valves (NRV) are required"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What are advantages of a screw unit?",
+      "topic": "Injection\nMolding Lecture",
+      "question": "What are advantages of a screw\nunit?",
       "answer": "Less installation space required\nShort residence time\nScrew serves two functions\nplasticizing (rotation)\nInjection as piston"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What is a screw unit?",
       "answer": "Screw or screw piston injection molding machine"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "In a preplasticizing + injection piston unit, how are\nplasticizing and injection arranged and\nwhich components perform each function?",
+      "topic": "Injection\nMolding Lecture",
+      "question": "In a preplasticizing + injection piston unit,\nhow are plasticizing and\ninjection arranged and which components perform\neach function?",
       "answer": "• Plasticizing and injection are spatially separated\n• Plasticizing with a single-screw extruder\n• Injection via an injection piston"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name disadvantages of a preplasticizing +\ninjection piston system in injection molding.",
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name disadvantages of a\npreplasticizing + injection piston system in\ninjection molding.",
       "answer": "• High construction effort\n• Valves susceptible to maintenance\n• High manufacturing costs"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What are advantages of a preplasticizing + injection\npiston system in injection molding?",
       "answer": "• Consistent plasticizing quality\n• High injection speeds"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Sealing Point.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.51.24.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=bfdbb45bd55cdd391586c2949c22f2d013b4430309d2a12065bbd9b835dafc8c"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.51.24.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=58f7199d70be8b79f7194926a4beb2da10cb800a085dac9ba1f2a1afe9bca2bc"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Melt Cushion.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.51.09.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=84332046b68d9ad4f1398e40c4be6a795cfa4a7b46f72ddfce1454ea036b6d6a"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.51.09.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f372c49071bcbbabb02f39ef7896d31a45a6b6f013634a5f76583dc335e3fe7d"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Holding Pressure.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.50.49.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=2d3d536d769fe1f7abf1ff6ee1eb8da7f96bba5146071901a6597514ef209fc4"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.50.49.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f804a635e97a6253cadb5ac6b6d881ecd9d02a216ce21c1369de741b65238afc"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Switchover point.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.50.04.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=e00b04a398893a09302ed7dac4ad1ed94d4494f727cc831a02dc229bcc149c01"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.50.04.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=ac46f3551af74ede9879034b73c1285c96ed9987d69eecd08befc1b0e8a23a07"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Injection.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.49.46.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f2757dc4651b0d64ef4dd0eb87b58c0946ab57d9661bbbc33f7c7d607a6a441e"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.49.46.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4357b2bb4e40a55a6fc142ece08cc519dc93c0be49c031adf022207c2a839473"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Screw Peripheral Speed.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.47.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=713a7f1df2c5d7fd199f30b91f0c41fe1add302445866d5c0b720556c188e182"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.47.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=d7f782792d8c21b1469a7315387d9b5bd0437f1eac790e21d450e58cceb4ecb0"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Metering Stroke.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.47.19.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=bc1afa4b33a72abf31422627aef1b6be3f28a80c67e4fb81d84b0ab105f40cef"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.47.19.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=07e373e99231e4f066662726e59ae03adccfc06c9c0abec6c12e0c6d69a257c4"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Screw Diameter.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.47.02.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=7e62112ae13b0d35dfa17ed2eb9f53682a6653434a8f21567ddb3b797e479ecc"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.47.02.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=816342191b094ed23a259a0dfe734453cdd078cd51b98556c4d6e222aad8fb5a"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Back Pressure.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.46.45.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=b28a044b7490d4060454b407e17ae33ddf0701e66a98365e44baf7daf92d6097"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.46.45.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=56f560938a54c6383f1742a5b1e92ab9beb087cf3902485766a29869cad00d7f"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define Plasticizing.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.45.32.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=781d548566e72c3a90bbaa8efafd986cafea677437f46675ebff04deda8994da"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.45.32.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=93d7899532fe3d9e63278c5215b98f3b1f521439f3a5095a308bbd83874da0d6"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name the 5 parts of the Plasticizing Unit\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.44.33.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f06ae4258243e401d8ab2523ed11dc74a4f54176c2de7c32a8f4712786df14fe",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.44.59.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=0735e1dc24508244bd66f71e4ea2a8b8126b6c3871d629c9aab3efc3781977bf"
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name the 5 parts of the Plasticizing Unit\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.44.33.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=2d2e7edd639faa6d3cb013ca1b7d8343fe2928ce8bb9b1b6b654b8ce77941250",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.44.59.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=dd67936388a245afbeba0b416f6935a8f5a68a19bc930b5792950976d7af27df"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "How is the injection capacity calculated?",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.39.14.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181124Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=697456026f3de76eb57e4f69ad9ccbea50e77d806a8bff2505675bcad8023d78"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.39.14.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=af9bdabf50704bd58d0908d300f1332d505ad9035f165be0975cb8c62ab30122"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What is the task of the Plasticizing Unit and how is it\nclassified?",
-      "answer": "It injects the melt into the closed mold at high speed and, respectively,\nhigh pressure\nclassified according to its injection performance, which is calculated from\ninjection volume multiplied by max. injection pressure."
+      "topic": "Injection\nMolding Lecture",
+      "question": "What is the task of the Plasticizing Unit and how is\nit classified?",
+      "answer": "It injects the melt into the closed mold at high speed and,\nrespectively, high pressure\nclassified according to its injection performance, which is\ncalculated from injection volume multiplied by max. injection\npressure."
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Which components does the Plasticizing-Unit comprise and what\nare their tasks?",
+      "topic": "Injection\nMolding Lecture",
+      "question": "Which components does the Plasticizing-Unit comprise\nand what are their tasks?",
       "answer": "Components:\nheated barrel\nscrew drive\nhydraulics for moving the screw\nTasks:\nplasticizing of the injection material\nmetering of the compound\nthe application of injection and\nholding pressure"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Name advantages/disadvantages of a tie-bar-less closing\nunit.",
-      "answer": "disadvantage: very stiff (-> thick) plates are needed to\ncounteract missing tie bars\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.29.02.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=7f1f509a47eac79016c50d4dc9e9d98d37ed643811da2d6ac8676090e229e619\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.29.42.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=42a0e1faa0ed1fbef6eb1a9081e6e52f1d81e2b198c901ba7c294dd6ebfde2c6"
+      "answer": "disadvantage: very stiff (-> thick) plates\nare needed to counteract missing tie bars\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.29.02.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=41774784590e7c2bf6f883d6de1f77b5678fa033a7fe254f0b5ff0eb69c2f6d6\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.29.42.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=89854e80dd07d1b6fc0e24df937901a1a3b8821302b2b036c0bea29c4ee372c2"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Name advantages/properties of a closing unit with a\nhydro-mechanical 2-Plate-Machine.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.28.14.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=b2f058aecff9d07ff2a742ba50f68f71ed16380d4a13244fd1b2bc757cf55e8d"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.28.14.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=cfca8247385099d6ea94f1f530bb663a43b4296eb8b2999ec3afc6608fe66be2"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Name advantages of a closing unit\nwith 2-Plate-Machine (fully hydraulic).",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.26.17.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=af13a232255ca0b5b682074e3cdd1ebc5abe9d35e60facfb9ed917a0b4db9ebc"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.26.17.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=00ec0ae2afdb3bc31f53e2a8591ddafd1d60832878cb8f9ec53dff188b36420e"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name properties/facts of a closing unit with an electrical\n3-Plate-Machine.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.25.06.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=3258f3a13595b79d3f8bfff46ff76a9e3b1b1f28c866c9f0087837cc69e3a935"
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name properties/facts of a closing unit with an\nelectrical 3-Plate-Machine.",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.25.06.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=9ccccb3f262e59fa49a61da0ad2544f004651112143efe84a188b3b8a980fab8"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name advantage/disadvantage of a closing unit with Knee\nLever",
-      "answer": "+ no constant hydraulic\npressure: unit is closed purely mechanically →\nenergy efficient\n- more moving parts for\nmechanism"
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name advantage/disadvantage of a closing unit with\nKnee Lever",
+      "answer": "+ no constant\nhydraulic pressure: unit is closed purely\nmechanically → energy efficient\n- more moving\nparts for mechanism"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name the individual parts of the given closing unit\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.13.39.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4b5b7efb5caea507abd7875fc0ee99393175049fdcd626888254e83bf699b72f",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.14.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181136Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=acb3ced81118a7b62fba2ea914df3c30ac41a0db9fbb3462397cce39cd366570"
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name the individual parts of the given closing unit\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.13.39.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=6e60b665a0087f26e6d49d96bb8c62da953b6726e2022e06ac02b35dd41375f2",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.14.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=996f6e2d5d7f5f86f826f535e25cc8dde8a25940f530357b707a6615ac0c4add"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name the 3 construction methods of the closing\nunit and the different systems if they exist.",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.03.56.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=076d5afc57bf4c1f094854c2c05ae0becd0775a65051c5477040f1b15b161160"
+      "topic": "Injection\nMolding Lecture",
+      "question": "Name the 3 construction methods of the\nclosing unit and the different systems if they\nexist.",
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.03.56.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=e8fd87fc57a3e35816c68e9d3742314288fdf0cd88e7b69e49b8f9a527aa0194"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define mold opening distance",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.03.10.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=705b727560677f401f64759f22bb7897ac8fe4b16e0205f143c119b4a2733746"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.03.10.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=bc7319f5bd1da928104c8b38029ca1520ba05ecb7427ff4eafa91fc6bababb42"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define tie bar elongation",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.02.13.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=8c63dc909040e4fb77a37427cf376d7fce3d1156275c3cbff722f7b13b58de0e"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.02.13.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=aeca42ed11df67b1109059fd160fac03119859001682771eb693c35a1afdf9b0"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define clamping force",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.01.56.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=463c825d572b6b4a494e0e44553b65dcadb5b854061160a47512ac57d8e8e889"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.01.56.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=463f107116192ae75c04478b3c5f3049bdbda74f75d42295d6ecfcb3c107af96"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define closing force",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.01.37.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=93d18a40c35d9165004e96558345693a828436dbb3c1cdad56c366a1e33402f7"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.01.37.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=347d086a32ba31626bf7fc3e09fca0227ce8a456bfb99355e153ca8fed2202f0"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Define clamping plates",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.01.13.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f744394e8e3851943ef22101922b450e17a859751124c38592423aed45716851"
+      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_14.01.13.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=8183535884ee4230a70d6f37c268e91f156a68cec73084f813a3b6815b401805"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "What are the requirements of a Closing Unit?",
       "answer": "must accommodate the injection mold\nenable closing / opening movement of the mold halves\napply the closing and clamping force"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Which components are a part of the Closing Unit?",
-      "answer": "fixed and moving plate for the mold\nthe face plate (rear bearing of the closing unit)\ntie bars\ndrive of the moving mold plate\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_13.31.44.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181137Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=8d0cf10e78ca733d6c2394f81e9e141d1cf0de297632f3dccb1a0df57dc6e4c5"
+      "answer": "fixed and moving plate for the mold\nthe face plate (rear bearing of the closing unit)\ntie bars\ndrive of the moving mold plate\n[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_13.31.44.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T192146Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=aadba1319f9aab04c3300acaec8e90b356868d9743436a8cf07e5dd314dc66bf"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
+      "topic": "Injection\nMolding Lecture",
       "question": "Why is the cooling time in the process relatively long?",
-      "answer": "high heat capacity of plastic\nlow thermal conductivity → takes long until heat gets out of part"
+      "answer": "high heat capacity of plastic\nlow thermal conductivity → takes long until heat gets out of\npart"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Which steps (number and name) of the Injection Molding Cycle are for cooling the\nmolding part?",
+      "topic": "Injection\nMolding Lecture",
+      "question": "Which steps (number and name) of the Injection Molding Cycle are for\ncooling the molding part?",
       "answer": "4. Pack & hold\n5. Screw backward\n6. Melt plasticizing"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "How many steps does the Injection Molding\nProcess consist off and what are there names?",
+      "topic": "Injection\nMolding Lecture",
+      "question": "How many steps does the Injection Molding\nProcess consist off and what are there\nnames?",
       "answer": "Mold close\nScrew forward\nInjection\nPack & hold\nScrew backward\nMelt plasticizing\nMold open, ejection"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What is a goal that you aim for regarding the wall\nthickness of a Injection Molding part and why is\nthat?",
-      "answer": "Uniform wall thickness for one part to avoid different\ncooling times (thicker - longer | thinner - short) which would lead to\ninternal stresses\nwarpage\nsink marks\nuneven flow resistance → incomplete filling, weld lines, quality\nvariations"
+      "topic": "Injection\nMolding Lecture",
+      "question": "What is a goal that you aim for regarding the\nwall thickness of a Injection Molding part and\nwhy is that?",
+      "answer": "Uniform wall thickness for one part to avoid\ndifferent cooling times (thicker - longer | thinner - short)\nwhich would lead to\ninternal stresses\nwarpage\nsink marks\nuneven flow resistance → incomplete filling, weld lines,\nquality variations"
     },
     {
       "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Roughly sketch a Injection Molding Machine and name the\nparts",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_12.40.50.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181142Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=bd1d6aaf2a3626893f17f548c29e4c91aa84b3b68c702f96fd95910f62e5f1af"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What is the pressure range in the injection molding\nprocess?",
-      "answer": "1000 - 2500 bar"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name the 5 parts that make up a Injection Molding\nMachine.",
-      "answer": "Closing unit\nInjection mold\nElectronic control system\nInjection molding unit\nMachine table"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Which process is used when there is a high number of parts that need to be\nproduced?",
-      "answer": "Injection Molding"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "Name 4 application examples for Injection Molding Parts",
-      "answer": "[Image] https://s3.eu-central-1.amazonaws.com/studysmarter-mediafiles/media/1168528/flashcard_images/Bildschirmfoto_2026-01-06_um_12.32.40.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA4OLDUDE42UZHAIET%2F20260223%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260223T181142Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=c0944763e40323a2133aadd792e82d7cfb063f8c60dbbe67b578e5035855f7ee"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "What happens after the melt has cooled (solidified)? What\ngeneral rule is \"written\" for injection molding parts?",
-      "answer": "• after melt has cooled, molded part is demolded\n• Rule: Injection molding is used to produce\nthin-walled molded parts"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "How and where is the granulate processed and how is then the melt further\nhandled?",
-      "answer": "• Granulate is melted (plasticized) in the heated barrel by screw rotation\n• Melt/Injection Mass is injected at high speed under\npressure into cavity of the mold"
-    },
-    {
-      "subject": "Polymer Technologie",
-      "topic": "Injection Molding",
-      "question": "In which weight range is Injection Molding the most important process for\nproducing molded parts from plastic and which plastics are meant?",
-      "answer": "• thermoplastics and thermosets\n• a few milligrams to over 100 kg"
+      "topic": "Injection\nMolding Lecture",
+      "question": "The Injection Molding Cycle is\nprocess.",
+      "answer": "discontinuous",
+      "type": "mcq",
+      "options": [
+        {
+          "text": "discontinuous",
+          "correct": true
+        },
+        {
+          "text": "continuous",
+          "correct": false
+        }
+      ]
     }
   ]
 }
