@@ -3392,7 +3392,7 @@ body.session-image-open {
 }
 
 .rich-content.rich-align-left {
-  text-align: left;
+  text-align: center;
 }
 
 .card-tile-body.rich-content.rich-align-left {
@@ -3809,10 +3809,11 @@ body.session-image-open {
 }
 
 .pill-dot.current {
-  border-color: var(--accent);
+  --current: #c1c1c1db;
+  border-color: var(--current);
   box-shadow:
-    0 0 0 1px var(--accent-ring),
-    0 0 10px 2px var(--accent-glow-strong);
+    0 0 0 1px var(--current),
+    0 0 10px 2px var(--current);
 }
 
 .pill-dot.near-master {
