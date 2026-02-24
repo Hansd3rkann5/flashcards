@@ -583,20 +583,18 @@ async function refreshArchivedSubjectsDialog(options = {}) {
     const subjectActions = document.createElement('div');
     subjectActions.className = 'content-exchange-summary-actions';
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn btn-small archive-tree-action-edit';
-    editBtn.type = 'button';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', async event => {
-      event.preventDefault();
-      event.stopPropagation();
-      await openSubjectEditDialogById(subjectId, { uiBlocking: false });
-    });
-
     const restoreBtn = document.createElement('button');
     restoreBtn.className = 'btn btn-small archive-tree-action-restore';
     restoreBtn.type = 'button';
-    restoreBtn.textContent = 'Restore';
+    restoreBtn.setAttribute('aria-label', 'Restore subject');
+    restoreBtn.setAttribute('title', 'Restore subject');
+    restoreBtn.innerHTML = `
+      <span class="archive-tree-action-label responsive-action-label">Restore</span>
+      <img src="icons/unarchive.png"
+           alt=""
+           class="archive-tree-action-icon responsive-action-icon"
+           aria-hidden="true" />
+    `;
     restoreBtn.addEventListener('click', async event => {
       event.preventDefault();
       event.stopPropagation();
@@ -605,9 +603,17 @@ async function refreshArchivedSubjectsDialog(options = {}) {
     });
 
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-small delete';
+    deleteBtn.className = 'btn btn-small delete archive-tree-action-delete';
     deleteBtn.type = 'button';
-    deleteBtn.textContent = 'Delete';
+    deleteBtn.setAttribute('aria-label', 'Delete subject');
+    deleteBtn.setAttribute('title', 'Delete subject');
+    deleteBtn.innerHTML = `
+      <span class="archive-tree-action-label responsive-action-label">Delete</span>
+      <img src="icons/trash.svg"
+           alt=""
+           class="archive-tree-action-icon responsive-action-icon"
+           aria-hidden="true" />
+    `;
     deleteBtn.addEventListener('click', async event => {
       event.preventDefault();
       event.stopPropagation();
@@ -621,7 +627,7 @@ async function refreshArchivedSubjectsDialog(options = {}) {
     subjectChevron.setAttribute('aria-hidden', 'true');
     subjectChevron.textContent = '▾';
 
-    subjectActions.append(editBtn, restoreBtn, deleteBtn, subjectChevron);
+    subjectActions.append(restoreBtn, deleteBtn, subjectChevron);
     subjectSummary.append(subjectTitleWrap, subjectActions);
     subjectDetails.appendChild(subjectSummary);
 

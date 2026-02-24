@@ -2054,14 +2054,9 @@ textarea:focus-visible {
   --next-card-progress: 0;
   transform-origin: center center;
   transform:
-    translate3d(
+    translate3d(0,
       0,
-      0,
-      calc(var(--next-card-depth-start) + (var(--next-card-progress) * (var(--next-card-depth-end) - var(--next-card-depth-start))))
-    )
-    scale(calc(var(--next-card-scale-min) + (var(--next-card-progress) * (var(--next-card-scale-max) - var(--next-card-scale-min))))
-    )
-    rotateX(calc(var(--next-card-tilt-start) + (var(--next-card-progress) * (var(--next-card-tilt-end) - var(--next-card-tilt-start)))));
+      calc(var(--next-card-depth-start) + (var(--next-card-progress) * (var(--next-card-depth-end) - var(--next-card-depth-start))))) scale(calc(var(--next-card-scale-min) + (var(--next-card-progress) * (var(--next-card-scale-max) - var(--next-card-scale-min))))) rotateX(calc(var(--next-card-tilt-start) + (var(--next-card-progress) * (var(--next-card-tilt-end) - var(--next-card-tilt-start)))));
   opacity: 1;
   filter: none;
   transition:
@@ -2078,9 +2073,7 @@ textarea:focus-visible {
 #studySessionSection .flash-area #flashcard.flipped~#nextFlashcard {
   opacity: 0;
   transform:
-    translate3d(0, 0, calc(var(--next-card-depth-start) - 40px))
-    scale(var(--next-card-scale-min))
-    rotateX(var(--next-card-tilt-start));
+    translate3d(0, 0, calc(var(--next-card-depth-start) - 40px)) scale(var(--next-card-scale-min)) rotateX(var(--next-card-tilt-start));
 }
 
 .flashcard.flipped {
@@ -3154,8 +3147,8 @@ body.session-image-open {
 
 .tile-menu-btn .edit-btn-icon,
 .card-menu-btn .edit-btn-icon {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .card-menu {
@@ -5526,7 +5519,7 @@ dialog::backdrop {
   box-shadow:
     inset 0 0 0 1px rgba(255, 194, 102, 0.08),
     0 10px 24px rgba(4, 8, 18, 0.34);
-    display: flex;
+  display: flex;
 }
 
 .subject-progress-segment-bar {
@@ -5669,6 +5662,17 @@ dialog::backdrop {
   gap: 4px;
   min-width: 0;
   width: 100%;
+}
+
+@media (min-width: 769px) {
+  .responsive-action-label {
+    display: inline;
+  }
+
+  .responsive-action-icon {
+    display: inline-block;
+    margin-left: 6px;
+  }
 }
 
 .review-analytics-legend li {
@@ -6074,6 +6078,10 @@ dialog::backdrop {
 
 #startAnotherSessionBtn {
   background: var(--button)
+}
+
+.responsive-action-icon {
+  display: none;
 }
 
 .start-daily-review-btn:hover {
@@ -6650,6 +6658,16 @@ dialog::backdrop {
     height: 18px;
   }
 
+  .archive-tree-action-label img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .archive-tree-action-icon {
+    width: 18px;
+    height: 18px;
+  }
+
   .topic-list-actions {
     gap: 6px;
   }
@@ -6758,6 +6776,21 @@ dialog::backdrop {
 
   .toolbar-segment {
     width: 100%;
+  }
+
+  .responsive-action-label {
+    display: none;
+  }
+
+  .responsive-action-icon {
+    display: inline-block;
+  }
+
+  .archive-tree-action-restore,
+  .archive-tree-action-delete {
+    padding: 6px;
+    min-width: 36px;
+    justify-content: center;
   }
 }
 
