@@ -2030,7 +2030,7 @@ textarea:focus-visible {
 }
 
 .flashcard {
-  width: min(1200px, 95%);
+  width: min(1000px, 95%);
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
@@ -2057,7 +2057,7 @@ textarea:focus-visible {
     translate3d(0,
       0,
       calc(var(--next-card-depth-start) + (var(--next-card-progress) * (var(--next-card-depth-end) - var(--next-card-depth-start))))) scale(calc(var(--next-card-scale-min) + (var(--next-card-progress) * (var(--next-card-scale-max) - var(--next-card-scale-min))))) rotateX(calc(var(--next-card-tilt-start) + (var(--next-card-progress) * (var(--next-card-tilt-end) - var(--next-card-tilt-start)))));
-  opacity: 1;
+  opacity: 0;
   filter: none;
   transition:
     transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
@@ -2397,6 +2397,7 @@ textarea:focus-visible {
   justify-content: center;
   margin-top: 0;
   flex: 0 0 auto;
+  margin-bottom: var(--space-4);
 }
 
 .mcq-check-btn {
