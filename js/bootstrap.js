@@ -78,6 +78,8 @@ function setAuthMessage(message = '', type = '') {
   if (type === 'error' || type === 'success') {
     messageEl.classList.add(type);
   }
+}
+
 
 /**
  * @function readAuthCredentials
