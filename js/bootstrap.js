@@ -1940,7 +1940,7 @@ async function boot() {
     const examDateRaw = String(el('editSubjectExamDate')?.value || '').trim();
     const examDate = normalizeSubjectExamDate(examDateRaw);
     if (examDateRaw && !examDate) {
-      alert('Please use exam date format DD/MM/YYYY.');
+      alert('Please use a valid exam date.');
       return;
     }
     const excludeFromReview = !!el('editSubjectExcludeFromReview')?.checked;
@@ -2024,6 +2024,9 @@ async function boot() {
     el('subjectAccentPicker').value = c;
     el('subjectAccentText').value = c;
   });
+  if (typeof initSubjectExamDatePickers === 'function') {
+    initSubjectExamDatePickers();
+  }
 
   // subject accent editing moved to subject edit dialog
 

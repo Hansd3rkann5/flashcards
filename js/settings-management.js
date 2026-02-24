@@ -9,8 +9,7 @@ function openSubjectDialog() {
   el('subjectNameInput').value = '';
   el('subjectAccentPicker').value = '#2dd4bf';
   el('subjectAccentText').value = '#2dd4bf';
-  const examDateInput = el('subjectExamDateInput');
-  if (examDateInput) examDateInput.value = '';
+  setSubjectExamDateInputValue('subjectExamDateInput', '');
   const excludeInput = el('subjectExcludeFromReviewInput');
   if (excludeInput) excludeInput.checked = false;
   showDialog(el('subjectDialog'));
@@ -43,7 +42,7 @@ function normalizeSubjectExamDate(value = '') {
 
 /**
  * @function formatSubjectExamDateForInput
- * @description Formats stored exam date values as DD/MM/YYYY for subject dialog inputs.
+ * @description Formats stored exam-date values as DD/MM/YYYY for subject dialog inputs.
  */
 
 function formatSubjectExamDateForInput(value = '') {
@@ -51,6 +50,96 @@ function formatSubjectExamDateForInput(value = '') {
   if (!normalized) return '';
   const [year, month, day] = normalized.split('-');
   return `${day}/${month}/${year}`;
+}
+
+const SUBJECT_EXAM_DATE_PICKERS = {
+  subjectExamDateInput: {
+    nativeId: 'subjectExamDateNativeInput',
+    buttonId: 'subjectExamDatePickerBtn'
+  },
+  editSubjectExamDate: {
+    nativeId: 'editSubjectExamDateNativeInput',
+    buttonId: 'editSubjectExamDatePickerBtn'
+  }
+};
+
+function getSubjectExamDatePickerConfig(textInputId = '') {
+  return SUBJECT_EXAM_DATE_PICKERS[String(textInputId || '').trim()] || null;
+}
+
+function setSubjectExamDateInputValue(textInputId = '', value = '') {
+  const textInput = el(textInputId);
+  if (!textInput) return;
+  const normalized = normalizeSubjectExamDate(value);
+  textInput.value = normalized ? formatSubjectExamDateForInput(normalized) : '';
+  const picker = getSubjectExamDatePickerConfig(textInputId);
+  if (!picker) return;
+  const nativeInput = el(picker.nativeId);
+  if (nativeInput) nativeInput.value = normalized || '';
+}
+
+function bindSubjectExamDatePicker(textInputId = '') {
+  const textInput = el(textInputId);
+  const picker = getSubjectExamDatePickerConfig(textInputId);
+  if (!textInput || !picker || textInput.dataset.examDatePickerBound === '1') return;
+  const nativeInput = el(picker.nativeId);
+  if (!nativeInput) return;
+  const pickerBtn = el(picker.buttonId);
+  textInput.dataset.examDatePickerBound = '1';
+
+  const syncNativeFromText = () => {
+    const normalized = normalizeSubjectExamDate(textInput.value);
+    nativeInput.value = normalized || '';
+  };
+
+  const syncTextFromNative = () => {
+    if (!nativeInput.value) {
+      textInput.value = '';
+      return;
+    }
+    textInput.value = formatSubjectExamDateForInput(nativeInput.value);
+  };
+
+  const openPicker = event => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    syncNativeFromText();
+    try {
+      if (typeof nativeInput.showPicker === 'function') {
+        nativeInput.showPicker();
+        return;
+      }
+    } catch (_) {
+      // Fallback below.
+    }
+    nativeInput.focus({ preventScroll: true });
+    nativeInput.click();
+  };
+
+  if (pickerBtn) pickerBtn.addEventListener('click', openPicker);
+
+  nativeInput.addEventListener('change', () => {
+    syncTextFromNative();
+  });
+
+  textInput.addEventListener('blur', () => {
+    const raw = String(textInput.value || '').trim();
+    if (!raw) {
+      nativeInput.value = '';
+      return;
+    }
+    const normalized = normalizeSubjectExamDate(raw);
+    if (!normalized) return;
+    textInput.value = formatSubjectExamDateForInput(normalized);
+    nativeInput.value = normalized;
+  });
+}
+
+function initSubjectExamDatePickers() {
+  bindSubjectExamDatePicker('subjectExamDateInput');
+  bindSubjectExamDatePicker('editSubjectExamDate');
 }
 
 /**
@@ -65,7 +154,7 @@ async function addSubjectFromDialog() {
   const examDateRaw = String(el('subjectExamDateInput')?.value || '').trim();
   const examDate = normalizeSubjectExamDate(examDateRaw);
   if (examDateRaw && !examDate) {
-    alert('Please use exam date format DD/MM/YYYY.');
+    alert('Please use a valid exam date.');
     return;
   }
   const excludeFromReview = !!el('subjectExcludeFromReviewInput')?.checked;

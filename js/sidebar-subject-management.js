@@ -203,6 +203,8 @@ async function touchSubjectByTopicId(topicId, whenIso = new Date().toISOString()
 
 function closeSubjectTileMenus() {
   document.querySelectorAll('.tile-menu.open').forEach(menu => menu.classList.remove('open'));
+  document.querySelectorAll('.subject-tile.subject-tile-menu-open')
+    .forEach(tile => tile.classList.remove('subject-tile-menu-open'));
 }
 
 function bindSubjectTileMenuCloseHandler() {
@@ -233,9 +235,13 @@ async function openSubjectEditDialogById(subjectId = '', options = {}) {
   editingSubjectId = safeId;
   el('editSubjectName').value = String(subject?.name || '').trim();
   el('editSubjectColor').value = subject?.accent || '#2dd4bf';
-  const editExamDateInput = el('editSubjectExamDate');
-  if (editExamDateInput) {
-    editExamDateInput.value = formatSubjectExamDateForInput(subject?.examDate);
+  if (typeof setSubjectExamDateInputValue === 'function') {
+    setSubjectExamDateInputValue('editSubjectExamDate', subject?.examDate || '');
+  } else {
+    const editExamDateInput = el('editSubjectExamDate');
+    if (editExamDateInput) {
+      editExamDateInput.value = formatSubjectExamDateForInput(subject?.examDate);
+    }
   }
   const editExcludeInput = el('editSubjectExcludeFromReview');
   if (editExcludeInput) {
@@ -305,7 +311,11 @@ function buildSubjectTileMenu(subject = null, options = {}) {
       e.stopPropagation();
       const alreadyOpen = menu.classList.contains('open');
       closeSubjectTileMenus();
-      if (!alreadyOpen) menu.classList.add('open');
+      if (!alreadyOpen) {
+        menu.classList.add('open');
+        const ownerTile = menu.closest('.subject-tile');
+        if (ownerTile) ownerTile.classList.add('subject-tile-menu-open');
+      }
     };
   }
 
@@ -314,7 +324,7 @@ function buildSubjectTileMenu(subject = null, options = {}) {
     editBtn.onclick = async e => {
       e.preventDefault();
       e.stopPropagation();
-      menu.classList.remove('open');
+      closeSubjectTileMenus();
       await openSubjectEditDialogById(safeId, { uiBlocking: false });
     };
   }
@@ -324,7 +334,7 @@ function buildSubjectTileMenu(subject = null, options = {}) {
     secondaryBtn.onclick = async e => {
       e.preventDefault();
       e.stopPropagation();
-      menu.classList.remove('open');
+      closeSubjectTileMenus();
       if (!safeId) return;
       if (!isArchiveView) {
         if (!confirm('Archive this subject?')) return;
@@ -343,7 +353,7 @@ function buildSubjectTileMenu(subject = null, options = {}) {
     deleteBtn.onclick = async e => {
       e.preventDefault();
       e.stopPropagation();
-      menu.classList.remove('open');
+      closeSubjectTileMenus();
       if (!safeId) return;
       if (!confirm('Delete this subject and all its topics/cards permanently?')) return;
       await deleteSubjectById(safeId);

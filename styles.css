@@ -1879,6 +1879,11 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   min-height: 56px;
+  z-index: 0;
+}
+
+.subject-tile.subject-tile-menu-open {
+  z-index: 40;
 }
 
 .subject-tile .tile-row {
@@ -4120,6 +4125,43 @@ dialog.modal.subject-edit-modal {
   margin: 0;
 }
 
+#subjectDialog .subject-date-picker-wrap,
+#subjectEditDialog .subject-date-picker-wrap {
+  position: relative;
+  width: 100%;
+}
+
+#subjectDialog #subjectExamDateInput,
+#subjectEditDialog #editSubjectExamDate {
+  padding-right: 44px;
+}
+
+#subjectDialog .subject-date-picker-btn,
+#subjectEditDialog .subject-date-picker-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+#subjectDialog .subject-date-native-input,
+#subjectEditDialog .subject-date-native-input {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 #subjectDialog #subjectAccentPicker,
 #subjectEditDialog #editSubjectColor {
   height: 46px;
@@ -4326,12 +4368,11 @@ dialog.modal.subject-edit-modal {
 
 .content-exchange-tree {
   flex: 0 0 auto;
-  overflow: visible;
   border: 1px solid #30476f;
   border-radius: var(--radius);
   background: #0d162b;
   padding: var(--space-2);
-  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+  /* padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom)); */
   display: grid;
   gap: var(--space-2);
   align-content: start;

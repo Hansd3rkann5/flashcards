@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 
 <head>
   <meta charset="UTF-8" />
@@ -128,7 +128,7 @@
       <!-- <button class="btn" id="addSubjectBtn" style="margin-top:10px;width: 100%;">+ Add Subject</button> -->
     </div>
     <div class="sidebar-meta" id="sidebarMeta">
-      <div class="tiny sidebar-meta-line">© SimonBader, <span id="appVersionLabel">v2026.02.23.32</span></div>
+      <div class="tiny sidebar-meta-line">© SimonBader, <span id="appVersionLabel">v2026.02.23.36</span></div>
     </div>
   </aside>
 
@@ -681,7 +681,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.32';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.23.36';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -718,7 +718,13 @@
       </div>
       <div class="subject-edit-field">
         <label>Exam Date</label>
-        <input id="subjectExamDateInput" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" />
+        <div class="subject-date-picker-wrap">
+          <input id="subjectExamDateInput" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" />
+          <button class="btn subject-date-picker-btn" id="subjectExamDatePickerBtn" type="button"
+            aria-label="Open exam date picker" title="Open date picker">📅</button>
+          <input id="subjectExamDateNativeInput" class="subject-date-native-input" type="date" lang="en-GB"
+            tabindex="-1" aria-hidden="true" />
+        </div>
       </div>
       <div class="subject-edit-field subject-edit-checkbox-field">
         <div class="subject-review-checkbox-wrap">
@@ -764,7 +770,13 @@
       </div>
       <div class="subject-edit-field">
         <label>Exam Date</label>
-        <input type="text" id="editSubjectExamDate" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" />
+        <div class="subject-date-picker-wrap">
+          <input id="editSubjectExamDate" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" />
+          <button class="btn subject-date-picker-btn" id="editSubjectExamDatePickerBtn" type="button"
+            aria-label="Open exam date picker" title="Open date picker">📅</button>
+          <input id="editSubjectExamDateNativeInput" class="subject-date-native-input" type="date" lang="en-GB"
+            tabindex="-1" aria-hidden="true" />
+        </div>
       </div>
       <div class="subject-edit-field subject-edit-checkbox-field">
         <div class="subject-review-checkbox-wrap">
