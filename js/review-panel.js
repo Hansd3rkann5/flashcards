@@ -1836,13 +1836,18 @@ function buildProgressActivityDayKeySet(progressRecords = []) {
 
 /**
  * @function computeCurrentActivityStreakDays
- * @description Computes the number of consecutive active days ending today.
+ * @description Computes consecutive active days, anchored on today (or yesterday if today has no activity).
  */
 
 function computeCurrentActivityStreakDays(activityDayKeys = new Set(), referenceDayKey = getTodayKey()) {
   const keys = activityDayKeys instanceof Set ? activityDayKeys : new Set();
   if (!keys.size) return 0;
-  const startDay = normalizeDailyReviewDayKey(referenceDayKey);
+  const todayKey = normalizeDailyReviewDayKey(referenceDayKey);
+  if (!todayKey) return 0;
+  const yesterdayKey = getDayKeyByOffset(-1, new Date(`${todayKey}T00:00:00`));
+  const startDay = keys.has(todayKey)
+    ? todayKey
+    : (keys.has(yesterdayKey) ? yesterdayKey : '');
   if (!startDay) return 0;
   let streak = 0;
   let cursor = new Date(`${startDay}T00:00:00`);
@@ -2047,7 +2052,7 @@ async function prepareDailyReviewState(options = {}) {
     });
   }
   const candidateCardIdSet = new Set();
-  let skippedMasteredTodayCount = 0;
+  let skippedSameDayCount = 0;
   rows.forEach(row => {
     const cardId = String(row?.cardId || '').trim();
     if (!cardId) return;
@@ -2061,8 +2066,9 @@ async function prepareDailyReviewState(options = {}) {
       || normalizedRecord?.lastAnsweredAt
     );
     if (!latestDayKey) return;
-    if (latestDayKey === todayKey && isDayMastered(latestEntry?.day)) {
-      skippedMasteredTodayCount += 1;
+    // Exclude same-day activity from Daily Review panel + statistics.
+    if (latestDayKey === todayKey) {
+      skippedSameDayCount += 1;
       return;
     }
     candidateCardIdSet.add(cardId);
@@ -2072,7 +2078,7 @@ async function prepareDailyReviewState(options = {}) {
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'review-candidates-derived', traceStartedAt, {
       uniqueCardIds: uniqueCardIds.length,
-      skippedMasteredTodayCount
+      skippedSameDayCount
     });
   }
   const cardsByTopicId = new Map();
@@ -2150,7 +2156,10 @@ async function prepareDailyReviewState(options = {}) {
   });
 
   todayStats = buildDailyReviewTodayStats(filteredRows, todayKey);
-  activityDayKeys = buildProgressActivityDayKeySet(filteredRows);
+  // Keep streak based on full activity history (excluding today), so same-day review filtering
+  // does not erase yesterday's streak continuity.
+  activityDayKeys = buildProgressActivityDayKeySet(rows);
+  activityDayKeys.delete(todayKey);
   activityStreakDays = computeCurrentActivityStreakDays(activityDayKeys, todayKey);
 
   filteredRows.forEach(row => {
@@ -3274,13 +3283,17 @@ function updateSessionRepeatCounter() {
   const minusBtn = el('sessionRepeatMinus');
   const plusBtn = el('sessionRepeatPlus');
   const startBtn = el('startAnotherSessionBtn');
+  const hasRemaining = sessionRepeatState.remaining > 0;
   if (valueEl) {
-    const current = sessionRepeatState.remaining > 0 ? sessionRepeatState.size : 0;
+    const current = hasRemaining ? sessionRepeatState.size : 0;
     valueEl.textContent = `${current} / ${sessionRepeatState.remaining}`;
   }
-  if (minusBtn) minusBtn.disabled = sessionRepeatState.remaining <= 0 || sessionRepeatState.size <= 1;
-  if (plusBtn) plusBtn.disabled = sessionRepeatState.remaining <= 0 || sessionRepeatState.size >= sessionRepeatState.remaining;
-  if (startBtn) startBtn.disabled = sessionRepeatState.remaining <= 0;
+  if (minusBtn) minusBtn.disabled = !hasRemaining || sessionRepeatState.size <= 1;
+  if (plusBtn) plusBtn.disabled = !hasRemaining || sessionRepeatState.size >= sessionRepeatState.remaining;
+  if (startBtn) {
+    startBtn.textContent = hasRemaining ? 'Start Another Session' : 'Go Back';
+    startBtn.disabled = false;
+  }
 }
 
 /**
@@ -3443,6 +3456,17 @@ function dismissSessionCompleteDialog() {
   if (returnToHome) {
     void refreshDailyReviewHomePanel({ useExisting: false });
   } else if (selectedSubject) {
+    const subjectId = String(selectedSubject.id || '').trim();
+    const topicsForSubject = (subjectId && currentSubjectTopicsSubjectId === subjectId)
+      ? currentSubjectTopics
+      : null;
+    if (typeof refreshSubjectProgressPanel === 'function') {
+      void refreshSubjectProgressPanel(
+        topicsForSubject
+          ? { topicsForSubject }
+          : undefined
+      );
+    }
     void refreshTopicSessionMeta();
   }
 }

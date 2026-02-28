@@ -91,13 +91,13 @@ function interleaveCardsByTopic(cards = []) {
 const SESSION_NEXT_CARD_SCALE_DEFAULTS = Object.freeze({
   revealStartFractionH: 0.44,
   revealEndFractionH: 2,
-  revealStartFractionV: 0.7,
-  revealEndFractionV: 1.62,
+  revealStartFractionV: 0.3,
+  revealEndFractionV: 1.5,
   sideSwipeRatio: 0.72,
   commitXFraction: 0.45,
   commitXMin: 42,
-  commitYFraction: 0.6,
-  commitYMin: 106,
+  commitYFraction: 0.4,
+  commitYMin: 80,
   scaleMin: 0,
   scaleMax: 1,
   depthStart: -280,
@@ -1941,6 +1941,22 @@ function wireSwipe() {
     return null;
   }
 
+  function computeThresholdGlowIntensity(result, rawDx, rawDy) {
+    const thresholds = getSwipeCommitThresholds();
+    if (result === 'partial') {
+      const distance = Math.max(0, Number(rawDy) || 0);
+      const threshold = thresholds.y;
+      if (distance <= threshold) return 0;
+      const ramp = Math.max(threshold * 0.35, 26);
+      return clamp((distance - threshold) / ramp, 0, 1);
+    }
+    const distance = Math.abs(Number(rawDx) || 0);
+    const threshold = thresholds.x;
+    if (distance <= threshold) return 0;
+    const ramp = Math.max(threshold * 0.35, 24);
+    return clamp((distance - threshold) / ramp, 0, 1);
+  }
+
   function computeArcTransformFromAngle(angle) {
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight + ARC_RADIUS;
@@ -2044,7 +2060,7 @@ function wireSwipe() {
     }
 
     let x = 0, y = 0, rotate = 0;
-    let result = null, intensity = 0;
+    let result = null;
 
     if (swipeIntent === 'horizontal' || absX >= absY * sideSwipeRatio) {
       const arc = computeArcTransform(dx);
@@ -2053,18 +2069,20 @@ function wireSwipe() {
       rotate = arc.rotate;
 
       result = dx < 0 ? 'correct' : 'wrong';
-      intensity = Math.min(absX / (card.clientWidth * 0.22), 1);
     } else if (dy > 0) {
       x = 0;
       y = dy;
       rotate = 0;
 
       result = 'partial';
-      intensity = Math.min(dy / (card.clientHeight * 0.25), 1);
     }
 
     setTransform(x, y, rotate);
-    applySwipeFeedback(result, intensity);
+    const thresholdResult = getSwipeResult();
+    const glowIntensity = thresholdResult
+      ? computeThresholdGlowIntensity(thresholdResult, dx, dy)
+      : 0;
+    applySwipeFeedback(thresholdResult, glowIntensity);
     setNextCardSwipeProgress(computeNextCardProgress(result, absX, dy), { dragging: true });
   }, { passive: false });
 

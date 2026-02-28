@@ -1582,6 +1582,14 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   box-shadow: 0 0 10px 5px var(--accent-glow-soft);
 }
 
+#studySessionSection .flash-area,
+#cardPreviewDialog .card-preview-area {
+  --session-card-chip-height: 34px;
+  --session-card-chip-radius: 12px;
+  --session-card-chip-pad-x: 12px;
+  --session-card-chip-font-size: 0.84rem;
+}
+
 .study-selection .counter {
   justify-content: center;
 }
@@ -2149,7 +2157,7 @@ textarea:focus-visible {
 }
 
 .flashcard.swipe-partial .swipe-glow {
-  background: radial-gradient(circle at 50% 80%, rgba(245, 158, 11, 0.52), rgba(245, 158, 11, 0.1) 62%, transparent 100%);
+  background: radial-gradient(circle at 50% 14%, rgba(245, 158, 11, 0.52), rgba(245, 158, 11, 0.1) 62%, transparent 100%);
   opacity: var(--swipe-intensity, 0);
 }
 
@@ -2214,7 +2222,7 @@ textarea:focus-visible {
 }
 
 .flashcard.swipe-partial .face::after {
-  background: radial-gradient(circle at 50% 80%, rgba(245, 158, 11, 0.52), rgba(245, 158, 11, 0.1) 62%, transparent 100%);
+  background: radial-gradient(circle at 50% 14%, rgba(245, 158, 11, 0.52), rgba(245, 158, 11, 0.1) 62%, transparent 100%);
   opacity: var(--swipe-intensity, 0);
 }
 
@@ -2260,13 +2268,21 @@ textarea:focus-visible {
   top: 12px;
   right: 12px;
   z-index: 2;
-  min-width: 40px;
-  min-height: 36px;
-  padding: 8px;
-  font-size: 0.9rem;
+  width: var(--session-card-chip-height, 34px);
+  min-width: var(--session-card-chip-height, 34px);
+  height: var(--session-card-chip-height, 34px);
+  min-height: var(--session-card-chip-height, 34px);
+  padding: 0;
+  border-radius: var(--session-card-chip-radius, 12px);
+  font-size: var(--session-card-chip-font-size, 0.84rem);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.card-edit-btn .edit-btn-icon {
+  width: 15px;
+  height: 15px;
 }
 
 .card-edit-btn.delete {
@@ -2279,13 +2295,17 @@ textarea:focus-visible {
   top: 12px;
   left: 12px;
   z-index: 2;
-  padding: 8px 12px;
-  border-radius: 14px;
+  min-height: var(--session-card-chip-height, 34px);
+  padding: 0 var(--session-card-chip-pad-x, 12px);
+  border-radius: var(--session-card-chip-radius, 12px);
   background: #273655;
   color: var(--text);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--session-card-chip-font-size, 0.84rem);
+  line-height: 1;
   border: 1px solid #2a3f66;
+  display: inline-flex;
+  align-items: center;
 }
 
 .session-label-short {
@@ -2298,6 +2318,13 @@ textarea:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
+  min-height: var(--session-card-chip-height, 34px);
+  padding: 0 var(--session-card-chip-pad-x, 12px);
+  border-radius: var(--session-card-chip-radius, 12px);
+  font-size: var(--session-card-chip-font-size, 0.84rem);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
   /* max-width: min(50%, 320px); */
   justify-content: center;
   text-align: center;
@@ -2432,11 +2459,13 @@ textarea:focus-visible {
   border: none;
 }
 
-.flashcard.mcq-mode .back {
+#studySessionSection .flash-area #flashcard.mcq-mode .back,
+#previewFlashcard.mcq-mode .back {
   display: none;
 }
 
-.flashcard.mcq-mode {
+#studySessionSection .flash-area #flashcard.mcq-mode,
+#previewFlashcard.mcq-mode {
   transform: none !important;
 }
 
@@ -2550,10 +2579,9 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px) 8px calc(env(safe-area-inset-left, 0px) + 12px);
-  border-radius: 0;
+  border-radius: 44px 44px 0px 0px;
   border: 1px solid rgba(255, 210, 120, 0.55);
-  background: rgba(255, 0, 238, 0.406);
+  background: rgba(255, 0, 230, 0.196);
   color: #ffe7b5;
   font-size: 0.72rem;
   font-weight: 700;
@@ -3414,7 +3442,7 @@ body.session-image-open {
 }
 
 .rich-content.rich-align-left {
-  text-align: center;
+  text-align: left;
 }
 
 .card-tile-body.rich-content.rich-align-left {
@@ -3450,6 +3478,12 @@ body.session-image-open {
 .rich-content.rich-align-justify ol {
   padding-inline-start: 0;
   list-style-position: inside;
+}
+
+.rich-content.rich-align-left ul,
+.rich-content.rich-align-left ol,
+.rich-content.rich-align-left li {
+  text-align: left;
 }
 
 .rich-content .md-table-wrap {
@@ -3836,6 +3870,7 @@ body.session-image-open {
   box-shadow:
     0 0 0 1px var(--current),
     0 0 10px 2px var(--current);
+    scale: 1.1;
 }
 
 .pill-dot.near-master {
@@ -4893,17 +4928,31 @@ dialog.modal-table-builder {
 
 @media (max-width: 430px) {
 
+  #studySessionSection .flash-area,
+  #cardPreviewDialog .card-preview-area {
+    --session-card-chip-height: 30px;
+    --session-card-chip-radius: 11px;
+    --session-card-chip-pad-x: 9px;
+    --session-card-chip-font-size: 0.78rem;
+  }
+
   #studySessionSection .card-corner-label,
   #studySessionSection .card-edit-btn,
-  #cardPreviewDialog .card-corner-label {
-    padding: 6px 9px;
-    border-radius: 11px;
-    font-size: 0.78rem;
+  #studySessionSection .face-topic-pill,
+  #cardPreviewDialog .card-corner-label,
+  #cardPreviewDialog .card-edit-btn,
+  #cardPreviewDialog .face-topic-pill {
+    border-radius: var(--session-card-chip-radius, 11px);
+    font-size: var(--session-card-chip-font-size, 0.78rem);
     line-height: 1;
   }
 
-  #studySessionSection .card-edit-btn {
-    min-width: 34px;
+  #studySessionSection .card-edit-btn,
+  #cardPreviewDialog .card-edit-btn {
+    width: var(--session-card-chip-height, 30px);
+    min-width: var(--session-card-chip-height, 30px);
+    height: var(--session-card-chip-height, 30px);
+    min-height: var(--session-card-chip-height, 30px);
     display: inline-flex;
     align-items: center;
     justify-content: center;

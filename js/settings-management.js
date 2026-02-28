@@ -2481,12 +2481,24 @@ function renderContentExchangeTree() {
                   data-level="subject"
                   data-owner-id="${ownerEsc}"
                   data-id="${escapeHTML(subject.id)}"
-                  type="button">Import Subject</button>
-                <button class="btn btn-small delete exchange-admin-delete-btn"
+                  type="button">
+                  <span class="archive-tree-action-label responsive-action-label">Import Subject</span>
+                  <img src="icons/import.png"
+                       alt=""
+                       class="archive-tree-action-icon responsive-action-icon"
+                       aria-hidden="true" />
+                </button>
+                <button class="btn btn-small delete exchange-admin-delete-btn archive-tree-action-delete"
                   data-level="subject"
                   data-owner-id="${ownerEsc}"
                   data-id="${escapeHTML(subject.id)}"
-                  type="button">Delete Subject</button>
+                  type="button">
+                  <span class="archive-tree-action-label responsive-action-label">Delete Subject</span>
+                  <img src="icons/trash.svg"
+                       alt=""
+                       class="archive-tree-action-icon responsive-action-icon"
+                       aria-hidden="true" />
+                </button>
                 <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
               </div>
             </summary>
