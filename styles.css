@@ -4159,6 +4159,12 @@ dialog.modal.subject-edit-modal {
   border: 1px solid #0ea5e9;
 }
 
+.exchange-import-btn,
+.exchange-import-selected-btn {
+  background: #0ea5e9;
+  border: 1px solid #0ea5e9;
+}
+
 .archive-empty-message {
   text-align: center;
   color: var(--muted);

@@ -2425,16 +2425,28 @@ function renderContentExchangeTree() {
                     <div class="tiny">${cards.length} ${cards.length === 1 ? 'card' : 'cards'}</div>
                   </div>
                   <div class="content-exchange-summary-actions">
-                    <button class="btn btn-small exchange-import-btn"
+                    <button class="btn btn-small exchange-import-btn archive-tree-action-restore"
                       data-level="topic"
                       data-owner-id="${ownerEsc}"
                       data-id="${topicEsc}"
-                      type="button">Import Topic</button>
-                    <button class="btn btn-small delete exchange-admin-delete-btn"
+                      type="button">
+                      <span class="archive-tree-action-label responsive-action-label">Import Topic</span>
+                      <img src="icons/import.png"
+                           alt=""
+                           class="archive-tree-action-icon responsive-action-icon"
+                           aria-hidden="true" />
+                    </button>
+                    <button class="btn btn-small delete exchange-admin-delete-btn archive-tree-action-delete"
                       data-level="topic"
                       data-owner-id="${ownerEsc}"
                       data-id="${topicEsc}"
-                      type="button">Delete Topic</button>
+                      type="button">
+                      <span class="archive-tree-action-label responsive-action-label">Delete Topic</span>
+                      <img src="icons/trash.svg"
+                           alt=""
+                           class="archive-tree-action-icon responsive-action-icon"
+                           aria-hidden="true" />
+                    </button>
                     <span class="daily-review-subject-chevron" aria-hidden="true">▾</span>
                   </div>
                 </summary>
