@@ -752,8 +752,10 @@ function setNextCardSwipeProgress(progress = 0, options = {}) {
   if (!nextCardEl) return;
   const opts = options && typeof options === 'object' ? options : {};
   const immediate = opts.immediate === true;
+  const dragging = opts.dragging === true;
   const numeric = Number(progress);
   const clamped = Number.isFinite(numeric) ? Math.min(1, Math.max(0, numeric)) : 0;
+  nextCardEl.classList.toggle('is-dragging', dragging);
   if (immediate) nextCardEl.style.transition = 'none';
   nextCardEl.style.setProperty('--next-card-progress', String(clamped));
   nextCardEl.classList.toggle('is-engaged', clamped > 0.001);
@@ -1786,6 +1788,7 @@ function wireSwipe() {
   let dy = 0;
   let cardCenterX = 0;
   let cardCenterY = 0;
+  let activeSwipeFeedback = '';
 
   function clamp(v, min, max) {
     return Math.min(max, Math.max(min, v));
@@ -1802,7 +1805,11 @@ function wireSwipe() {
   }
 
   function clearSwipeFeedback() {
-    card.classList.remove('swiping', 'swipe-correct', 'swipe-wrong', 'swipe-partial');
+    if (activeSwipeFeedback) {
+      card.classList.remove(`swipe-${activeSwipeFeedback}`);
+      activeSwipeFeedback = '';
+    }
+    card.classList.remove('swiping');
     card.style.removeProperty('--swipe-intensity');
     const badge = el('swipeBadge');
     if (badge) badge.textContent = '';
@@ -1817,20 +1824,20 @@ function wireSwipe() {
     card.style.willChange = '';
     card.style.transform = '';
     clearSwipeFeedback();
-    setNextCardSwipeProgress(0);
+    setNextCardSwipeProgress(0, { dragging: false });
   }
 
   function applySwipeFeedback(result, intensity) {
-    clearSwipeFeedback();
-    if (!result || intensity <= 0) return;
-
-    const cls = {
-      correct: 'swipe-correct',
-      wrong: 'swipe-wrong',
-      partial: 'swipe-partial'
-    }[result];
-
-    card.classList.add('swiping', cls);
+    if (!result || intensity <= 0) {
+      clearSwipeFeedback();
+      return;
+    }
+    if (activeSwipeFeedback !== result) {
+      if (activeSwipeFeedback) card.classList.remove(`swipe-${activeSwipeFeedback}`);
+      card.classList.add(`swipe-${result}`);
+      activeSwipeFeedback = result;
+    }
+    card.classList.add('swiping');
     const clampedIntensity = clamp(intensity, 0, 1);
     card.style.setProperty('--swipe-intensity', String(clampedIntensity));
   }
@@ -1997,7 +2004,7 @@ function wireSwipe() {
     card.style.transition = 'none';
     card.style.willChange = 'transform';
     clearSwipeFeedback();
-    setNextCardSwipeProgress(0, { immediate: true });
+    setNextCardSwipeProgress(0, { immediate: true, dragging: true });
   }, { passive: true });
 
   card.addEventListener('touchmove', e => {
@@ -2058,7 +2065,7 @@ function wireSwipe() {
 
     setTransform(x, y, rotate);
     applySwipeFeedback(result, intensity);
-    setNextCardSwipeProgress(computeNextCardProgress(result, absX, dy));
+    setNextCardSwipeProgress(computeNextCardProgress(result, absX, dy), { dragging: true });
   }, { passive: false });
 
   const finishSwipe = () => {
@@ -2074,7 +2081,7 @@ function wireSwipe() {
     if (result) {
       card.style.transition = 'transform 240ms cubic-bezier(0.2,0.8,0.2,1)';
       applySwipeFeedback(result, 1);
-      setNextCardSwipeProgress(1);
+      setNextCardSwipeProgress(1, { dragging: false });
 
       requestAnimationFrame(() => {
         if (result === 'partial') {
@@ -2091,7 +2098,7 @@ function wireSwipe() {
       return;
     }
 
-    setNextCardSwipeProgress(0);
+    setNextCardSwipeProgress(0, { dragging: false });
     card.style.transition = 'transform 380ms cubic-bezier(0.18,0.89,0.32,1.28)';
     requestAnimationFrame(() => setTransform(0, 0, 0));
     setTimeout(resetSwipeDragState, 390);
@@ -2127,10 +2134,30 @@ function isCoarsePointerDevice() {
 
 function canOpenSidebarBySwipe(target = null) {
   if (!isCoarsePointerDevice()) return false;
+  if (window.innerWidth > 768) return false;
   if (document.body.classList.contains('sidebar-open')) return false;
+  if (document.body.classList.contains('sidebar-hidden')) return false;
   if (isStudySessionVisible()) return false;
   const element = target instanceof Element ? target : target?.parentElement;
   if (element && element.closest('input, textarea, select, [contenteditable="true"], dialog[open], .flashcard')) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @function canCloseSidebarBySwipe
+ * @description Returns whether sidebar can close by swipe.
+ */
+
+function canCloseSidebarBySwipe(target = null) {
+  if (!isCoarsePointerDevice()) return false;
+  if (window.innerWidth > 768) return false;
+  if (!document.body.classList.contains('sidebar-open')) return false;
+  if (document.body.classList.contains('sidebar-hidden')) return false;
+  const element = target instanceof Element ? target : target?.parentElement;
+  if (!element || !element.closest('.sidebar')) return false;
+  if (element.closest('input, textarea, select, [contenteditable="true"], dialog[open], .flashcard')) {
     return false;
   }
   return true;
@@ -2142,27 +2169,80 @@ function canOpenSidebarBySwipe(target = null) {
  */
 
 function wireSidebarSwipeGesture() {
-  const edgeZone = 200;
-  const openThreshold = 68;
+  const edgeZone = 36;
   const verticalCancelThreshold = 28;
+  const sidebarEl = document.querySelector('.sidebar');
+  const mainEl = document.querySelector('.main');
+  let gestureMode = '';
   let tracking = false;
   let startX = 0;
   let startY = 0;
+  let startOffset = 0;
+  let lastOffset = 0;
+  let lastDx = 0;
+  let movedHorizontally = false;
 
-  const resetTracking = () => {
+  const clearDragStyles = () => {
+    if (sidebarEl) {
+      sidebarEl.style.removeProperty('transition');
+      sidebarEl.style.removeProperty('transform');
+    }
+    if (mainEl) {
+      mainEl.style.removeProperty('transition');
+      mainEl.style.removeProperty('transform');
+    }
+  };
+
+  const getRevealWidth = () => {
+    if (!sidebarEl) return 0;
+    return Math.max(0, sidebarEl.getBoundingClientRect().width);
+  };
+
+  const applyDragOffset = offsetPx => {
+    if (!sidebarEl || !mainEl) return Number.NaN;
+    const revealWidth = getRevealWidth();
+    if (revealWidth <= 0) return Number.NaN;
+    const clamped = Math.max(0, Math.min(revealWidth, Number(offsetPx) || 0));
+    sidebarEl.style.transition = 'none';
+    mainEl.style.transition = 'none';
+    sidebarEl.style.transform = `translateX(${clamped - revealWidth}px)`;
+    mainEl.style.transform = `translateX(${clamped}px)`;
+    return clamped;
+  };
+
+  const resetTracking = (clearDrag = true) => {
+    gestureMode = '';
     tracking = false;
     startX = 0;
     startY = 0;
+    startOffset = 0;
+    lastOffset = 0;
+    lastDx = 0;
+    movedHorizontally = false;
+    if (clearDrag) clearDragStyles();
   };
 
   document.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
     const touch = e.touches[0];
-    if (!touch || touch.clientX > edgeZone) return;
-    if (!canOpenSidebarBySwipe(e.target)) return;
+    if (!touch) return;
+    if (canOpenSidebarBySwipe(e.target)) {
+      if (touch.clientX > edgeZone) return;
+      gestureMode = 'open';
+      startOffset = 0;
+    } else if (canCloseSidebarBySwipe(e.target)) {
+      gestureMode = 'close';
+      startOffset = getRevealWidth();
+      if (startOffset <= 0) return;
+    } else {
+      return;
+    }
     tracking = true;
     startX = touch.clientX;
     startY = touch.clientY;
+    lastOffset = startOffset;
+    lastDx = 0;
+    movedHorizontally = false;
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
@@ -2179,23 +2259,39 @@ function wireSidebarSwipeGesture() {
       resetTracking();
       return;
     }
-    if (dx > 0 && Math.abs(dx) > Math.abs(dy)) e.preventDefault();
+    if (Math.abs(dx) > Math.abs(dy)) {
+      const isOpenGesture = gestureMode === 'open' && dx > 0;
+      const isCloseGesture = gestureMode === 'close' && dx < 0;
+      if (!isOpenGesture && !isCloseGesture) return;
+      movedHorizontally = true;
+      lastDx = dx;
+      const nextOffset = applyDragOffset(startOffset + dx);
+      if (Number.isFinite(nextOffset)) lastOffset = nextOffset;
+      e.preventDefault();
+    }
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
     if (!tracking) return;
     const touch = e.changedTouches?.[0];
-    const dx = touch ? touch.clientX - startX : 0;
+    const dx = touch ? touch.clientX - startX : lastDx;
     const dy = touch ? touch.clientY - startY : 0;
-    const horizontalSwipe = dx > 0 && Math.abs(dx) > Math.abs(dy);
-    if (horizontalSwipe && dx >= openThreshold && canOpenSidebarBySwipe()) {
+    const horizontalSwipe = movedHorizontally || Math.abs(dx) > Math.abs(dy);
+    if (gestureMode === 'open' && horizontalSwipe && dx > 0) {
       document.body.classList.add('sidebar-open');
       triggerHaptic('light');
+    } else if (gestureMode === 'close' && horizontalSwipe && dx < 0) {
+      document.body.classList.remove('sidebar-open');
+      triggerHaptic('light');
+    } else if (gestureMode === 'open' && lastOffset <= 0) {
+      document.body.classList.remove('sidebar-open');
+    } else if (gestureMode === 'close' && lastOffset > 0) {
+      document.body.classList.add('sidebar-open');
     }
     resetTracking();
   }, { passive: true });
 
-  document.addEventListener('touchcancel', resetTracking, { passive: true });
+  document.addEventListener('touchcancel', () => resetTracking(), { passive: true });
 }
 
 // ============================================================================

@@ -14,19 +14,14 @@ function setAuthGateVisibility(visible = false) {
 
 /**
  * @function isLocalRuntimeHost
- * @description Returns true when app runs on localhost/loopback and not on a GitHub Pages host.
+ * @description Returns true when app is not running on a GitHub Pages host.
  */
 
 function isLocalRuntimeHost() {
   const hostname = String(window.location.hostname || '').trim().toLowerCase();
-  if (!hostname) return false;
+  if (!hostname) return true;
   const isGithubPagesHost = hostname === 'github.io' || hostname.endsWith('.github.io');
-  if (isGithubPagesHost) return false;
-  const isLoopbackHost = hostname === 'localhost'
-    || hostname === '::1'
-    || hostname === '[::1]'
-    || hostname.startsWith('127.');
-  return isLoopbackHost;
+  return !isGithubPagesHost;
 }
 
 /**
@@ -48,7 +43,7 @@ function updateRuntimeHostHint() {
   }
   const hostLabel = String(window.location.host || window.location.hostname || 'localhost').trim();
   badge.textContent = `Local runtime (${hostLabel})`;
-  badge.title = 'Running locally (localhost/127.*), not on GitHub host.';
+  badge.title = 'Running on a non-GitHub host.';
   badge.classList.remove('hidden');
 }
 
@@ -1671,6 +1666,82 @@ async function boot() {
   if (sidebarOverlay) {
     sidebarOverlay.onclick = () => document.body.classList.remove('sidebar-open');
   }
+  const isMobileSidebarOpen = () => (
+    document.body.classList.contains('sidebar-open')
+    && window.innerWidth <= 768
+  );
+  const getSidebarScrollableContainer = target => {
+    if (!(target instanceof Element) || !sidebar || !sidebar.contains(target)) return null;
+    const scrollable = target.closest('.sidebar-subjects');
+    return scrollable instanceof HTMLElement ? scrollable : null;
+  };
+  const canScrollSidebarContainer = (container, directionY) => {
+    if (!(container instanceof HTMLElement)) return false;
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    if (maxScrollTop <= 0) return false;
+    const top = Math.max(0, container.scrollTop);
+    if (directionY > 0) return top < (maxScrollTop - 1);
+    if (directionY < 0) return top > 0;
+    return true;
+  };
+  let sidebarTouchX = 0;
+  let sidebarTouchY = 0;
+  document.addEventListener('touchstart', event => {
+    if (!isMobileSidebarOpen()) return;
+    const touch = event.touches && event.touches[0];
+    if (!touch) return;
+    sidebarTouchX = touch.clientX;
+    sidebarTouchY = touch.clientY;
+  }, { passive: true });
+  document.addEventListener('touchmove', event => {
+    if (!isMobileSidebarOpen()) return;
+    const target = event.target;
+    if (!(target instanceof Element) || !sidebar || !sidebar.contains(target)) {
+      event.preventDefault();
+      return;
+    }
+    const scrollable = getSidebarScrollableContainer(target);
+    if (!scrollable) {
+      event.preventDefault();
+      return;
+    }
+    const touch = event.touches && event.touches[0];
+    if (!touch) {
+      event.preventDefault();
+      return;
+    }
+    const deltaX = touch.clientX - sidebarTouchX;
+    const deltaY = touch.clientY - sidebarTouchY;
+    sidebarTouchX = touch.clientX;
+    sidebarTouchY = touch.clientY;
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      event.preventDefault();
+      return;
+    }
+    const scrollDirectionY = deltaY < 0 ? 1 : deltaY > 0 ? -1 : 0;
+    if (!canScrollSidebarContainer(scrollable, scrollDirectionY)) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+  document.addEventListener('wheel', event => {
+    if (!isMobileSidebarOpen()) return;
+    const target = event.target;
+    const scrollable = getSidebarScrollableContainer(target);
+    if (!scrollable) {
+      event.preventDefault();
+      return;
+    }
+    const deltaX = Number(event.deltaX || 0);
+    const deltaY = Number(event.deltaY || 0);
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      event.preventDefault();
+      return;
+    }
+    const scrollDirectionY = deltaY > 0 ? 1 : deltaY < 0 ? -1 : 0;
+    if (!canScrollSidebarContainer(scrollable, scrollDirectionY)) {
+      event.preventDefault();
+    }
+  }, { passive: false });
   document.addEventListener('click', e => {
     if (!document.body.classList.contains('sidebar-open')) return;
     const target = e.target;

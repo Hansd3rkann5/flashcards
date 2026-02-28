@@ -128,6 +128,33 @@ function sortSubjectsByLastEdited(subjects = []) {
 }
 
 let subjectTileMenuCloseBound = false;
+let subjectTileMenuBackdropEl = null;
+
+function ensureSubjectTileMenuBackdrop() {
+  if (subjectTileMenuBackdropEl && document.body.contains(subjectTileMenuBackdropEl)) {
+    return subjectTileMenuBackdropEl;
+  }
+  const backdrop = document.createElement('div');
+  backdrop.id = 'subjectTileMenuBackdrop';
+  backdrop.className = 'subject-tile-menu-backdrop';
+  backdrop.setAttribute('aria-hidden', 'true');
+  backdrop.addEventListener('click', () => {
+    closeSubjectTileMenus();
+  });
+  document.body.appendChild(backdrop);
+  subjectTileMenuBackdropEl = backdrop;
+  return backdrop;
+}
+
+function setSubjectTileMenuBackdropVisible(visible = false) {
+  const backdrop = ensureSubjectTileMenuBackdrop();
+  backdrop.classList.toggle('is-visible', !!visible);
+  backdrop.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
+function hasOpenSubjectTileMenu() {
+  return document.querySelector('.tile-menu.open') !== null;
+}
 
 /**
  * @function isSubjectArchived
@@ -205,15 +232,20 @@ function closeSubjectTileMenus() {
   document.querySelectorAll('.tile-menu.open').forEach(menu => menu.classList.remove('open'));
   document.querySelectorAll('.subject-tile.subject-tile-menu-open')
     .forEach(tile => tile.classList.remove('subject-tile-menu-open'));
+  setSubjectTileMenuBackdropVisible(false);
 }
 
 function bindSubjectTileMenuCloseHandler() {
   if (subjectTileMenuCloseBound) return;
   subjectTileMenuCloseBound = true;
+  ensureSubjectTileMenuBackdrop();
   document.addEventListener('click', event => {
+    if (!hasOpenSubjectTileMenu()) return;
     if (event.target.closest('.tile-menu')) return;
+    event.preventDefault();
+    event.stopPropagation();
     closeSubjectTileMenus();
-  });
+  }, true);
 }
 
 async function getSubjectRecordById(subjectId = '', options = {}) {
@@ -283,6 +315,70 @@ async function setSubjectArchivedState(subjectId = '', archived = true, options 
   return true;
 }
 
+let archiveRestoreLoadingDialogDepth = 0;
+
+function ensureArchiveRestoreLoadingDialog() {
+  let dialog = el('archiveRestoreLoadingDialog');
+  if (dialog) return dialog;
+  dialog = document.createElement('dialog');
+  dialog.id = 'archiveRestoreLoadingDialog';
+  dialog.className = 'blocking-loading-dialog';
+  dialog.innerHTML = `
+    <div class="app-loading-inner">
+      <div class="app-loader-stack" aria-hidden="true">
+        <span class="app-loader-card card-one"></span>
+        <span class="app-loader-card card-two"></span>
+        <span class="app-loader-card card-three"></span>
+      </div>
+      <div class="tiny app-loading-label archive-restore-loading-label">Restoring archived subject...</div>
+    </div>
+  `;
+  dialog.addEventListener('cancel', event => {
+    event.preventDefault();
+  });
+  document.body.appendChild(dialog);
+  return dialog;
+}
+
+function setArchiveRestoreLoadingState(active = false, label = 'Restoring archived subject...') {
+  const dialog = ensureArchiveRestoreLoadingDialog();
+  if (!dialog) return;
+  const labelEl = dialog.querySelector('.archive-restore-loading-label');
+  if (labelEl) {
+    labelEl.textContent = String(label || '').trim() || 'Restoring archived subject...';
+  }
+  if (active) {
+    archiveRestoreLoadingDialogDepth += 1;
+    if (!dialog.open) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    }
+    return;
+  }
+  archiveRestoreLoadingDialogDepth = Math.max(0, archiveRestoreLoadingDialogDepth - 1);
+  if (archiveRestoreLoadingDialogDepth > 0) return;
+  if (dialog.open && typeof dialog.close === 'function') dialog.close();
+  else dialog.removeAttribute('open');
+}
+
+async function restoreArchivedSubjectWithLoading(subjectId = '', options = {}) {
+  const safeId = String(subjectId || '').trim();
+  if (!safeId) return false;
+  const opts = options && typeof options === 'object' ? options : {};
+  const refreshArchiveDialog = opts.refreshArchiveDialog !== false;
+  const loadingLabel = 'Restoring archived subject...';
+  setArchiveRestoreLoadingState(true, loadingLabel);
+  try {
+    const restored = await setSubjectArchivedState(safeId, false, { uiBlocking: false, force: true });
+    if (refreshArchiveDialog && el('subjectArchiveDialog')?.open) {
+      await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+    }
+    return restored;
+  } finally {
+    setArchiveRestoreLoadingState(false);
+  }
+}
+
 function buildSubjectTileMenu(subject = null, options = {}) {
   const safeSubject = (subject && typeof subject === 'object') ? subject : {};
   const safeId = String(safeSubject?.id || '').trim();
@@ -315,6 +411,7 @@ function buildSubjectTileMenu(subject = null, options = {}) {
         menu.classList.add('open');
         const ownerTile = menu.closest('.subject-tile');
         if (ownerTile) ownerTile.classList.add('subject-tile-menu-open');
+        setSubjectTileMenuBackdropVisible(true);
       }
     };
   }
@@ -340,10 +437,7 @@ function buildSubjectTileMenu(subject = null, options = {}) {
         if (!confirm('Archive this subject?')) return;
         await setSubjectArchivedState(safeId, true, { uiBlocking: false, force: true });
       } else {
-        await setSubjectArchivedState(safeId, false, { uiBlocking: false, force: true });
-      }
-      if (el('subjectArchiveDialog')?.open) {
-        await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+        await restoreArchivedSubjectWithLoading(safeId, { refreshArchiveDialog: true });
       }
     };
   }
@@ -598,8 +692,7 @@ async function refreshArchivedSubjectsDialog(options = {}) {
     restoreBtn.addEventListener('click', async event => {
       event.preventDefault();
       event.stopPropagation();
-      await setSubjectArchivedState(subjectId, false, { uiBlocking: false, force: true });
-      await refreshArchivedSubjectsDialog({ uiBlocking: false, force: true });
+      await restoreArchivedSubjectWithLoading(subjectId, { refreshArchiveDialog: true });
     });
 
     const deleteBtn = document.createElement('button');
@@ -701,7 +794,20 @@ async function openSubjectArchiveDialog(options = {}) {
   if (!dialog) return;
   document.body.classList.remove('sidebar-open');
   const opts = options && typeof options === 'object' ? options : {};
-  await refreshArchivedSubjectsDialog({ uiBlocking: opts.uiBlocking !== false, force: !!opts.force });
+  const showOpeningLoader = opts.showOpeningLoader !== false;
+  if (showOpeningLoader) {
+    setAppLoadingState(true, 'Opening archive...');
+  }
+  try {
+    await refreshArchivedSubjectsDialog({
+      uiBlocking: showOpeningLoader ? false : opts.uiBlocking !== false,
+      force: !!opts.force
+    });
+  } finally {
+    if (showOpeningLoader) {
+      setAppLoadingState(false);
+    }
+  }
   showDialog(dialog);
 }
 

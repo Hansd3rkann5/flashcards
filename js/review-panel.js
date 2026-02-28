@@ -824,6 +824,18 @@ function isDayMastered(day) {
 }
 
 /**
+ * @function isCardMasteredOnDay
+ * @description Returns whether a card is mastered on the given day.
+ */
+
+function isCardMasteredOnDay(cardId, dayKey = getTodayKey()) {
+  const safeCardId = String(cardId || '').trim();
+  const safeDayKey = String(dayKey || '').trim();
+  if (!safeCardId || !safeDayKey) return false;
+  return isDayMastered(getCardDayProgress(safeCardId, safeDayKey));
+}
+
+/**
  * @function normalizeDailyReviewStatusFilter
  * @description Normalizes daily review status filter.
  */
@@ -1237,6 +1249,7 @@ function getDailyReviewFilteredCardIdsByTopic(topicId) {
   return cardIds.filter(cardId => (
     cardMatchesDailyReviewStatus(cardId)
     && cardMatchesDailyReviewDate(cardId)
+    && !isCardMasteredOnDay(cardId)
   ));
 }
 
@@ -2034,6 +2047,7 @@ async function prepareDailyReviewState(options = {}) {
     });
   }
   const candidateCardIdSet = new Set();
+  let skippedMasteredTodayCount = 0;
   rows.forEach(row => {
     const cardId = String(row?.cardId || '').trim();
     if (!cardId) return;
@@ -2047,13 +2061,18 @@ async function prepareDailyReviewState(options = {}) {
       || normalizedRecord?.lastAnsweredAt
     );
     if (!latestDayKey) return;
+    if (latestDayKey === todayKey && isDayMastered(latestEntry?.day)) {
+      skippedMasteredTodayCount += 1;
+      return;
+    }
     candidateCardIdSet.add(cardId);
   });
 
   const uniqueCardIds = Array.from(candidateCardIdSet);
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'review-candidates-derived', traceStartedAt, {
-      uniqueCardIds: uniqueCardIds.length
+      uniqueCardIds: uniqueCardIds.length,
+      skippedMasteredTodayCount
     });
   }
   const cardsByTopicId = new Map();
@@ -2316,7 +2335,9 @@ async function startDailyReviewFromHomePanel() {
     alert('Select at least one topic.');
     return;
   }
-  const cardIds = getDailyReviewSelectedCardIds();
+  const todayKey = getTodayKey();
+  const cardIds = getDailyReviewSelectedCardIds()
+    .filter(cardId => !isCardMasteredOnDay(cardId, todayKey));
   if (!cardIds.length) {
     alert('No review cards match the selected topics/status/date filter.');
     return;

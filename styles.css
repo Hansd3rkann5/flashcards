@@ -116,6 +116,7 @@ body::before {
   overflow: hidden;
   z-index: 6;
   box-sizing: border-box;
+  padding-bottom: var(--space-3);
 }
 
 .sidebar-subjects {
@@ -210,6 +211,22 @@ body.content-exchange-open #cardsOverviewSection {
   background: rgba(6, 10, 20, 0.6);
   z-index: 5;
   display: none;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.subject-tile-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  pointer-events: none;
+  background: transparent;
+}
+
+.subject-tile-menu-backdrop.is-visible {
+  display: block;
+  pointer-events: auto;
 }
 
 .auth-gate {
@@ -647,11 +664,11 @@ body.app-loading {
 }
 
 .sidebar-meta {
-  margin-top: 0;
-  padding-top: 8px;
+  margin-top: auto;
   opacity: 0.72;
-  position: sticky;
-  bottom: calc(env(safe-area-inset-bottom) + 2px);
+  position: relative;
+  bottom: auto;
+  flex-shrink: 0;
   z-index: 1;
   background: linear-gradient(180deg, rgba(12, 18, 34, 0) 0%, rgba(12, 18, 34, 0.92) 38%);
 }
@@ -1041,6 +1058,7 @@ body.app-loading {
   box-sizing: border-box;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: pan-y;
 }
 
 body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
@@ -2041,6 +2059,7 @@ textarea:focus-visible {
 
 #studySessionSection .flash-area #flashcard {
   z-index: 2;
+  will-change: transform;
 }
 
 .session-next-card {
@@ -2057,12 +2076,19 @@ textarea:focus-visible {
     translate3d(0,
       0,
       calc(var(--next-card-depth-start) + (var(--next-card-progress) * (var(--next-card-depth-end) - var(--next-card-depth-start))))) scale(calc(var(--next-card-scale-min) + (var(--next-card-progress) * (var(--next-card-scale-max) - var(--next-card-scale-min))))) rotateX(calc(var(--next-card-tilt-start) + (var(--next-card-progress) * (var(--next-card-tilt-end) - var(--next-card-tilt-start)))));
-  opacity: 0;
+  opacity: 1;
   filter: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   transition:
     transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     filter 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.session-next-card.is-dragging {
+  transition: none;
 }
 
 .session-next-card .card-corner-label,
@@ -2070,7 +2096,7 @@ textarea:focus-visible {
   opacity: calc(0.74 + (var(--next-card-progress) * 0.26));
 }
 
-#studySessionSection .flash-area #flashcard.flipped~#nextFlashcard {
+#studySessionSection .flash-area #flashcard.flipped~#nextFlashcard:not(.is-engaged) {
   opacity: 0;
   transform:
     translate3d(0, 0, calc(var(--next-card-depth-start) - 40px)) scale(var(--next-card-scale-min)) rotateX(var(--next-card-tilt-start));
@@ -2516,17 +2542,18 @@ textarea:focus-visible {
 
 .runtime-host-hint {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
-  right: 12px;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 190;
   pointer-events: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border-radius: 999px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px) 8px calc(env(safe-area-inset-left, 0px) + 12px);
+  border-radius: 0;
   border: 1px solid rgba(255, 210, 120, 0.55);
-  background: rgb(198, 60, 10);
+  background: rgba(255, 0, 238, 0.406);
   color: #ffe7b5;
   font-size: 0.72rem;
   font-weight: 700;
@@ -2534,17 +2561,15 @@ textarea:focus-visible {
   line-height: 1;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(8px);
-  width: 74%;
+  width: 100%;
   box-sizing: border-box;
   justify-content: center;
 }
 
 @media (max-width: 760px) {
   .runtime-host-hint {
-    right: 10px;
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
     font-size: 0.68rem;
-    padding: 6px 10px;
+    padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 10px) 6px calc(env(safe-area-inset-left, 0px) + 10px);
   }
 }
 
@@ -3183,12 +3208,8 @@ body.session-image-open {
   border-color: var(--success);
 }
 
+.card-menu-item.card-menu-item-restore,
 .card-menu-item.card-menu-item-archive {
-  background: #475569;
-  border-color: #475569;
-}
-
-.card-menu-item.card-menu-item-restore {
   background: #0ea5e9;
   border-color: #0ea5e9;
 }
@@ -4042,6 +4063,30 @@ dialog.modal.subject-edit-modal {
 #subjectArchiveDialog h3 {
   margin: 0;
   text-align: center;
+}
+
+#archiveRestoreLoadingDialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+}
+
+#archiveRestoreLoadingDialog[open] {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#archiveRestoreLoadingDialog::backdrop {
+  background: rgba(7, 12, 24, 0.56);
+  backdrop-filter: blur(10px);
 }
 
 .archive-dialog-meta {
@@ -6164,6 +6209,7 @@ dialog::backdrop {
     --btn-padding-y: 11px;
     --btn-padding-x: 13px;
     --counter-height: 44px;
+    --mobile-sidebar-reveal: min(70vw, 300px);
   }
 
   #cardsGrid,
@@ -6372,7 +6418,7 @@ dialog::backdrop {
   }
 
   .sidebar {
-    width: min(70vw, 300px);
+    width: var(--mobile-sidebar-reveal);
     transform: translateX(-110%);
     transition: transform 0.25s ease;
     border-right: 1px solid #26365f;
@@ -6387,6 +6433,12 @@ dialog::backdrop {
     display: block;
   }
 
+  body.sidebar-open #homePanel > .section,
+  body.sidebar-open #topicPanel > .section,
+  body.sidebar-open #cardsOverviewSection {
+    overflow: hidden !important;
+  }
+
   .sidebar-toggle {
     display: inline-flex;
   }
@@ -6398,6 +6450,12 @@ dialog::backdrop {
   .main {
     margin-left: 0;
     width: 100%;
+    transform: translateX(0);
+    transition: transform 0.25s ease;
+  }
+
+  body.sidebar-open .main {
+    transform: translateX(var(--mobile-sidebar-reveal));
   }
 
   .panel {
@@ -6808,7 +6866,7 @@ dialog::backdrop {
   }
 
   .section {
-    margin-top: var(--space-2);
+    margin-top: 0;
   }
 
   #editorPanel .editor-grid {
