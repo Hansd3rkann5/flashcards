@@ -1546,7 +1546,7 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   border: 1px solid #30476f;
   border-radius: 14px;
   background: rgba(13, 22, 42, 0.58);
-  padding: var(--space-4);
+  padding-block: var(--space-4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1567,8 +1567,6 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   z-index: 2;
   display: block;
   margin: 0;
-  padding-bottom: var(--space-1);
-  background: rgba(13, 22, 42, 0.95);
 }
 
 .selected-topics-summary {
@@ -1589,7 +1587,13 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   overflow-x: hidden;
   align-content: flex-start;
   scrollbar-gutter: stable;
-  padding-right: 2px;
+  padding-top: var(--space-3);
+}
+
+.study-selection-card.size {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .study-selection-card.selected-topics-card .selected-topics-summary.is-empty {
@@ -6819,10 +6823,6 @@ dialog::backdrop {
 
   .study-selection {
     padding: var(--space-4);
-  }
-
-  .study-selection-card {
-    padding: var(--space-3);
   }
 
   #startSessionBtn {
