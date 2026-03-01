@@ -2336,6 +2336,27 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
+.face-score-pill {
+  position: absolute;
+  top: calc(12px + var(--session-card-chip-height, 34px) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-height: 20px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 146, 196, 0.8);
+  background: rgba(13, 22, 41, 0.86);
+  color: #d8e6ff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
 .back {
   transform: rotateX(180deg) translateZ(1px);
   background: #131f3a;
@@ -3639,6 +3660,10 @@ body.session-image-open {
     height: 120px;
     max-height: 120px;
   }
+
+  .pill-dot.current {
+    scale: 1.2;
+  }
 }
 
 .editor-options {
@@ -3873,7 +3898,6 @@ body.session-image-open {
   box-shadow:
     0 0 0 1px var(--current),
     0 0 10px 2px var(--current);
-  scale: 1.2;
 }
 
 .pill-dot.near-master {
@@ -6541,8 +6565,8 @@ dialog::backdrop {
     pointer-events: auto;
   }
 
-  body.sidebar-open #homePanel > .section,
-  body.sidebar-open #topicPanel > .section,
+  body.sidebar-open #homePanel>.section,
+  body.sidebar-open #topicPanel>.section,
   body.sidebar-open #cardsOverviewSection {
     overflow: hidden !important;
   }

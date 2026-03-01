@@ -743,6 +743,66 @@ function renderSessionTopicPills(card) {
 }
 
 /**
+ * @function ensureFrontFaceScorePill
+ * @description Ensures the temporary front-face score pill exists and returns it.
+ */
+
+function ensureFrontFaceScorePill() {
+  const frontFaceEl = el('frontFace');
+  if (!frontFaceEl) return null;
+  let scorePillEl = el('frontCardScorePill');
+  if (scorePillEl) return scorePillEl;
+  scorePillEl = document.createElement('div');
+  scorePillEl.id = 'frontCardScorePill';
+  scorePillEl.className = 'face-score-pill hidden';
+  const editBtn = frontFaceEl.querySelector('.card-edit-btn');
+  if (editBtn) frontFaceEl.insertBefore(scorePillEl, editBtn);
+  else frontFaceEl.appendChild(scorePillEl);
+  return scorePillEl;
+}
+
+/**
+ * @function readSessionCardScore
+ * @description Reads the best-available score value for one card.
+ */
+
+function readSessionCardScore(card = null) {
+  const directCandidates = [card?.reviewPriorityScore, card?.reviewScore, card?.score];
+  for (const raw of directCandidates) {
+    const score = Number(raw);
+    if (Number.isFinite(score)) return score;
+  }
+  const cardId = String(card?.id || '').trim();
+  if (!cardId || !(progressByCardId instanceof Map)) return null;
+  const record = progressByCardId.get(cardId) || null;
+  const recordCandidates = [record?.reviewPriorityScore, record?.reviewScore, record?.score];
+  for (const raw of recordCandidates) {
+    const score = Number(raw);
+    if (Number.isFinite(score)) return score;
+  }
+  return null;
+}
+
+/**
+ * @function renderSessionFrontScorePill
+ * @description Renders a temporary front-face score pill below the topic pill.
+ */
+
+function renderSessionFrontScorePill(card = null) {
+  const scorePillEl = ensureFrontFaceScorePill();
+  if (!scorePillEl) return;
+  const score = readSessionCardScore(card);
+  if (!Number.isFinite(score)) {
+    scorePillEl.textContent = '';
+    scorePillEl.classList.add('hidden');
+    return;
+  }
+  const rounded = Math.round(score * 10) / 10;
+  scorePillEl.textContent = `Score: ${rounded.toFixed(1)}`;
+  scorePillEl.classList.remove('hidden');
+}
+
+/**
  * @function setNextCardSwipeProgress
  * @description Updates the swipe-linked progress for the stacked next-card preview.
  */
@@ -1060,6 +1120,7 @@ function renderCardContent(card) {
   const aImages = getCardImageList(card, 'A');
   applySessionCardTheme(card);
   renderSessionTopicPills(card);
+  renderSessionFrontScorePill(card);
   const flashcardEl = el('flashcard');
   if (flashcardEl) {
     flashcardEl.dataset.type = isMcq ? 'mcq' : 'qa';
@@ -1272,6 +1333,7 @@ async function renderSessionCard() {
   const swipeBadge = el('swipeBadge');
   if (swipeBadge) swipeBadge.textContent = '';
   if (!session.activeQueue.length) {
+    renderSessionFrontScorePill(null);
     renderNextSessionCardPreview(null);
     session.active = false;
     resetSessionImagePreloadCache();

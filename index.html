@@ -479,6 +479,7 @@
                   <span class="session-label-short">Q</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="frontTopicPill"></div>
+                <div class="face-score-pill hidden" id="frontCardScorePill"></div>
                 <button class="btn card-edit-btn innerGlow" id="editSessionCardBtn" type="button" aria-label="Edit card"
                   title="Edit card">
                   <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
@@ -681,7 +682,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.01.01';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.01.02';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -873,7 +874,7 @@
       <div class="editor-header">
         <h3>Cards Status Check</h3>
         <div class="panel-header-actions">
-          <button class="btn refresh-icon-btn" id="refreshProgressCheckBtn" type="button"
+          <button class="btn refresh-icon-btn innerGlow" id="refreshProgressCheckBtn" type="button"
             aria-label="Refresh status table" title="Refresh">
             <img src="icons/refresh.svg" alt="" aria-hidden="true" class="app-icon" />
           </button>
