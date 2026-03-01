@@ -1553,6 +1553,24 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   gap: var(--space-2);
 }
 
+.study-selection-card.selected-topics-card {
+  --selected-topics-card-max-height: min(34dvh, 270px);
+  max-height: var(--selected-topics-card-max-height);
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.selected-topics-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: block;
+  margin: 0;
+  padding-bottom: var(--space-1);
+  background: rgba(13, 22, 42, 0.95);
+}
+
 .selected-topics-summary {
   max-width: 100%;
   width: 100%;
@@ -1562,6 +1580,20 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   align-items: center;
   gap: 6px;
   min-height: 30px;
+}
+
+.study-selection-card.selected-topics-card .selected-topics-summary {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-content: flex-start;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+
+.study-selection-card.selected-topics-card .selected-topics-summary.is-empty {
+  align-content: center;
 }
 
 .selected-topics-summary.is-empty {
