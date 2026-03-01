@@ -2949,7 +2949,7 @@ body.session-image-open {
   margin-top: 10px;
   border: 1px dashed #2a3f66;
   border-radius: 12px;
-  padding: 8px;
+  /* padding: 8px; */
   box-sizing: border-box;
   min-height: 80px;
   display: flex;
@@ -2964,7 +2964,7 @@ body.session-image-open {
   border-style: solid;
   border-color: #2a3f66;
   background: rgba(12, 19, 34, 0.66);
-  padding: 8px;
+  /* padding: 8px; */
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
@@ -3065,10 +3065,10 @@ body.session-image-open {
   min-width: 54px;
   min-height: 54px;
   border-radius: 999px;
-  border: 1px solid rgba(84, 255, 39, 0.78);
+  /* border: 1px solid rgba(84, 255, 39, 0.78); */
   background: rgba(8, 15, 28, 0.74);
   color: #ffffff;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(84, 255, 39, 0.24) inset;
+  /* box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(84, 255, 39, 0.24) inset; */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3838,11 +3838,11 @@ body.session-image-open {
   margin-top: var(--space-3);
 }
 
-#editorPanel .editor-footer {
+.editor-panel.editor-main .editor-footer {
   margin-top: auto;
 }
 
-#editorPanel .editor-footer.editor-footer-stack {
+.editor-footer.editor-footer-stack {
   position: sticky;
   bottom: 0;
   z-index: 3;
@@ -3855,7 +3855,7 @@ body.session-image-open {
   background: linear-gradient(180deg, rgba(16, 24, 45, 0) 0%, rgba(16, 24, 45, 0.92) 36%, rgba(16, 24, 45, 0.98) 100%);
 }
 
-#editorPanel .editor-footer.editor-footer-stack .btn {
+.editor-footer.editor-footer-stack .btn {
   width: 100%;
 }
 

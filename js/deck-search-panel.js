@@ -736,7 +736,7 @@ function buildCardTile(card, idx, compact = false) {
     const menu = document.createElement('div');
     menu.className = 'card-tile-menu';
     menu.innerHTML = `
-          <button class="btn card-menu-btn" type="button" aria-label="Edit card" title="Edit card"><img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" /></button>
+          <button class="btn card-menu-btn innerGlow" type="button" aria-label="Edit card" title="Edit card"><img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" /></button>
           <div class="card-menu">
             <button class="btn card-menu-item card-menu-item-edit" type="button">Edit</button>
             <button class="btn delete card-menu-item delete-card-btn" type="button">Delete</button>

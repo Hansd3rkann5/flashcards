@@ -514,7 +514,7 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
   const appendUploadOverlayButton = () => {
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
-    addBtn.className = 'image-preview-upload-btn';
+    addBtn.className = 'image-preview-upload-btn innerGlow';
     addBtn.setAttribute('aria-label', 'Add images');
     addBtn.setAttribute('title', 'Drop more images or click to upload');
     addBtn.innerHTML = '<span aria-hidden="true">+</span>';
@@ -529,7 +529,7 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
     img.alt = `preview ${idx + 1}`;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'image-remove-btn';
+    btn.className = 'image-remove-btn innerGlow';
     btn.setAttribute('aria-label', `Remove image ${idx + 1}`);
     btn.innerHTML = '<img src="icons/trash.png" alt="" aria-hidden="true" class="app-icon">';
     btn.onclick = e => {
