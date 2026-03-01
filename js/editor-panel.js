@@ -107,6 +107,84 @@ function getAdditionalMcqRowCount(edit = false) {
   return optionsEl.querySelectorAll('.mcq-row[data-primary="false"]').length;
 }
 
+function getAllMcqRows(edit = false) {
+  const rows = [];
+  const primary = el(edit ? 'editPrimaryAnswerRow' : 'primaryAnswerRow');
+  if (primary) rows.push(primary);
+  const optionsEl = el(edit ? 'editMcqOptions' : 'mcqOptions');
+  if (optionsEl) rows.push(...Array.from(optionsEl.querySelectorAll('.mcq-row[data-primary="false"]')));
+  return rows;
+}
+
+function updateMcqRowCorrectState(row) {
+  if (!row) return;
+  const toggleInput = row.querySelector('.mcq-toggle input[type="checkbox"]');
+  const badge = row.querySelector('.mcq-badge');
+  const isCorrect = !!toggleInput?.checked;
+  row.classList.toggle('correct', isCorrect);
+  row.classList.toggle('wrong', !isCorrect);
+  if (badge) {
+    badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
+    badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
+  }
+}
+
+function syncMcqOrderUi(edit = false) {
+  let requireOrder = edit ? editOptionsRequireOrder : createOptionsRequireOrder;
+  const orderToggle = el(edit ? 'editMcqRequireOrderToggle' : 'mcqRequireOrderToggle');
+  const rows = getAllMcqRows(edit);
+  const total = rows.length || 1;
+  const isMcq = edit ? editMcqMode : mcqMode;
+
+  const orderToggleLabel = orderToggle?.closest('.mcq-order-toggle');
+  const shouldShowToggle = isMcq && total > 1;
+  if (orderToggleLabel) orderToggleLabel.classList.toggle('hidden', !shouldShowToggle);
+  if (!shouldShowToggle) {
+    requireOrder = false;
+    if (orderToggle) orderToggle.checked = false;
+    if (edit) editOptionsRequireOrder = false;
+    else createOptionsRequireOrder = false;
+  } else if (orderToggle) {
+    orderToggle.checked = requireOrder;
+  }
+
+  rows.forEach((row, idx) => {
+    const control = row.querySelector('.mcq-order-control');
+    const select = row.querySelector('.mcq-order-select');
+    const toggleWrap = row.querySelector('.mcq-toggle');
+    const badge = row.querySelector('.mcq-badge');
+    const toggleInput = row.querySelector('.mcq-toggle input[type="checkbox"]');
+    if (!control || !select) return;
+
+    control.classList.toggle('hidden', !requireOrder);
+    row.classList.toggle('order-mode', requireOrder);
+    if (toggleWrap) toggleWrap.classList.toggle('hidden', requireOrder);
+    if (badge) badge.classList.toggle('hidden', requireOrder);
+
+    if (requireOrder) {
+      row.classList.remove('correct', 'wrong');
+    } else {
+      updateMcqRowCorrectState(row);
+    }
+
+    select.innerHTML = '';
+    if (!requireOrder) {
+      select.value = '';
+      return;
+    }
+    for (let i = 1; i <= total; i += 1) {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = String(i);
+      select.appendChild(opt);
+    }
+    const current = Number(select.dataset.value || select.value || idx + 1);
+    const clamped = Math.min(total, Math.max(1, current));
+    select.value = String(clamped);
+    select.dataset.value = String(clamped);
+  });
+}
+
 /**
  * @function syncMcqPrimaryAnswerMode
  * @description Synchronizes MCQ primary answer mode.
@@ -115,6 +193,7 @@ function getAdditionalMcqRowCount(edit = false) {
 function syncMcqPrimaryAnswerMode(edit = false) {
   const hasAdditionalRows = getAdditionalMcqRowCount(edit) > 0;
   setMcqModeState(edit, hasAdditionalRows);
+  syncMcqOrderUi(edit);
   if (!edit) updateCreateValidation();
 }
 
@@ -1866,6 +1945,21 @@ function wireTextFormattingToolbar() {
   syncToolbarAlignmentButtons('edit-answer', editAnswerTextAlign);
   syncToolbarAlignmentButtons('create-options', createOptionsTextAlign);
   syncToolbarAlignmentButtons('edit-options', editOptionsTextAlign);
+
+  const mcqRequireOrderToggle = el('mcqRequireOrderToggle');
+  if (mcqRequireOrderToggle) {
+    mcqRequireOrderToggle.onchange = e => {
+      createOptionsRequireOrder = !!e.target.checked;
+      syncMcqOrderUi(false);
+    };
+  }
+  const editMcqRequireOrderToggle = el('editMcqRequireOrderToggle');
+  if (editMcqRequireOrderToggle) {
+    editMcqRequireOrderToggle.onchange = e => {
+      editOptionsRequireOrder = !!e.target.checked;
+      syncMcqOrderUi(true);
+    };
+  }
 }
 
 const HTML2CANVAS_URL = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
@@ -2153,15 +2247,30 @@ function parseMcqOptions() {
   const options = [];
   const primaryText = el('cardAnswer').value.trim();
   const primaryToggle = el('primaryAnswerToggle');
+  const primaryOrderEl = el('primaryAnswerOrder');
+  const primaryOrder = Number(primaryOrderEl?.value || 1);
   if (primaryText) {
-    options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true });
+    options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true, order: primaryOrder });
   }
   const rows = Array.from(el('mcqOptions').querySelectorAll('.mcq-row[data-primary="false"]'));
   rows.forEach(row => {
     const text = row.querySelector('input[type="text"]').value.trim();
     const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
-    if (text) options.push({ text, correct });
+    const orderEl = row.querySelector('.mcq-order-select');
+    const order = Number(orderEl?.value || orderEl?.dataset.value || 0);
+    if (text) options.push({ text, correct, order });
   });
+  if (createOptionsRequireOrder) {
+    options = options.map(opt => ({ ...opt, correct: true }));
+    options.sort((a, b) => {
+      const ao = Number(a.order || 0);
+      const bo = Number(b.order || 0);
+      if (ao === bo) return 0;
+      if (!ao) return 1;
+      if (!bo) return -1;
+      return ao - bo;
+    });
+  }
   return options;
 }
 
@@ -2174,6 +2283,8 @@ function addMcqRow(text = '', correct = false, options = {}) {
   const opts = (options && typeof options === 'object') ? options : {};
   const insertAtTop = opts.insertAtTop !== false;
   const focusInput = opts.focusInput !== false;
+  const mcqContainer = el('mcqOptionsContainer');
+  const optionsWrap = el('mcqOptions');
   const wrap = document.createElement('div');
   wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
   wrap.dataset.primary = 'false';
@@ -2183,6 +2294,10 @@ function addMcqRow(text = '', correct = false, options = {}) {
           <label class="toggle mcq-toggle">
             <input type="checkbox" ${correct ? 'checked' : ''} />
             <span class="toggle-slider"></span>
+          </label>
+          <label class="mcq-order-control hidden">
+            <span class="tiny">Order</span>
+            <select class="mcq-order-select" data-value="${nextOptionOrderId}"></select>
           </label>
         </div>
         <input type="text" placeholder="Answer option..." value="${escapeHTML(text)}" />
@@ -2207,15 +2322,31 @@ function addMcqRow(text = '', correct = false, options = {}) {
     input.addEventListener('keydown', handleInlineFormatShortcut);
     input.addEventListener('keydown', handleTextAlignShortcut);
   }
+  const orderSelect = wrap.querySelector('.mcq-order-select');
+  if (orderSelect) {
+    const currentCount = optionsWrap
+      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
+      : 0;
+    const initialOrder = Number(opts.order || currentCount + 1);
+    orderSelect.value = String(initialOrder);
+    orderSelect.dataset.value = String(initialOrder);
+    orderSelect.addEventListener('change', () => {
+      orderSelect.dataset.value = orderSelect.value;
+    });
+  }
   wrap.querySelector('.mcq-remove').onclick = () => {
     wrap.remove();
+    const remaining = optionsWrap
+      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
+      : 0;
+    if (mcqContainer && remaining === 0) mcqContainer.classList.add('hidden');
     syncMcqPrimaryAnswerMode(false);
   };
   update();
-  const optionsWrap = el('mcqOptions');
   if (!optionsWrap) return;
   if (insertAtTop && optionsWrap.firstChild) optionsWrap.insertBefore(wrap, optionsWrap.firstChild);
   else optionsWrap.appendChild(wrap);
+  syncMcqOrderUi(false);
   if (focusInput && input instanceof HTMLInputElement) {
     requestAnimationFrame(() => {
       input.focus();
@@ -2235,15 +2366,30 @@ function parseEditMcqOptions() {
   const options = [];
   const primaryText = el('editCardAnswer').value.trim();
   const primaryToggle = el('editPrimaryAnswerToggle');
+  const primaryOrderEl = el('editPrimaryAnswerOrder');
+  const primaryOrder = Number(primaryOrderEl?.value || 1);
   if (primaryText) {
-    options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true });
+    options.push({ text: primaryText, correct: primaryToggle ? primaryToggle.checked : true, order: primaryOrder });
   }
   const rows = Array.from(el('editMcqOptions').querySelectorAll('.mcq-row[data-primary="false"]'));
   rows.forEach(row => {
     const text = row.querySelector('input[type="text"]').value.trim();
     const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
-    if (text) options.push({ text, correct });
+    const orderEl = row.querySelector('.mcq-order-select');
+    const order = Number(orderEl?.value || orderEl?.dataset.value || 0);
+    if (text) options.push({ text, correct, order });
   });
+  if (editOptionsRequireOrder) {
+    options = options.map(opt => ({ ...opt, correct: true }));
+    options.sort((a, b) => {
+      const ao = Number(a.order || 0);
+      const bo = Number(b.order || 0);
+      if (ao === bo) return 0;
+      if (!ao) return 1;
+      if (!bo) return -1;
+      return ao - bo;
+    });
+  }
   return options;
 }
 
@@ -2256,7 +2402,9 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
   const opts = (options && typeof options === 'object') ? options : {};
   const insertAtTop = opts.insertAtTop !== false;
   const focusInput = opts.focusInput !== false;
+  const optionsWrap = el('editMcqOptions');
   const wrap = document.createElement('div');
+  const mcqContainer = el('mcqOptionsContainer');
   wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
   wrap.dataset.primary = 'false';
   wrap.innerHTML = `
@@ -2265,6 +2413,10 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
           <label class="toggle mcq-toggle">
             <input type="checkbox" ${correct ? 'checked' : ''} />
             <span class="toggle-slider"></span>
+          </label>
+          <label class="mcq-order-control hidden">
+            <span class="tiny">Order</span>
+            <select class="mcq-order-select" data-value="${nextOptionOrderId}"></select>
           </label>
         </div>
         <input type="text" placeholder="Answer option..." value="${escapeHTML(text)}" />
@@ -2288,15 +2440,31 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
     input.addEventListener('keydown', handleInlineFormatShortcut);
     input.addEventListener('keydown', handleTextAlignShortcut);
   }
+  const orderSelect = wrap.querySelector('.mcq-order-select');
+  if (orderSelect) {
+    const currentCount = optionsWrap
+      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
+      : 0;
+    const initialOrder = Number(opts.order || currentCount + 1);
+    orderSelect.value = String(initialOrder);
+    orderSelect.dataset.value = String(initialOrder);
+    orderSelect.addEventListener('change', () => {
+      orderSelect.dataset.value = orderSelect.value;
+    });
+  }
   wrap.querySelector('.mcq-remove').onclick = () => {
     wrap.remove();
+    const remaining = optionsWrap
+      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
+      : 0;
+    if (mcqContainer && remaining === 0) mcqContainer.classList.add('hidden');
     syncMcqPrimaryAnswerMode(true);
   };
   update();
-  const optionsWrap = el('editMcqOptions');
   if (!optionsWrap) return;
   if (insertAtTop && optionsWrap.firstChild) optionsWrap.insertBefore(wrap, optionsWrap.firstChild);
   else optionsWrap.appendChild(wrap);
+  syncMcqOrderUi(true);
   if (focusInput && input instanceof HTMLInputElement) {
     requestAnimationFrame(() => {
       input.focus();
@@ -2319,6 +2487,11 @@ function openEditDialog(card) {
   applyEditQuestionTextAlign(questionAlign);
   applyEditAnswerTextAlign(answerAlign);
   applyEditOptionsTextAlign(card.optionsTextAlign || 'center');
+  const editOrderToggle = el('editMcqRequireOrderToggle');
+  editOptionsRequireOrder = card.optionsRequireOrder === true;
+  if (editOrderToggle) editOrderToggle.checked = editOptionsRequireOrder;
+  const editOrderSelect = el('editPrimaryAnswerOrder');
+  if (editOrderSelect) editOrderSelect.value = '1';
   el('editCardPrompt').value = card.prompt || '';
   el('editCardAnswer').value = card.answer || '';
   replaceFieldImages(
@@ -2346,13 +2519,16 @@ function openEditDialog(card) {
     const primaryOpt = opts[primaryIdx];
     const toggle = el('editPrimaryAnswerToggle');
     if (toggle && primaryOpt) toggle.checked = !!primaryOpt.correct;
+    const primaryOrder = primaryOpt?.order || 1;
+    if (editOrderSelect) editOrderSelect.value = String(primaryOrder);
     syncPrimaryMcqUi(true);
     opts.forEach((opt, i) => {
       if (i === primaryIdx) return;
-      addEditMcqRow(opt.text, opt.correct, { insertAtTop: false, focusInput: false });
+      addEditMcqRow(opt.text, opt.correct, { insertAtTop: false, focusInput: false, order: opt.order || i + 1 });
     });
   }
   syncMcqPrimaryAnswerMode(true);
+  syncMcqOrderUi(true);
   el('editCardDialog').showModal();
 }
 

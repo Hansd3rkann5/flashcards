@@ -1758,6 +1758,7 @@ async function boot() {
   const editorShell = document.querySelector('#editorPanel .editor-shell');
   const editorOverlay = el('editorOverlay');
   const toggleSidebarBtn = el('toggleEditorSidebarBtn');
+  const mcqContainer = el('mcqOptionsContainer');
   const openEditorIntroBtn = el('openEditorIntroBtn');
   if (toggleSidebarBtn && editorShell) {
     toggleSidebarBtn.onclick = () => editorShell.classList.toggle('sidebar-open');
@@ -1789,6 +1790,7 @@ async function boot() {
   };
   el('openCreateCardBtn').onclick = openCreateCardEditor;
   el('addMcqOptionBtn').onclick = () => {
+    mcqContainer.classList.remove('hidden');
     setMcqModeState(false, true);
     addMcqRow();
     syncMcqPrimaryAnswerMode(false);
@@ -2196,6 +2198,7 @@ async function boot() {
   el('addCardBtn').onclick = async () => {
     if (!selectedTopic) return alert('Pick a topic first.');
     if (!updateCreateValidation(true)) {
+
       createTouched = true;
       updateCreateValidation(true);
       return;
@@ -2225,11 +2228,14 @@ async function boot() {
       prompt: el('cardPrompt').value,
       answer: el('cardAnswer').value,
       options: type === 'mcq' ? options : [],
+      optionsRequireOrder: type === 'mcq' ? !!createOptionsRequireOrder : false,
       ...imagePayload,
       createdAt,
       meta: { createdAt }
     };
     applyOptimisticCardCreate(card);
+    mcqContainer.classList.add('hidden');
+    console.log("Create hide mcq options");
     const createdTopicId = String(card.topicId || '').trim();
     if (createdTopicId) {
       const bumpTopicCount = topic => {
@@ -2254,6 +2260,11 @@ async function boot() {
     replaceFieldImages(el('cardAnswer'), el('answerImagePreview'), [], 'imageDataA', updateCreateValidation);
     const primaryToggle = el('primaryAnswerToggle');
     if (primaryToggle) primaryToggle.checked = true;
+    const orderToggle = el('mcqRequireOrderToggle');
+    if (orderToggle) {
+      orderToggle.checked = false;
+      createOptionsRequireOrder = false;
+    }
     el('mcqOptions').innerHTML = '';
     setMcqModeState(false, false);
     createTouched = false;
@@ -2347,6 +2358,7 @@ async function boot() {
       prompt: el('editCardPrompt').value,
       answer: el('editCardAnswer').value,
       options: type === 'mcq' ? options : [],
+      optionsRequireOrder: type === 'mcq' ? !!editOptionsRequireOrder : false,
       type,
       ...imagePayload
     };

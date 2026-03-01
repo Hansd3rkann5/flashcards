@@ -846,7 +846,7 @@ function applyNextSessionCardTheme(card) {
 
 /**
  * @function buildDisabledMcqAnswerZone
- * @description Builds a read-only MCQ answer zone used in non-interactive card previews.
+ * @description Builds an interactive MCQ answer zone used in card previews (no grading side-effects).
  */
 
 function buildDisabledMcqAnswerZone(card) {
@@ -855,12 +855,30 @@ function buildDisabledMcqAnswerZone(card) {
   const optionsAlign = card?.optionsTextAlign || card?.answerTextAlign || card?.textAlign || 'center';
   const optionsWrap = document.createElement('div');
   optionsWrap.className = 'mcq-options';
-  options.forEach(option => {
+  const requireOrder = card?.optionsRequireOrder === true;
+  optionsWrap.classList.toggle('require-order', requireOrder);
+  let selectionCounter = 0;
+  const resetSelection = () => {
+    selectionCounter = 0;
+    optionsWrap.querySelectorAll('.mcq-option').forEach(btn => {
+      btn.classList.remove('selected', 'correct', 'wrong', 'wrong-order');
+      btn.dataset.selOrder = '';
+    });
+  };
+  const shuffledOptions = options
+    .map((option, originalIndex) => ({ option, originalIndex, sortKey: Math.random() }))
+    .sort((a, b) => a.sortKey - b.sortKey);
+  const orderVal = (o, idx) => {
+    const raw = Number(o?.order || 0);
+    return raw > 0 ? raw : idx + 1;
+  };
+  shuffledOptions.forEach(({ option, originalIndex }, renderIndex) => {
     const optionEl = document.createElement('button');
     optionEl.type = 'button';
     optionEl.className = 'mcq-option';
-    optionEl.disabled = true;
-    optionEl.tabIndex = -1;
+    optionEl.dataset.idx = String(originalIndex);
+    const expectedOrder = orderVal(option, originalIndex);
+    if (requireOrder) optionEl.title = `Expected position ${expectedOrder}`;
     const textEl = document.createElement('span');
     textEl.className = 'mcq-text';
     renderRich(textEl, option?.text || '', { textAlign: optionsAlign });
@@ -869,6 +887,24 @@ function buildDisabledMcqAnswerZone(card) {
       optionCount
     });
     optionEl.appendChild(textEl);
+    optionEl.onclick = () => {
+      const nowSelected = optionEl.classList.toggle('selected');
+      if (requireOrder) {
+        if (nowSelected) {
+          selectionCounter += 1;
+          optionEl.dataset.selOrder = String(selectionCounter);
+        } else {
+          optionEl.dataset.selOrder = '';
+          const selectedButtons = Array.from(optionsWrap.querySelectorAll('.mcq-option.selected'))
+            .sort((a, b) => (Number(a.dataset.selOrder) || 0) - (Number(b.dataset.selOrder) || 0));
+          selectionCounter = 0;
+          selectedButtons.forEach(btn => {
+            selectionCounter += 1;
+            btn.dataset.selOrder = String(selectionCounter);
+          });
+        }
+      }
+    };
     optionsWrap.appendChild(optionEl);
   });
   applyMcqOptionsGridLayout(optionsWrap, optionCount);
@@ -883,10 +919,140 @@ function buildDisabledMcqAnswerZone(card) {
   checkBtn.className = 'btn mcq-check-btn';
   checkBtn.type = 'button';
   checkBtn.textContent = 'Check';
-  checkBtn.disabled = true;
-  checkBtn.tabIndex = -1;
   checkRow.appendChild(checkBtn);
   answerZone.append(separator, optionsWrap, checkRow);
+  checkBtn.onclick = () => {
+    const buttons = Array.from(optionsWrap.querySelectorAll('.mcq-option'));
+    const selectedButtons = buttons.filter(b => b.classList.contains('selected'));
+    const selected = selectedButtons.map(b => Number(b.dataset.idx));
+    const expectedOrder = requireOrder
+      ? options
+          .map((option, idx) => ({
+            idx,
+            order: Number(option.order || idx + 1)
+          }))
+          .sort((a, b) => a.order - b.order)
+          .map(o => o.idx)
+      : options
+          .map((o, i) => ({ idx: i, correct: o.correct !== false }))
+          .filter(o => o.correct)
+          .map(o => o.idx);
+
+    // --- assign expected order to all option buttons ---
+    buttons.forEach(btn => {
+      const idx = Number(btn.dataset.idx);
+      const expectedPos = expectedOrder.indexOf(idx);
+      if (expectedPos !== -1) {
+        // +1, weil Anzeige 1-basiert
+        btn.dataset.expOrder = String(expectedPos + 1);
+      } else {
+        btn.dataset.expOrder = '';
+      }
+    });
+    // Optional debug logging
+    // console.log('[MCQ DEBUG] exp-order assigned',
+    //   buttons.map(b => ({
+    //     idx: b.dataset.idx,
+    //     exp: b.dataset.expOrder,
+    //     sel: b.dataset.selOrder
+    //   }))
+    // );
+
+    const correctSet = new Set(expectedOrder);
+    const correctCount = expectedOrder.length || 0;
+    let result = 'wrong';
+    if (requireOrder && correctCount) {
+      // Positionsweiser Vergleich expected ↔ actual
+      // orderedSelection: [actualIdx0, actualIdx1, ...] in Klickreihenfolge
+      const orderedSelection = selectedButtons
+        .map(btn => ({
+          idx: Number(btn.dataset.idx),
+          order: Number(btn.dataset.selOrder) || Number.MAX_SAFE_INTEGER
+        }))
+        .sort((a, b) => a.order - b.order)
+        .map(item => item.idx);
+
+      // --- DEBUG LOGGING BEGIN ---
+      console.groupCollapsed('[Preview MCQ DEBUG] requireOrder – position check');
+      console.log('expected (expectedOrder):', expectedOrder);
+      console.log('actual (orderedSelection):', orderedSelection);
+      expectedOrder.forEach((expectedIdx, pos) => {
+        const actualIdx = orderedSelection[pos];
+        console.log(
+          `pos ${pos}: expected=${expectedIdx}, actual=${actualIdx}`,
+          actualIdx === expectedIdx ? '✅ correct' : '❌ wrong-order'
+        );
+      });
+      console.groupEnd();
+      // --- DEBUG LOGGING END ---
+
+      // Reset all classes
+      buttons.forEach(btn => {
+        btn.classList.remove('correct', 'wrong', 'wrong-order');
+      });
+
+      // Positionsweiser Vergleich
+      expectedOrder.forEach((expectedIdx, pos) => {
+        const actualIdx = orderedSelection[pos];
+        if (actualIdx == null) return;
+        const actualBtn = buttons.find(
+          b => Number(b.dataset.idx) === actualIdx
+        );
+        if (!actualBtn) return;
+        if (actualIdx === expectedIdx) {
+          actualBtn.classList.add('correct');
+        } else {
+          actualBtn.classList.add('wrong-order');
+        }
+      });
+      // Markiere weitere Klicks hinter expected als wrong-order
+      orderedSelection.slice(expectedOrder.length).forEach(idx => {
+        const btn = buttons.find(b => Number(b.dataset.idx) === idx);
+        if (btn) btn.classList.add('wrong-order');
+      });
+      // result-Berechnung bleibt wie gehabt (optional)
+      if (
+        orderedSelection.length >= expectedOrder.length &&
+        expectedOrder.every((idx, i) => orderedSelection[i] === idx)
+      ) {
+        result = 'correct';
+      } else if (
+        orderedSelection.length > 0 &&
+        expectedOrder.slice(0, orderedSelection.length)
+          .every((idx, i) => orderedSelection[i] === idx)
+      ) {
+        result = 'partial';
+      } else {
+        result = 'wrong';
+      }
+    } else {
+      const selectedCorrect = selected.filter(i => correctSet.has(i)).length;
+      const selectedWrong = selected.filter(i => !correctSet.has(i)).length;
+      console.log('[Preview MCQ DEBUG] standard mode', {
+        selected,
+        expectedOrder,
+        selectedCorrect,
+        selectedWrong
+      });
+      buttons.forEach(btn => {
+        const optionIdx = Number(btn.dataset.idx);
+        btn.classList.remove('correct', 'wrong');
+        if (correctSet.has(optionIdx)) btn.classList.add('correct');
+        if (btn.classList.contains('selected') && !correctSet.has(optionIdx)) btn.classList.add('wrong');
+      });
+      if (selectedWrong > 0) result = 'wrong';
+      else if (selectedCorrect === correctCount && correctCount > 0) result = 'correct';
+      else if (correctCount > 1 && selectedCorrect / correctCount >= 0.5) result = 'partial';
+      else result = 'wrong';
+    }
+    checkBtn.textContent = 'Reset';
+    checkBtn.onclick = () => {
+      resetSelection();
+      checkBtn.textContent = 'Check';
+      checkBtn.onclick = arguments.callee;
+    };
+    return result;
+  };
   return answerZone;
 }
 
@@ -965,6 +1131,7 @@ function renderNextSessionCardPreview(card) {
   } else {
     qtxtEl.textContent = 'Question';
   }
+  qtxtEl.classList.toggle('has-question-image', qImages.length > 0);
   appendSessionImages(nextContent, qImages, 'Question image');
   if (isMcq) {
     nextContent.append(buildDisabledMcqAnswerZone(card));
@@ -1068,6 +1235,7 @@ function renderCardPreviewContent(card) {
   const qtxtEl = front.querySelector('.qtxt');
   renderRich(qtxtEl, card.prompt || '', { textAlign: card.questionTextAlign || card.textAlign || 'center' });
   applySessionTextSize(qtxtEl, card.prompt || '', { hasImage: qImages.length > 0, isMcq });
+  qtxtEl.classList.toggle('has-question-image', qImages.length > 0);
   appendSessionImages(front, qImages, 'Question image');
 
   if (isMcq) {
@@ -1134,16 +1302,35 @@ function renderCardContent(card) {
   const qtxtEl = front.querySelector('.qtxt');
   renderRich(qtxtEl, card.prompt, { textAlign: card.questionTextAlign || card.textAlign || 'center' });
   applySessionTextSize(qtxtEl, card.prompt, { hasImage: qImages.length > 0, isMcq });
+  qtxtEl.classList.toggle('has-question-image', qImages.length > 0);
   appendSessionImages(front, qImages, 'Question image');
   if (isMcq) {
     const opts = card.options || [];
     const optionCount = opts.length;
-    const shuffledOptions = opts
-      .map((option, originalIndex) => ({ option, originalIndex, sortKey: Math.random() }))
-      .sort((a, b) => a.sortKey - b.sortKey);
+    const requireOrder = card.optionsRequireOrder === true;
+    const orderVal = (option, idx) => {
+      const raw = Number(option?.order || 0);
+      return raw > 0 ? raw : idx + 1;
+    };
+    const optionList = requireOrder
+      ? opts.map((option, originalIndex) => ({ option, originalIndex }))
+        .sort((a, b) => orderVal(a.option, a.originalIndex) - orderVal(b.option, b.originalIndex))
+      : opts.map((option, originalIndex) => ({ option, originalIndex, sortKey: Math.random() }))
+        .sort((a, b) => a.sortKey - b.sortKey);
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'mcq-options';
-    shuffledOptions.forEach(({ option, originalIndex }, renderIndex) => {
+    optionsWrap.classList.toggle('require-order', requireOrder);
+    let selectionCounter = 0;
+    const resequenceSelection = () => {
+      const selectedButtons = Array.from(optionsWrap.querySelectorAll('.mcq-option.selected'))
+        .sort((a, b) => (Number(a.dataset.selOrder) || 0) - (Number(b.dataset.selOrder) || 0));
+      selectionCounter = 0;
+      selectedButtons.forEach(btn => {
+        selectionCounter += 1;
+        btn.dataset.selOrder = String(selectionCounter);
+      });
+    };
+    optionList.forEach(({ option, originalIndex }, renderIndex) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'mcq-option';
@@ -1167,7 +1354,16 @@ function renderCardContent(card) {
       });
       btn.appendChild(textEl);
       btn.addEventListener('click', () => {
-        btn.classList.toggle('selected');
+        const nowSelected = btn.classList.toggle('selected');
+        if (requireOrder) {
+          if (nowSelected) {
+            selectionCounter += 1;
+            btn.dataset.selOrder = String(selectionCounter);
+          } else {
+            btn.dataset.selOrder = '';
+            resequenceSelection();
+          }
+        }
       });
       optionsWrap.appendChild(btn);
     });
@@ -1186,35 +1382,139 @@ function renderCardContent(card) {
     answerZone.append(separator, optionsWrap, checkRow);
     front.appendChild(answerZone);
 
-    checkBtn.onclick = async e => {
-      e.stopPropagation();
-      const buttons = Array.from(optionsWrap.querySelectorAll('.mcq-option'));
-      const selected = buttons
-        .filter(b => b.classList.contains('selected'))
-        .map(b => Number(b.dataset.idx));
-      const correctIdx = opts.map((o, i) => o.correct ? i : null).filter(i => i !== null);
-      const correctSet = new Set(correctIdx);
-      const selectedCorrect = selected.filter(i => correctSet.has(i)).length;
-      const selectedWrong = selected.filter(i => !correctSet.has(i)).length;
-      const correctCount = correctIdx.length || 0;
+      checkBtn.onclick = async e => {
+        e.stopPropagation();
+        const buttons = Array.from(optionsWrap.querySelectorAll('.mcq-option'));
+        const selectedButtons = buttons.filter(b => b.classList.contains('selected'));
+        const selected = selectedButtons.map(b => Number(b.dataset.idx));
+        const expectedOrder = requireOrder
+          ? opts
+              .map((option, idx) => ({
+                idx,
+                order: Number(option.order || idx + 1)
+              }))
+              .sort((a, b) => a.order - b.order)
+              .map(o => o.idx)
+          : opts
+              .map((o, i) => ({ idx: i, correct: o.correct !== false }))
+              .filter(o => o.correct)
+              .map(o => o.idx);
 
-      // visual feedback
-      buttons.forEach(btn => {
-        const optionIdx = Number(btn.dataset.idx);
-        btn.classList.remove('correct', 'wrong');
-        if (correctSet.has(optionIdx)) btn.classList.add('correct');
-        if (btn.classList.contains('selected') && !correctSet.has(optionIdx)) btn.classList.add('wrong');
-      });
+        // --- assign expected order to all option buttons ---
+        buttons.forEach(btn => {
+          const idx = Number(btn.dataset.idx);
+          const expectedPos = expectedOrder.indexOf(idx);
+          if (expectedPos !== -1) {
+            // +1, weil Anzeige 1-basiert
+            btn.dataset.expOrder = String(expectedPos + 1);
+          } else {
+            btn.dataset.expOrder = '';
+          }
+        });
+        // Optional debug logging
+        // console.log('[MCQ DEBUG] exp-order assigned',
+        //   buttons.map(b => ({
+        //     idx: b.dataset.idx,
+        //     exp: b.dataset.expOrder,
+        //     sel: b.dataset.selOrder
+        //   }))
+        // );
 
-      let result = 'wrong';
-      if (selectedWrong > 0) {
-        result = 'wrong';
-      } else if (selectedCorrect === correctCount && correctCount > 0) {
-        result = 'correct';
-      } else if (correctCount > 1 && selectedCorrect / correctCount >= 0.5) {
-        result = 'partial';
+        const correctSet = new Set(expectedOrder);
+        const correctCount = expectedOrder.length || 0;
+
+        let result = 'wrong';
+
+        if (requireOrder) {
+        // Positionsweiser Vergleich expected ↔ actual
+        const orderedSelection = selectedButtons
+          .map(btn => ({
+            idx: Number(btn.dataset.idx),
+            order: Number(btn.dataset.selOrder) || Number.MAX_SAFE_INTEGER
+          }))
+          .sort((a, b) => a.order - b.order)
+          .map(item => item.idx);
+
+        // --- DEBUG LOGGING BEGIN ---
+        console.groupCollapsed('[Session MCQ DEBUG] requireOrder – position check');
+        console.log('expected (expectedOrder):', expectedOrder);
+        console.log('actual (orderedSelection):', orderedSelection);
+        expectedOrder.forEach((expectedIdx, pos) => {
+          const actualIdx = orderedSelection[pos];
+          console.log(
+            `pos ${pos}: expected=${expectedIdx}, actual=${actualIdx}`,
+            actualIdx === expectedIdx ? '✅ correct' : '❌ wrong-order'
+          );
+        });
+        console.groupEnd();
+        // --- DEBUG LOGGING END ---
+
+        // Reset all classes
+        buttons.forEach(btn => {
+          btn.classList.remove('correct', 'wrong', 'wrong-order');
+        });
+
+        // Positionsweiser Vergleich
+        expectedOrder.forEach((expectedIdx, pos) => {
+          const actualIdx = orderedSelection[pos];
+          if (actualIdx == null) return;
+          const actualBtn = buttons.find(
+            b => Number(b.dataset.idx) === actualIdx
+          );
+          if (!actualBtn) return;
+          if (actualIdx === expectedIdx) {
+            actualBtn.classList.add('correct');
+          } else {
+            actualBtn.classList.add('wrong-order');
+          }
+        });
+        // Markiere weitere Klicks hinter expected als wrong-order
+        orderedSelection.slice(expectedOrder.length).forEach(idx => {
+          const btn = buttons.find(b => Number(b.dataset.idx) === idx);
+          if (btn) btn.classList.add('wrong-order');
+        });
+
+        // result-Berechnung bleibt wie gehabt (optional)
+        if (
+          orderedSelection.length >= expectedOrder.length &&
+          expectedOrder.every((idx, i) => orderedSelection[i] === idx)
+        ) {
+          result = 'correct';
+        } else if (
+          orderedSelection.length > 0 &&
+          expectedOrder.slice(0, orderedSelection.length)
+            .every((idx, i) => orderedSelection[i] === idx)
+        ) {
+          result = 'partial';
+        } else {
+          result = 'wrong';
+        }
       } else {
-        result = 'wrong';
+        const selectedCorrect = selected.filter(i => correctSet.has(i)).length;
+        const selectedWrong = selected.filter(i => !correctSet.has(i)).length;
+        console.log('[MCQ DEBUG] standard mode', {
+          selected,
+          expectedOrder,
+          selectedCorrect,
+          selectedWrong
+        });
+
+        buttons.forEach(btn => {
+          const optionIdx = Number(btn.dataset.idx);
+          btn.classList.remove('correct', 'wrong');
+          if (correctSet.has(optionIdx)) btn.classList.add('correct');
+          if (btn.classList.contains('selected') && !correctSet.has(optionIdx)) btn.classList.add('wrong');
+        });
+
+        if (selectedWrong > 0) {
+          result = 'wrong';
+        } else if (selectedCorrect === correctCount && correctCount > 0) {
+          result = 'correct';
+        } else if (correctCount > 1 && selectedCorrect / correctCount >= 0.5) {
+          result = 'partial';
+        } else {
+          result = 'wrong';
+        }
       }
 
       checkBtn.textContent = 'Next';
@@ -1224,7 +1524,7 @@ function renderCardContent(card) {
         checkBtn.textContent = 'Check';
         checkBtn.dataset.mode = 'check';
         // reset option visuals for next card
-        buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'selected'));
+        buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'wrong-order', 'selected'));
         void gradeCardWithDesktopAutoMove(result);
       };
     };

@@ -2466,6 +2466,11 @@ textarea:focus-visible {
   box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.6), 0 0 14px rgba(34, 197, 94, 0.5);
 }
 
+.mcq-option .mcq-text {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
 .mcq-option.correct {
   background: rgba(16, 82, 56, 0.35);
   border-color: #1b7a57;
@@ -2547,6 +2552,86 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.mcq-order-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+}
+
+.mcq-order-control.hidden {
+  display: none;
+}
+
+.mcq-row.order-mode .mcq-badge,
+.mcq-row.order-mode .mcq-toggle {
+  display: none !important;
+}
+
+.mcq-row.order-mode {
+  border-color: #2f456f;
+  background: rgba(2, 32, 108, 0.7) !important;
+}
+
+.mcq-order-select {
+  min-width: 58px;
+  padding: 2.5px 8px;
+  background: #0f172c;
+  border: 1px solid #2f456f;
+  color: var(--text);
+  border-radius: 10px;
+}
+
+.mcq-options.require-order .mcq-option {
+  justify-content: center;
+}
+
+.mcq-options.require-order .mcq-option.selected {
+  border-color: rgba(2, 32, 108, 0.7);
+}
+
+.mcq-option::after {
+  content: attr(data-sel-order);
+  opacity: 1;
+  transition: opacity 1s ease;
+}
+
+.mcq-options.checked .mcq-option::after {
+  content: attr(data-exp-order);
+  opacity: 1;
+}
+
+.mcq-options.require-order .mcq-option.selected::after {
+  content: attr(data-sel-order);
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #3a4f7c;
+  background: rgba(13, 22, 42, 0.9);
+  color: #d8e6ff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(60, 94, 150, 0.5);
+}
+
+.mcq-options.require-order .mcq-option.wrong-order::after {
+  content: attr(data-exp-order);
+  border-color: #b33a2a;
+  box-shadow: 0 0 0 1px rgba(179, 58, 42, 0.6);
+}
+
+.wrong-order {
+  background: rgba(179, 58, 42, 0.35) !important;
+  box-shadow: 0 0 5px 2px rgba(179, 58, 42, 0.6) !important;
+  border-color: #9a2b1c !important;
 }
 
 .mcq-answer-zone {
@@ -2643,7 +2728,7 @@ textarea:focus-visible {
   gap: 6px;
   border-radius: 44px 44px 0px 0px;
   border: 1px solid rgba(255, 210, 120, 0.55);
-  background: rgba(255, 0, 230, 0.196);
+  background: rgb(255, 242, 0);
   color: #ffe7b5;
   font-size: 0.72rem;
   font-weight: 700;
@@ -3123,8 +3208,6 @@ body.session-image-open {
 .image-preview-upload-btn:hover {
   transform: translate(-50%, -50%) scale(1.05);
   background: rgba(8, 15, 28, 0.88);
-  border-color: rgba(84, 255, 39, 1);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(84, 255, 39, 0.32) inset;
 }
 
 .image-preview-drop-tile {
@@ -4809,9 +4892,8 @@ dialog.modal-wide {
 }
 
 dialog.card-preview-dialog {
-  width: min(980px, 94vw);
-  max-width: none;
-  height: min(86vh, 860px);
+  width: 90%;
+  height: 80%;
   display: none;
   flex-direction: column;
   gap: var(--space-2);
@@ -4827,13 +4909,13 @@ dialog.card-preview-dialog[open] {
 }
 
 .card-preview-area {
-  height: 100%;
-  min-height: 340px;
-  margin: 0;
+  height: 80%;
+  min-height: 280px;
+  margin-bottom: var(--space-5);
 }
 
 #previewFlashcard {
-  width: min(760px, 100%);
+  width: min(1000px, 95%);
   height: 100%;
 }
 
@@ -4861,13 +4943,9 @@ dialog.card-preview-dialog[open] {
   overflow: hidden;
 }
 
-#cardPreviewDialog .mcq-option {
-  cursor: default;
-}
-
 #cardPreviewDialog .mcq-check-btn {
-  opacity: 0.72;
-  cursor: default;
+  opacity: 1;
+  cursor: pointer;
   margin-bottom: var(--space-4);
 }
 

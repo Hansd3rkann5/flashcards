@@ -583,17 +583,21 @@
                 <!-- <div class="qa-editor-separator" aria-hidden="true"></div> -->
                 <div class="editor-field" id="answerField">
                   <div class="mcq-primary-row" id="primaryAnswerRow">
-                    <div class="mcq-primary-header hidden" id="primaryAnswerHeader">
-                      <span class="mcq-badge correct" id="primaryAnswerBadge">Correct Answer ✓</span>
-                      <label class="toggle mcq-toggle">
-                        <input type="checkbox" id="primaryAnswerToggle" checked />
-                        <span class="toggle-slider"></span>
-                      </label>
-                    </div>
-                    <div class="field-head">
-                      <label>Answer</label>
-                      <!-- <button class="btn btn-small formula-btn" data-formula-target="cardAnswer" type="button">Formula</button> -->
-                    </div>
+              <div class="mcq-primary-header hidden" id="primaryAnswerHeader">
+                <span class="mcq-badge correct" id="primaryAnswerBadge">Correct Answer ✓</span>
+                <label class="toggle mcq-toggle">
+                  <input type="checkbox" id="primaryAnswerToggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="mcq-order-control hidden">
+                  <span class="tiny">Order</span>
+                  <select id="primaryAnswerOrder" class="mcq-order-select"></select>
+                </label>
+              </div>
+              <div class="field-head">
+                <label>Answer</label>
+                <!-- <button class="btn btn-small formula-btn" data-formula-target="cardAnswer" type="button">Formula</button> -->
+              </div>
                     <div class="editor-input-media-row">
                       <textarea id="cardAnswer" placeholder="Type the answer..."></textarea>
                       <div id="answerImagePreview" class="image-preview">Drop image here</div>
@@ -620,27 +624,31 @@
                       </div>
                     </div>
                   </div>
-                  <div class="editor-options">
+                  <div class="editor-options hidden" id="mcqOptionsContainer">
                     <div class="tiny">Multi-select answers (optional)</div>
                     <div class="text-toolbar hidden" id="createOptionsToolbar" data-group="create-options">
                       <div class="toolbar-segment">
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-options" data-align="left" aria-label="Options align left"
-                          title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
-                        <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
-                          data-group="create-options" data-align="center" aria-label="Options align center"
-                          title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
-                      </div>
-                    </div>
-                    <div id="mcqOptions" class="hidden"></div>
-                  </div>
-                  <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
-                </div>
+                  title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
+                <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
+                  data-group="create-options" data-align="center" aria-label="Options align center"
+                  title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
               </div>
+            </div>
+            <label class="toggle mcq-order-toggle">
+              <input type="checkbox" id="mcqRequireOrderToggle" />
+              <span class="toggle-slider"></span>
+              <span>Require ordered answers</span>
+            </label>
+            <div id="mcqOptions" class="hidden"></div>
+          </div>
+          <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
+        </div>
+      </div>
               <div class="editor-footer editor-footer-stack">
                 <button class="btn" id="addMcqOptionBtn">Add Answer</button>
-                <button class="btn" id="addCardBtn" style="width: 100%; background-color: #d42dba6e">Create
-                  Flashcard</button>
+                <button class="btn" id="addCardBtn" style="width: 100%; background-color: #d42dba6e">Create Flashcard</button>
               </div>
             </div>
           </div>
@@ -682,7 +690,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.01.04';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.01.20';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -1157,17 +1165,21 @@
           <hr style="border-color:#30456f;width: 97%;">
           <div class="editor-field" id="editAnswerField">
             <div class="mcq-primary-row" id="editPrimaryAnswerRow">
-              <div class="mcq-primary-header hidden" id="editPrimaryAnswerHeader">
-                <span class="mcq-badge correct" id="editPrimaryAnswerBadge">Correct Answer ✓</span>
-                <label class="toggle mcq-toggle">
-                  <input type="checkbox" id="editPrimaryAnswerToggle" checked />
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
-              <div class="field-head">
-                <label>Answer</label>
-                <!-- <button class="btn btn-small formula-btn" data-formula-target="editCardAnswer" type="button">Formula</button> -->
-              </div>
+            <div class="mcq-primary-header hidden" id="editPrimaryAnswerHeader">
+              <span class="mcq-badge correct" id="editPrimaryAnswerBadge">Correct Answer ✓</span>
+              <label class="toggle mcq-toggle">
+                <input type="checkbox" id="editPrimaryAnswerToggle" checked />
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="mcq-order-control hidden">
+                <span class="tiny">Order</span>
+                <select id="editPrimaryAnswerOrder" class="mcq-order-select"></select>
+              </label>
+            </div>
+            <div class="field-head">
+              <label>Answer</label>
+              <!-- <button class="btn btn-small formula-btn" data-formula-target="editCardAnswer" type="button">Formula</button> -->
+            </div>
               <div class="editor-input-media-row">
                 <textarea id="editCardAnswer" placeholder="Type the answer..."></textarea>
                 <div id="editAnswerImagePreview" class="image-preview">Drop image here</div>
@@ -1200,16 +1212,21 @@
                 <div class="toolbar-segment">
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-options" data-align="left" aria-label="Options align left"
-                    title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
-                  <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
-                    data-group="edit-options" data-align="center" aria-label="Options align center"
-                    title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
-                </div>
+                  title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
+                <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
+                  data-group="edit-options" data-align="center" aria-label="Options align center"
+                  title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
               </div>
-              <div id="editMcqOptions" class="hidden"></div>
             </div>
+            <label class="toggle mcq-order-toggle">
+              <input type="checkbox" id="editMcqRequireOrderToggle" />
+              <span class="toggle-slider"></span>
+              <span>Require ordered answers</span>
+            </label>
+            <div id="editMcqOptions" class="hidden"></div>
           </div>
         </div>
+      </div>
         <div class="editor-footer editor-footer-stack">
           <button class="btn" id="editAddMcqOptionBtn">Add Answer</button>
           <button class="btn save-primary" id="saveEditCardBtn">Save
