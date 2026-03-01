@@ -47,6 +47,7 @@
   --counter-gap: 10px;
   --card-grid-min: 300px;
   --track-panel-count: 5;
+  --mobile-sidebar-overlay-progress: 0;
 }
 
 
@@ -709,12 +710,19 @@ body.app-loading {
   gap: 8px;
 }
 
-.sidebar-action-icon {
+.app-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  filter: brightness(0) invert(1);
+}
+
+.sidebar-archive-btn .app-icon {
   width: 16px;
   height: 16px;
-  object-fit: contain;
   filter: brightness(0) invert(1);
-  pointer-events: none;
 }
 
 .create-card-icon-btn {
@@ -740,10 +748,9 @@ body.app-loading {
   background-color: #ff00005d
 }
 
-.close-icon-btn img {
+.close-icon-btn .app-icon {
   width: 18px;
   height: 18px;
-  object-fit: contain;
   filter: brightness(0) invert(1);
 }
 
@@ -766,10 +773,9 @@ body.app-loading {
   background-color: transparent;
 }
 
-.refresh-icon-btn img {
+.refresh-icon-btn .app-icon {
   width: 19px;
   height: 19px;
-  object-fit: contain;
   filter: brightness(0) invert(1);
 }
 
@@ -808,29 +814,29 @@ body.app-loading {
   backface-visibility: hidden;
 }
 
-.select-cards-btn img {
+.select-cards-btn .app-icon {
   width: 22px;
   height: 22px;
-  object-fit: contain;
   filter: invert(89%) sepia(9%) saturate(564%) hue-rotate(188deg) brightness(105%) contrast(95%);
 }
 
-.edit-btn-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  display: block;
+.topic-more-btn .app-icon,
+.card-edit-btn .app-icon,
+.tile-menu-btn .app-icon,
+.card-menu-btn .app-icon,
+#backToTopicsBtn .app-icon,
+#backToTopicsBtnSession .app-icon,
+#backToDeckBtn .app-icon,
+.onboarding-nav-btn .app-icon {
   filter: brightness(0) invert(1);
-  pointer-events: none;
 }
 
-.back-btn-icon {
+#backToTopicsBtn .app-icon,
+#backToTopicsBtnSession .app-icon,
+#backToDeckBtn .app-icon,
+.onboarding-nav-btn .app-icon {
   width: 18px;
   height: 18px;
-  object-fit: contain;
-  display: block;
-  filter: brightness(0) invert(1);
-  pointer-events: none;
 }
 
 .select-cards-btn.active {
@@ -1467,10 +1473,9 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   line-height: 1;
 }
 
-.subject-sidebar-toggle img {
+.subject-sidebar-toggle .app-icon {
   width: 18px;
   height: 18px;
-  object-fit: contain;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2018,7 +2023,7 @@ textarea:focus-visible {
   font-weight: 700;
 }
 
-.topic-more-btn .edit-btn-icon {
+.topic-more-btn .app-icon {
   width: 18px;
   height: 18px;
 }
@@ -2280,7 +2285,7 @@ textarea:focus-visible {
   justify-content: center;
 }
 
-.card-edit-btn .edit-btn-icon {
+.card-edit-btn .app-icon {
   width: 15px;
   height: 15px;
 }
@@ -3092,7 +3097,7 @@ body.session-image-open {
   min-height: 0;
 }
 
-.image-preview-drop-icon {
+.image-preview-empty-state .app-icon {
   object-fit: contain;
   opacity: 0.92;
   pointer-events: none;
@@ -3118,7 +3123,7 @@ body.session-image-open {
   cursor: pointer;
 }
 
-.image-remove-btn img {
+.image-remove-btn .app-icon {
   width: 20px;
   height: 20px;
   object-fit: contain;
@@ -3166,11 +3171,9 @@ body.session-image-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  height: 32px;
-  padding: 4px 8px;
   font-size: 0.9rem;
   line-height: 1;
+  padding: var(--space-2) !important;
 }
 
 .tile-menu-list {
@@ -3199,8 +3202,8 @@ body.session-image-open {
   line-height: 1;
 }
 
-.tile-menu-btn .edit-btn-icon,
-.card-menu-btn .edit-btn-icon {
+.tile-menu-btn .app-icon,
+.card-menu-btn .app-icon {
   width: 18px;
   height: 18px;
 }
@@ -3360,7 +3363,7 @@ body.session-image-open {
   justify-content: center;
 }
 
-.align-icon-btn img {
+.align-icon-btn .app-icon {
   width: 16px;
   height: 16px;
   object-fit: contain;
@@ -3870,7 +3873,7 @@ body.session-image-open {
   box-shadow:
     0 0 0 1px var(--current),
     0 0 10px 2px var(--current);
-    scale: 1.1;
+  scale: 1.2;
 }
 
 .pill-dot.near-master {
@@ -4100,6 +4103,12 @@ dialog.modal.subject-edit-modal {
   text-align: center;
 }
 
+#subjectArchiveDialog::backdrop {
+  background: rgba(7, 12, 24, 0.56);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 #archiveRestoreLoadingDialog {
   border: none;
   background: transparent;
@@ -4154,9 +4163,22 @@ dialog.modal.subject-edit-modal {
   border: 1px solid var(--success);
 }
 
+.archive-tree-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
 .archive-tree-action-restore {
   background: #0ea5e9;
   border: 1px solid #0ea5e9;
+}
+
+.archive-tree-action-delete {
+  background: #9a2b1c;
+  border: 1px solid #9a2b1c;
 }
 
 .exchange-import-btn,
@@ -4374,6 +4396,20 @@ dialog.modal.subject-edit-modal {
 
 #topicEditDialog .topic-edit-actions .btn {
   width: 100%;
+}
+
+.innerGlow {
+  box-shadow: inset 0px 0px 7px 1px #ff9d559c;
+  transition: all 0.3s ease;
+}
+
+.innerGlow:hover {
+  box-shadow: inset 0px 0px 10px 2px #ff9d55;
+}
+
+.innerGlow:active {
+  box-shadow: inset 0px 0px 3px 1px #ff9c556f;
+  scale: 0.95;
 }
 
 .migration-log-meta {
@@ -5771,7 +5807,7 @@ dialog::backdrop {
     display: inline;
   }
 
-  .responsive-action-icon {
+  .archive-tree-action-label+.app-icon {
     display: inline-block;
     margin-left: 6px;
   }
@@ -6182,7 +6218,7 @@ dialog::backdrop {
   background: var(--button)
 }
 
-.responsive-action-icon {
+.archive-tree-action-label+.app-icon {
   display: none;
 }
 
@@ -6484,8 +6520,25 @@ dialog::backdrop {
     transform: translateX(0);
   }
 
-  body.sidebar-open .sidebar-overlay {
+  .sidebar-overlay {
     display: block;
+    pointer-events: none;
+    opacity: var(--mobile-sidebar-overlay-progress, 0);
+    background: rgba(6, 10, 20, 0.62);
+    backdrop-filter: blur(calc(12px * var(--mobile-sidebar-overlay-progress, 0)));
+    -webkit-backdrop-filter: blur(calc(12px * var(--mobile-sidebar-overlay-progress, 0)));
+    transition:
+      opacity 0.25s ease,
+      backdrop-filter 0.25s ease,
+      -webkit-backdrop-filter 0.25s ease;
+  }
+
+  body.sidebar-open {
+    --mobile-sidebar-overlay-progress: 1;
+  }
+
+  body.sidebar-open .sidebar-overlay {
+    pointer-events: auto;
   }
 
   body.sidebar-open #homePanel > .section,
@@ -6768,17 +6821,12 @@ dialog::backdrop {
     font-size: 0.86rem;
   }
 
-  .select-cards-btn img {
+  .select-cards-btn .app-icon {
     width: 18px;
     height: 18px;
   }
 
-  .archive-tree-action-label img {
-    width: 18px;
-    height: 18px;
-  }
-
-  .archive-tree-action-icon {
+  .archive-tree-action-label+.app-icon {
     width: 18px;
     height: 18px;
   }
@@ -6791,7 +6839,7 @@ dialog::backdrop {
     font-size: 1.45rem;
   }
 
-  .topic-more-btn .edit-btn-icon {
+  .topic-more-btn .app-icon {
     width: 16px;
     height: 16px;
   }
@@ -6897,15 +6945,15 @@ dialog::backdrop {
     display: none;
   }
 
-  .responsive-action-icon {
+  .archive-tree-action-label+.app-icon {
     display: inline-block;
   }
 
-  .archive-tree-action-restore,
-  .archive-tree-action-delete {
-    padding: 6px;
+  .archive-tree-action-btn {
+    width: 36px;
     min-width: 36px;
-    justify-content: center;
+    height: 36px;
+    padding: 6px;
   }
 }
 

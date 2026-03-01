@@ -500,7 +500,7 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
     previewEl.setAttribute('title', 'Drop image or click to upload');
     previewEl.innerHTML = `
           <div class="image-preview-empty-state" aria-hidden="true">
-            <img class="image-preview-drop-icon" src="icons/drop_image.png" alt="" style="width: 48px; height: 48px;"/>
+            <img class="app-icon" src="icons/drop_image.png" alt="" style="width: 48px; height: 48px;" />
           </div>
         `;
     return;
@@ -531,7 +531,7 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
     btn.type = 'button';
     btn.className = 'image-remove-btn';
     btn.setAttribute('aria-label', `Remove image ${idx + 1}`);
-    btn.innerHTML = '<img src="icons/trash.svg" alt="" aria-hidden="true">';
+    btn.innerHTML = '<img src="icons/trash.png" alt="" aria-hidden="true" class="app-icon">';
     btn.onclick = e => {
       e.stopPropagation();
       if (typeof onRemoveAt === 'function') onRemoveAt(idx);

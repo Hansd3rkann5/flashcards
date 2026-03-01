@@ -66,7 +66,7 @@
       <div class="onboarding-controls">
         <button class="btn onboarding-nav-btn" id="onboardingTutorialPrevBtn" type="button"
           aria-label="Previous step">
-          <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+          <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
         </button>
         <div id="onboardingTutorialDots" class="onboarding-dots" aria-label="Tutorial progress"></div>
         <button class="btn onboarding-nav-btn" id="onboardingTutorialNextBtn" type="button"
@@ -114,14 +114,14 @@
     <button id="archiveBtn">📁 Archive</button>
 <!--     
     <button id="archiveBtn" class="sidebar-archive-btn" type="button" aria-label="Open archived subjects">
-      <img src="icons/archive.png" alt="" class="sidebar-action-icon" aria-hidden="true" />
+      <img src="icons/archive.png" alt="" class="app-icon" aria-hidden="true" />
       <span>Archive</span>
     </button> -->
     <div class="sidebar-subjects">
       <div class="sidebar-subjects-header">
         <strong>Subjects</strong>
         <button class="btn select-cards-btn" id="addSubjectBtn" style="background-color: var(--success)">
-          <img src="icons/plus.svg" alt="" />
+          <img src="icons/plus.svg" alt="" class="app-icon" />
         </button>
       </div>
       <div id="subjectList" class="tile-grid"></div>
@@ -145,7 +145,7 @@
           <div class="review-header-tile">
             <button class="btn subject-sidebar-toggle review-sidebar-toggle" id="sidebarToggleHome" type="button"
               aria-label="Open sidebar" title="Open sidebar">
-              <img src="icons/burger.svg" alt="" aria-hidden="true" />
+              <img src="icons/burger.svg" alt="" aria-hidden="true" class="app-icon" />
             </button>
             <h3 class="review-header-title">Review Cards</h3>
           </div>
@@ -187,9 +187,9 @@
             <div class="session-repeat-controls">
               <!-- <div class="tiny">Session Size</div> -->
               <div class="counter">
-                <button class="btn counter-btn" id="dailyReviewMinus" type="button">-</button>
+                <button class="btn counter-btn innerGlow" id="dailyReviewMinus" type="button">-</button>
                 <div class="counter-value" id="dailyReviewSizeValue">0 / 0</div>
-                <button class="btn counter-btn" id="dailyReviewPlus" type="button">+</button>
+                <button class="btn counter-btn innerGlow" id="dailyReviewPlus" type="button">+</button>
               </div>
             </div>
             <div class="session-complete-stat">
@@ -246,7 +246,7 @@
             <div class="controls topic-header" style="align-items:center;margin-inline: 0; ">
               <button class="btn subject-sidebar-toggle" id="sidebarToggle" type="button" aria-label="Open sidebar"
                 title="Open sidebar">
-                <img src="icons/burger.svg" alt="" aria-hidden="true" />
+                <img src="icons/burger.svg" alt="" aria-hidden="true" class="app-icon" />
               </button>
               <h2 id="topicTitle" style="margin:0;">Subject</h2>
             </div>
@@ -303,12 +303,12 @@
             <div class="topic-list-actions">
               <button class="btn select-cards-btn topic-search-btn scale" id="openTopicSearchBtn" aria-label="Search cards"
                 title="Search cards" type="button">
-                <img src="icons/icons8-suche-48.svg" alt="" />
+                <img src="icons/icons8-suche-48.svg" alt="" class="app-icon" />
               </button>
               <button class="btn select-cards-btn" id="selectAllSessionTopicsBtn" type="button">All</button>
               <button class="btn select-cards-btn" id="toggleTopicSelectBtn" aria-label="Select topics"
                 title="Select topics" type="button">
-                <img src="icons/check.svg" alt="" />
+                <img src="icons/check.svg" alt="" class="app-icon" />
               </button>
             </div>
           </div>
@@ -335,7 +335,7 @@
           <!-- <div class="deck-sticky-stack"> -->
           <div class="controls deck-controls deck-header-tile">
             <button class="btn" id="backToTopicsBtn" aria-label="Back to topics">
-              <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+              <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
             <div class="deck-title-wrap">
               <h2 id="deckTitle" class="deck-title">Deck</h2>
@@ -344,15 +344,15 @@
             <div class="deck-actions">
               <button class="btn select-cards-btn" id="toggleCardSelectBtn" aria-label="Select cards"
                 title="Select cards" type="button">
-                <img src="icons/check.svg" alt="" />
+                <img src="icons/check.svg" alt="" class="app-icon" />
               </button>
               <button class="btn select-cards-btn topic-more-btn" id="openTopicEditBtn" aria-label="Rename topic"
                 title="Rename topic" type="button">
-                <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+                <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
               </button>
               <button class="btn select-cards-btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
                 aria-label="Create flashcard" title="Create flashcard">
-                <img src="icons/plus.svg" alt="" />
+                <img src="icons/plus.svg" alt="" class="app-icon" />
               </button>
             </div>
             <!-- </div> -->
@@ -371,8 +371,8 @@
 
         <div class="section hidden" id="studySessionSection" style="height: 100%;">
           <div class="session-top">
-            <button class="btn" id="backToTopicsBtnSession" style="position: absolute;" aria-label="Back to topics">
-              <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+            <button class="btn innerGlow" id="backToTopicsBtnSession" style="position: absolute;" aria-label="Back to topics">
+              <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
             <div id="sessionPillBar" class="session-pill-bar">
               <div id="masteredPills" class="pill-row mastered"></div>
@@ -479,9 +479,9 @@
                   <span class="session-label-short">Q</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="frontTopicPill"></div>
-                <button class="btn card-edit-btn" id="editSessionCardBtn" type="button" aria-label="Edit card"
+                <button class="btn card-edit-btn innerGlow" id="editSessionCardBtn" type="button" aria-label="Edit card"
                   title="Edit card">
-                  <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+                  <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="frontContent"></div>
               </div>
@@ -491,9 +491,9 @@
                   <span class="session-label-short">A</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="backTopicPill"></div>
-                <button class="btn card-edit-btn" id="editSessionCardBtnBack" type="button" aria-label="Edit card"
+                <button class="btn card-edit-btn innerGlow" id="editSessionCardBtnBack" type="button" aria-label="Edit card"
                   title="Edit card">
-                  <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+                  <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="backContent"></div>
               </div>
@@ -508,7 +508,7 @@
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="nextTopicPill"></div>
                 <button class="btn card-edit-btn" type="button" tabindex="-1" aria-hidden="true" disabled>
-                  <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+                  <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="nextContent"></div>
               </div>
@@ -526,7 +526,7 @@
         <div class="section editor-shell">
           <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
             <button class="btn" id="backToDeckBtn" aria-label="Back to deck">
-              <img src="icons/back.png" alt="" class="back-btn-icon" aria-hidden="true" />
+              <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
             <div>
               <h2 id="editorTitle" style="margin:0;">+</h2>
@@ -559,13 +559,13 @@
                     <div class="toolbar-segment">
                       <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                         data-group="create-question" data-align="left" aria-label="Align left"
-                        title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt=""></button>
+                        title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt="" class="app-icon"></button>
                       <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                         data-group="create-question" data-align="center" aria-label="Align center"
-                        title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt=""></button>
+                        title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt="" class="app-icon"></button>
                       <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                         data-group="create-question" data-align="justify" aria-label="Align justify"
-                        title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt=""></button>
+                        title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt="" class="app-icon"></button>
                     </div>
                     <div class="toolbar-segment">
                       <button class="btn btn-small toolbar-btn" type="button" data-action="list"
@@ -601,13 +601,13 @@
                       <div class="toolbar-segment">
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-answer" data-align="left" aria-label="Align left"
-                          title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt=""></button>
+                          title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt="" class="app-icon"></button>
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-answer" data-align="center" aria-label="Align center"
-                          title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt=""></button>
+                          title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt="" class="app-icon"></button>
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-answer" data-align="justify" aria-label="Align justify"
-                          title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt=""></button>
+                          title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt="" class="app-icon"></button>
                       </div>
                       <div class="toolbar-segment">
                         <button class="btn btn-small toolbar-btn" type="button" data-action="list"
@@ -625,10 +625,10 @@
                       <div class="toolbar-segment">
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-options" data-align="left" aria-label="Options align left"
-                          title="Options align left"><img src="icons/links.png" alt=""></button>
+                          title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-options" data-align="center" aria-label="Options align center"
-                          title="Options align center"><img src="icons/center.png" alt=""></button>
+                          title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
                       </div>
                     </div>
                     <div id="mcqOptions" class="hidden"></div>
@@ -651,13 +651,13 @@
           <div class="editor-header content-exchange-panel-header">
             <h3>Content Exchange</h3>
             <div class="panel-header-actions">
-              <button class="btn refresh-icon-btn" id="reloadContentExchangeBtn" type="button"
+              <button class="btn refresh-icon-btn innerGlow" id="reloadContentExchangeBtn" type="button"
                 aria-label="Reload content exchange data" title="Reload users">
-                <img src="icons/refresh.svg" alt="" aria-hidden="true" />
+                <img src="icons/refresh.svg" alt="" aria-hidden="true" class="app-icon" />
               </button>
               <button class="btn close-icon-btn" id="closeContentExchangeBtn" type="button"
                 aria-label="Close content exchange panel" title="Close">
-                <img src="icons/close.svg" alt="" aria-hidden="true" />
+                <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
               </button>
             </div>
           </div>
@@ -681,7 +681,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.02.28.04';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.01.01';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -856,7 +856,7 @@
         <h3>Search Cards</h3>
         <button class="btn close-icon-btn" id="closeTopicSearchBtn" type="button" aria-label="Close search dialog"
           title="Close">
-          <img src="icons/close.svg" alt="" aria-hidden="true" />
+          <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
         </button>
       </div>
       <div class="topic-search-controls">
@@ -875,11 +875,11 @@
         <div class="panel-header-actions">
           <button class="btn refresh-icon-btn" id="refreshProgressCheckBtn" type="button"
             aria-label="Refresh status table" title="Refresh">
-            <img src="icons/refresh.svg" alt="" aria-hidden="true" />
+            <img src="icons/refresh.svg" alt="" aria-hidden="true" class="app-icon" />
           </button>
           <button class="btn close-icon-btn" id="closeProgressCheckBtn" type="button"
             aria-label="Close progress check dialog" title="Close">
-            <img src="icons/close.svg" alt="" aria-hidden="true" />
+            <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
           </button>
         </div>
       </div>
@@ -986,7 +986,7 @@
       <h3>Session Filter</h3>
       <button class="btn close-icon-btn" id="closeSessionFilterBtn" type="button" aria-label="Close session filter"
         title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="session-filter-list">
@@ -1028,7 +1028,7 @@
       <h3>Session Complete</h3>
       <button class="btn close-icon-btn" id="closeSessionCompleteBtn" type="button"
         aria-label="Close session complete dialog" title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="session-complete-message" id="sessionCompleteMessage">Great work!</div>
@@ -1060,7 +1060,7 @@
       <h3>Settings & Data</h3>
       <button class="btn close-icon-btn" id="closeSettingsBtn" type="button" aria-label="Close settings dialog"
         title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <p class="tiny settings-intro">Manage backups, diagnostics, and account actions.</p>
@@ -1100,7 +1100,7 @@
       <h3>Image Migration</h3>
       <button class="btn close-icon-btn" id="closeImageMigrationLogBtn" type="button"
         aria-label="Close image migration dialog" title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="migration-log-meta tiny" id="imageMigrationStatus">Waiting to start...</div>
@@ -1115,7 +1115,7 @@
       <h3>Edit Flashcard</h3>
       <button class="btn close-icon-btn" id="closeEditCardBtn" type="button" aria-label="Close edit card dialog"
         title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="editor-grid editor-grid-single">
@@ -1134,13 +1134,13 @@
               <div class="toolbar-segment">
                 <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                   data-group="edit-question" data-align="left" aria-label="Align left"
-                  title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt=""></button>
+                  title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt="" class="app-icon"></button>
                 <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                   data-group="edit-question" data-align="center" aria-label="Align center"
-                  title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt=""></button>
+                  title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt="" class="app-icon"></button>
                 <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                   data-group="edit-question" data-align="justify" aria-label="Align justify"
-                  title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt=""></button>
+                  title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt="" class="app-icon"></button>
               </div>
               <div class="toolbar-segment">
                 <button class="btn btn-small toolbar-btn" type="button" data-action="list" data-target="editCardPrompt"
@@ -1175,13 +1175,13 @@
                 <div class="toolbar-segment">
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-answer" data-align="left" aria-label="Align left"
-                    title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt=""></button>
+                    title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt="" class="app-icon"></button>
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-answer" data-align="center" aria-label="Align center"
-                    title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt=""></button>
+                    title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt="" class="app-icon"></button>
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-answer" data-align="justify" aria-label="Align justify"
-                    title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt=""></button>
+                    title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt="" class="app-icon"></button>
                 </div>
                 <div class="toolbar-segment">
                   <button class="btn btn-small toolbar-btn" type="button" data-action="list"
@@ -1199,10 +1199,10 @@
                 <div class="toolbar-segment">
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-options" data-align="left" aria-label="Options align left"
-                    title="Options align left"><img src="icons/links.png" alt=""></button>
+                    title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-options" data-align="center" aria-label="Options align center"
-                    title="Options align center"><img src="icons/center.png" alt=""></button>
+                    title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
                 </div>
               </div>
               <div id="editMcqOptions" class="hidden"></div>
@@ -1223,7 +1223,7 @@
       <h3>Study Preview</h3>
       <button class="btn close-icon-btn" id="closeCardPreviewBtn" type="button" aria-label="Close study preview"
         title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="tiny">Tap the card to flip. Space also flips.</div>
@@ -1255,7 +1255,7 @@
     <div class="editor-header">
       <h3>Table Generator</h3>
       <button class="btn close-icon-btn" id="closeTableBtn" type="button" aria-label="Close table dialog" title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="tiny" id="tableTargetLabel">Target: Question</div>
@@ -1288,13 +1288,13 @@
         <div class="table-builder-align-buttons">
           <button class="btn btn-small toolbar-btn table-builder-align-btn align-icon-btn" id="tableAlignLeftBtn"
             type="button" data-align="left" aria-label="Align selected cell left"><img src="icons/links.png"
-              alt=""></button>
+              alt="" class="app-icon"></button>
           <button class="btn btn-small toolbar-btn table-builder-align-btn align-icon-btn" id="tableAlignCenterBtn"
             type="button" data-align="center" aria-label="Align selected cell center"><img src="icons/center.png"
-              alt=""></button>
+              alt="" class="app-icon"></button>
           <button class="btn btn-small toolbar-btn table-builder-align-btn align-icon-btn" id="tableAlignRightBtn"
             type="button" data-align="right" aria-label="Align selected cell right"><img src="icons/rechts.png"
-              alt=""></button>
+              alt="" class="app-icon"></button>
         </div>
       </div>
       <div class="table-builder-merge" role="group" aria-label="Merge selected cells">
@@ -1317,7 +1317,7 @@
       <h3>Formula Editor</h3>
       <button class="btn close-icon-btn" id="closeFormulaBtn" type="button" aria-label="Close formula dialog"
         title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" />
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
     <div class="editor-grid editor-grid-single">

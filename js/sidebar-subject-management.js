@@ -389,8 +389,8 @@ function buildSubjectTileMenu(subject = null, options = {}) {
   const menu = document.createElement('div');
   menu.className = 'tile-menu';
   menu.innerHTML = `
-    <button class="btn tile-menu-btn" type="button" aria-label="Subject actions" title="Subject actions">
-      <img src="icons/edit.png" alt="" class="edit-btn-icon" aria-hidden="true" />
+    <button class="btn tile-menu-btn innerGlow" type="button" aria-label="Subject actions" title="Subject actions">
+      <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
     </button>
     <div class="tile-menu-list">
       <button class="btn card-menu-item card-menu-item-edit" data-action="edit" type="button">Edit</button>
@@ -678,7 +678,7 @@ async function refreshArchivedSubjectsDialog(options = {}) {
     subjectActions.className = 'content-exchange-summary-actions';
 
     const restoreBtn = document.createElement('button');
-    restoreBtn.className = 'btn btn-small archive-tree-action-restore';
+    restoreBtn.className = 'btn btn-small archive-tree-action-btn archive-tree-action-restore';
     restoreBtn.type = 'button';
     restoreBtn.setAttribute('aria-label', 'Restore subject');
     restoreBtn.setAttribute('title', 'Restore subject');
@@ -686,7 +686,7 @@ async function refreshArchivedSubjectsDialog(options = {}) {
       <span class="archive-tree-action-label responsive-action-label">Restore</span>
       <img src="icons/unarchive.png"
            alt=""
-           class="archive-tree-action-icon responsive-action-icon"
+           class="app-icon"
            aria-hidden="true" />
     `;
     restoreBtn.addEventListener('click', async event => {
@@ -696,15 +696,15 @@ async function refreshArchivedSubjectsDialog(options = {}) {
     });
 
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-small delete archive-tree-action-delete';
+    deleteBtn.className = 'btn btn-small archive-tree-action-btn archive-tree-action-delete';
     deleteBtn.type = 'button';
     deleteBtn.setAttribute('aria-label', 'Delete subject');
     deleteBtn.setAttribute('title', 'Delete subject');
     deleteBtn.innerHTML = `
       <span class="archive-tree-action-label responsive-action-label">Delete</span>
-      <img src="icons/trash.svg"
+      <img src="icons/trash.png"
            alt=""
-           class="archive-tree-action-icon responsive-action-icon"
+           class="app-icon"
            aria-hidden="true" />
     `;
     deleteBtn.addEventListener('click', async event => {

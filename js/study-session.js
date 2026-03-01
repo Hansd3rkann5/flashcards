@@ -2200,6 +2200,15 @@ function wireSidebarSwipeGesture() {
   let lastDx = 0;
   let movedHorizontally = false;
 
+  const setOverlayProgress = progress => {
+    const clamped = Math.max(0, Math.min(1, Number(progress) || 0));
+    document.body.style.setProperty('--mobile-sidebar-overlay-progress', clamped.toFixed(3));
+  };
+
+  const clearOverlayProgressOverride = () => {
+    document.body.style.removeProperty('--mobile-sidebar-overlay-progress');
+  };
+
   const clearDragStyles = () => {
     if (sidebarEl) {
       sidebarEl.style.removeProperty('transition');
@@ -2225,6 +2234,7 @@ function wireSidebarSwipeGesture() {
     mainEl.style.transition = 'none';
     sidebarEl.style.transform = `translateX(${clamped - revealWidth}px)`;
     mainEl.style.transform = `translateX(${clamped}px)`;
+    setOverlayProgress(clamped / revealWidth);
     return clamped;
   };
 
@@ -2238,6 +2248,7 @@ function wireSidebarSwipeGesture() {
     lastDx = 0;
     movedHorizontally = false;
     if (clearDrag) clearDragStyles();
+    clearOverlayProgressOverride();
   };
 
   document.addEventListener('touchstart', e => {
@@ -2261,6 +2272,7 @@ function wireSidebarSwipeGesture() {
     lastOffset = startOffset;
     lastDx = 0;
     movedHorizontally = false;
+    setOverlayProgress(startOffset > 0 ? 1 : 0);
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
