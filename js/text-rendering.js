@@ -674,6 +674,34 @@ function attachAutoClose(elm) {
   });
   elm.addEventListener('input', () => {
     const pos = elm.selectionStart;
+    // --- auto arrow replacement (->, <-) ---
+    if (pos != null && pos >= 2) {
+      const text = elm.value;
+      const before = text.slice(0, pos);
+
+      // ->
+      if (before.endsWith('->')) {
+        elm.value =
+          text.slice(0, pos - 2) +
+          '$\\\rightarrow$' +
+          text.slice(pos);
+        const newPos = pos - 2 + '$\\\rightarrow$'.length;
+        elm.setSelectionRange(newPos, newPos);
+        return;
+      }
+
+      // <-
+      if (before.endsWith('<-')) {
+        elm.value =
+          text.slice(0, pos - 2) +
+          '$\\\leftarrow$' +
+          text.slice(pos);
+        const newPos = pos - 2 + '$\\\leftarrow$'.length;
+        elm.setSelectionRange(newPos, newPos);
+        return;
+      }
+    }
+
     if (pos == null) return;
 
     const text = elm.value;

@@ -720,7 +720,7 @@ body.app-loading {
 }
 
 .image:hover {
-  cursor: pointer;
+  cursor: copy;
   transform: scale(1.05);
 }
 
