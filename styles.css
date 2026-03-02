@@ -3917,6 +3917,11 @@ body.session-image-open {
   margin-left: 0;
 }
 
+.editor-list-header {
+  display: flex;
+  justify-content: space-between;
+}
+
 .editor-header-actions {
   margin-left: auto;
   display: inline-flex;

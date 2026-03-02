@@ -362,15 +362,18 @@ function setDeckTitle(title = 'Deck') {
 
 function setDeckTopicCardCount(count = null) {
   const countEl = el('deckTopicCardCount');
-  if (!countEl) return;
+  const countElEditor = el('deckTopicCardCountEditor');
+  if (!countEl || !countElEditor) return;
   if (!Number.isFinite(count)) {
-    countEl.textContent = '';
+    countEl.textContent = countElEditor.textContent = '';
     countEl.classList.add('hidden');
+    countElEditor.classList.add('hidden');
     return;
   }
   const safeCount = Math.max(0, Math.trunc(count));
-  countEl.textContent = `${safeCount} ${safeCount === 1 ? 'card' : 'cards'}`;
+  countEl.textContent = countElEditor.textContent = `${safeCount} ${safeCount === 1 ? 'card' : 'cards'}`;
   countEl.classList.remove('hidden');
+  countElEditor.classList.remove('hidden');
 }
 
 /**
@@ -380,7 +383,8 @@ function setDeckTopicCardCount(count = null) {
 
 function bumpDeckTopicCardCount(delta = 0) {
   const countEl = el('deckTopicCardCount');
-  if (!countEl || countEl.classList.contains('hidden')) return;
+  const countElEditor = el('deckTopicCardCountEditor');
+  if (!countEl || !countElEditor || countEl.classList.contains('hidden')) return;
   const match = String(countEl.textContent || '').match(/^(\d+)/);
   if (!match) return;
   const current = Number(match[1]);
