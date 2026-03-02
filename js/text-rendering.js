@@ -683,9 +683,9 @@ function attachAutoClose(elm) {
       if (before.endsWith('->')) {
         elm.value =
           text.slice(0, pos - 2) +
-          '$\\\rightarrow$' +
+          '$\\rightarrow$' +
           text.slice(pos);
-        const newPos = pos - 2 + '$\\\rightarrow$'.length;
+        const newPos = pos - 2 + '$\\rightarrow$'.length;
         elm.setSelectionRange(newPos, newPos);
         return;
       }
@@ -694,9 +694,9 @@ function attachAutoClose(elm) {
       if (before.endsWith('<-')) {
         elm.value =
           text.slice(0, pos - 2) +
-          '$\\\leftarrow$' +
+          '$\\leftarrow$' +
           text.slice(pos);
-        const newPos = pos - 2 + '$\\\leftarrow$'.length;
+        const newPos = pos - 2 + '$\\leftarrow$'.length;
         elm.setSelectionRange(newPos, newPos);
         return;
       }
