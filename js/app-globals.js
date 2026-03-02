@@ -263,6 +263,7 @@ let topicDirectory = [];
 let topicDirectoryBySubject = new Map();
 let topicDirectoryById = new Map();
 let subjectDirectoryById = new Map();
+let topicOrderByLatestCardCache = new Map();
 let topicDirectoryReady = false;
 let topicPrefetchRunId = 0;
 let sessionMetaRefreshRunId = 0;
@@ -631,5 +632,5 @@ function logReviewTrace(runId, step, startedAtMs, extra = {}) {
     ms: Number(durationMs.toFixed(1)),
     ...extra
   };
-  console.log('[REVIEW-TRACE]', payload);
+  // console.log('[REVIEW-TRACE]', payload);
 }

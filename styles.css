@@ -719,6 +719,15 @@ body.app-loading {
   filter: brightness(0) invert(1);
 }
 
+.image:hover {
+  cursor: pointer;
+  transform: scale(1.05);
+}
+
+.image {
+  transition: all 0.2s ease;
+}
+
 .sidebar-archive-btn .app-icon {
   width: 16px;
   height: 16px;
@@ -4542,16 +4551,16 @@ dialog.modal.subject-edit-modal {
 }
 
 .innerGlow {
-  box-shadow: inset 0px 0px 7px 1px #ff9d559c;
+  box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
   transition: all 0.3s ease;
 }
 
 .innerGlow:hover {
-  box-shadow: inset 0px 0px 10px 2px #ff9d55;
+  box-shadow: inset 0px 0px 10px 2px #fafafa76;
 }
 
 .innerGlow:active {
-  box-shadow: inset 0px 0px 3px 1px #ff9c556f;
+  box-shadow: inset 0px 0px 3px 1px #fcfcfb3f;
   scale: 0.95;
 }
 

@@ -499,7 +499,7 @@ function setImagePreview(previewEl, dataUrls, onRemoveAt) {
     previewEl.classList.remove('has-image', 'single-image', 'multi-image');
     previewEl.setAttribute('title', 'Drop image or click to upload');
     previewEl.innerHTML = `
-          <div class="image-preview-empty-state" aria-hidden="true">
+          <div class="image-preview-empty-state image innerGlow" aria-hidden="true">
             <img class="app-icon" src="icons/drop_image.png" alt="" style="width: 48px; height: 48px;" />
           </div>
         `;

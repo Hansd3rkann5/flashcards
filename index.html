@@ -64,8 +64,7 @@
         <div class="tiny onboarding-shortcuts">Use Left and Right Arrow keys to continue.</div>
       </div>
       <div class="onboarding-controls">
-        <button class="btn onboarding-nav-btn" id="onboardingTutorialPrevBtn" type="button"
-          aria-label="Previous step">
+        <button class="btn onboarding-nav-btn" id="onboardingTutorialPrevBtn" type="button" aria-label="Previous step">
           <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
         </button>
         <div id="onboardingTutorialDots" class="onboarding-dots" aria-label="Tutorial progress"></div>
@@ -112,7 +111,7 @@
     <button id="homeBtn">🏠 Home</button>
     <button id="settingsBtn">⚙️ Settings</button>
     <button id="archiveBtn">📁 Archive</button>
-<!--     
+    <!--     
     <button id="archiveBtn" class="sidebar-archive-btn" type="button" aria-label="Open archived subjects">
       <img src="icons/archive.png" alt="" class="app-icon" aria-hidden="true" />
       <span>Archive</span>
@@ -301,8 +300,8 @@
               <span id="topicListTotalCards" class="tiny topic-list-total-cards">0 cards</span>
             </div>
             <div class="topic-list-actions">
-              <button class="btn select-cards-btn topic-search-btn scale" id="openTopicSearchBtn" aria-label="Search cards"
-                title="Search cards" type="button">
+              <button class="btn select-cards-btn topic-search-btn scale" id="openTopicSearchBtn"
+                aria-label="Search cards" title="Search cards" type="button">
                 <img src="icons/icons8-suche-48.svg" alt="" class="app-icon" />
               </button>
               <button class="btn select-cards-btn" id="selectAllSessionTopicsBtn" type="button">All</button>
@@ -350,8 +349,8 @@
                 title="Rename topic" type="button">
                 <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
               </button>
-              <button class="btn select-cards-btn create-card-icon-btn" id="openCreateCardBtn" style="background-color: var(--success)"
-                aria-label="Create flashcard" title="Create flashcard">
+              <button class="btn select-cards-btn create-card-icon-btn" id="openCreateCardBtn"
+                style="background-color: var(--success)" aria-label="Create flashcard" title="Create flashcard">
                 <img src="icons/plus.svg" alt="" class="app-icon" />
               </button>
             </div>
@@ -371,7 +370,8 @@
 
         <div class="section hidden" id="studySessionSection" style="height: 100%;">
           <div class="session-top">
-            <button class="btn innerGlow" id="backToTopicsBtnSession" style="position: absolute;" aria-label="Back to topics">
+            <button class="btn innerGlow" id="backToTopicsBtnSession" style="position: absolute;"
+              aria-label="Back to topics">
               <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
             <div id="sessionPillBar" class="session-pill-bar">
@@ -492,8 +492,8 @@
                   <span class="session-label-short">A</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="backTopicPill"></div>
-                <button class="btn card-edit-btn innerGlow" id="editSessionCardBtnBack" type="button" aria-label="Edit card"
-                  title="Edit card">
+                <button class="btn card-edit-btn innerGlow" id="editSessionCardBtnBack" type="button"
+                  aria-label="Edit card" title="Edit card">
                   <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
                 </button>
                 <div class="face-content" id="backContent"></div>
@@ -583,21 +583,21 @@
                 <!-- <div class="qa-editor-separator" aria-hidden="true"></div> -->
                 <div class="editor-field" id="answerField">
                   <div class="mcq-primary-row" id="primaryAnswerRow">
-              <div class="mcq-primary-header hidden" id="primaryAnswerHeader">
-                <span class="mcq-badge correct" id="primaryAnswerBadge">Correct Answer ✓</span>
-                <label class="toggle mcq-toggle">
-                  <input type="checkbox" id="primaryAnswerToggle" checked />
-                  <span class="toggle-slider"></span>
-                </label>
-                <label class="mcq-order-control hidden">
-                  <span class="tiny">Order</span>
-                  <select id="primaryAnswerOrder" class="mcq-order-select"></select>
-                </label>
-              </div>
-              <div class="field-head">
-                <label>Answer</label>
-                <!-- <button class="btn btn-small formula-btn" data-formula-target="cardAnswer" type="button">Formula</button> -->
-              </div>
+                    <div class="mcq-primary-header hidden" id="primaryAnswerHeader">
+                      <span class="mcq-badge correct" id="primaryAnswerBadge">Correct Answer ✓</span>
+                      <label class="toggle mcq-toggle">
+                        <input type="checkbox" id="primaryAnswerToggle" checked />
+                        <span class="toggle-slider"></span>
+                      </label>
+                      <label class="mcq-order-control hidden">
+                        <span class="tiny">Order</span>
+                        <select id="primaryAnswerOrder" class="mcq-order-select"></select>
+                      </label>
+                    </div>
+                    <div class="field-head">
+                      <label>Answer</label>
+                      <!-- <button class="btn btn-small formula-btn" data-formula-target="cardAnswer" type="button">Formula</button> -->
+                    </div>
                     <div class="editor-input-media-row">
                       <textarea id="cardAnswer" placeholder="Type the answer..."></textarea>
                       <div id="answerImagePreview" class="image-preview">Drop image here</div>
@@ -609,10 +609,12 @@
                           title="Align left (Cmd/Ctrl+L)"><img src="icons/links.png" alt="" class="app-icon"></button>
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-answer" data-align="center" aria-label="Align center"
-                          title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt="" class="app-icon"></button>
+                          title="Align center (Cmd/Ctrl+C)"><img src="icons/center.png" alt=""
+                            class="app-icon"></button>
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-answer" data-align="justify" aria-label="Align justify"
-                          title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt="" class="app-icon"></button>
+                          title="Align justify (Cmd/Ctrl+J)"><img src="icons/rechts.png" alt=""
+                            class="app-icon"></button>
                       </div>
                       <div class="toolbar-segment">
                         <button class="btn btn-small toolbar-btn" type="button" data-action="list"
@@ -630,25 +632,26 @@
                       <div class="toolbar-segment">
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-options" data-align="left" aria-label="Options align left"
-                  title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
-                <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
-                  data-group="create-options" data-align="center" aria-label="Options align center"
-                  title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
+                          title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
+                        <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
+                          data-group="create-options" data-align="center" aria-label="Options align center"
+                          title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
+                      </div>
+                    </div>
+                    <label class="toggle mcq-order-toggle">
+                      <input type="checkbox" id="mcqRequireOrderToggle" />
+                      <span class="toggle-slider"></span>
+                      <span>Require ordered answers</span>
+                    </label>
+                    <div id="mcqOptions" class="hidden"></div>
+                  </div>
+                  <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
+                </div>
               </div>
-            </div>
-            <label class="toggle mcq-order-toggle">
-              <input type="checkbox" id="mcqRequireOrderToggle" />
-              <span class="toggle-slider"></span>
-              <span>Require ordered answers</span>
-            </label>
-            <div id="mcqOptions" class="hidden"></div>
-          </div>
-          <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
-        </div>
-      </div>
               <div class="editor-footer editor-footer-stack">
                 <button class="btn" id="addMcqOptionBtn">Add Answer</button>
-                <button class="btn" id="addCardBtn" style="width: 100%; background-color: #d42dba6e">Create Flashcard</button>
+                <button class="btn" id="addCardBtn" style="width: 100%; background-color: #d42dba6e">Create
+                  Flashcard</button>
               </div>
             </div>
           </div>
@@ -690,7 +693,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.01.20';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.02.01';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -728,7 +731,8 @@
       <div class="subject-edit-field">
         <label>Exam Date</label>
         <div class="subject-date-picker-wrap">
-          <input id="subjectExamDateInput" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" />
+          <input id="subjectExamDateInput" type="text" inputmode="numeric" placeholder="DD/MM/YYYY"
+            autocomplete="off" />
           <button class="btn subject-date-picker-btn" id="subjectExamDatePickerBtn" type="button"
             aria-label="Open exam date picker" title="Open date picker">📅</button>
           <input id="subjectExamDateNativeInput" class="subject-date-native-input" type="date" lang="en-GB"
@@ -1165,21 +1169,31 @@
           <hr style="border-color:#30456f;width: 97%;">
           <div class="editor-field" id="editAnswerField">
             <div class="mcq-primary-row" id="editPrimaryAnswerRow">
-            <div class="mcq-primary-header hidden" id="editPrimaryAnswerHeader">
-              <span class="mcq-badge correct" id="editPrimaryAnswerBadge">Correct Answer ✓</span>
-              <label class="toggle mcq-toggle">
+              <div class="mcq-primary-header hidden" id="editPrimaryAnswerHeader">
+                <span class="mcq-badge correct" id="editPrimaryAnswerBadge">Correct Answer ✓</span>
+                <!-- <label class="toggle mcq-toggle">
                 <input type="checkbox" id="editPrimaryAnswerToggle" checked />
                 <span class="toggle-slider"></span>
-              </label>
-              <label class="mcq-order-control hidden">
-                <span class="tiny">Order</span>
-                <select id="editPrimaryAnswerOrder" class="mcq-order-select"></select>
-              </label>
-            </div>
-            <div class="field-head">
-              <label>Answer</label>
-              <!-- <button class="btn btn-small formula-btn" data-formula-target="editCardAnswer" type="button">Formula</button> -->
-            </div>
+              </label> -->
+                <div class="mcq-toggle-wrap">
+                  <span class="toggle-label left">x</span>
+
+                  <label class="toggle mcq-toggle">
+                    <input type="checkbox">
+                    <span class="toggle-slider"></span>
+                  </label>
+
+                  <span class="toggle-label right">✓</span>
+                </div>
+                <label class="mcq-order-control hidden">
+                  <span class="tiny">Order</span>
+                  <select id="editPrimaryAnswerOrder" class="mcq-order-select"></select>
+                </label>
+              </div>
+              <div class="field-head">
+                <label>Answer</label>
+                <!-- <button class="btn btn-small formula-btn" data-formula-target="editCardAnswer" type="button">Formula</button> -->
+              </div>
               <div class="editor-input-media-row">
                 <textarea id="editCardAnswer" placeholder="Type the answer..."></textarea>
                 <div id="editAnswerImagePreview" class="image-preview">Drop image here</div>
@@ -1212,21 +1226,21 @@
                 <div class="toolbar-segment">
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-options" data-align="left" aria-label="Options align left"
-                  title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
-                <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
-                  data-group="edit-options" data-align="center" aria-label="Options align center"
-                  title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
+                    title="Options align left"><img src="icons/links.png" alt="" class="app-icon"></button>
+                  <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
+                    data-group="edit-options" data-align="center" aria-label="Options align center"
+                    title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
+                </div>
               </div>
+              <label class="toggle mcq-order-toggle">
+                <input type="checkbox" id="editMcqRequireOrderToggle" />
+                <span class="toggle-slider"></span>
+                <span>Require ordered answers</span>
+              </label>
+              <div id="editMcqOptions" class="hidden"></div>
             </div>
-            <label class="toggle mcq-order-toggle">
-              <input type="checkbox" id="editMcqRequireOrderToggle" />
-              <span class="toggle-slider"></span>
-              <span>Require ordered answers</span>
-            </label>
-            <div id="editMcqOptions" class="hidden"></div>
           </div>
         </div>
-      </div>
         <div class="editor-footer editor-footer-stack">
           <button class="btn" id="editAddMcqOptionBtn">Add Answer</button>
           <button class="btn save-primary" id="saveEditCardBtn">Save
@@ -1305,14 +1319,14 @@
         <div class="tiny" id="tableCellSelectionLabel">Cell: none selected</div>
         <div class="table-builder-align-buttons">
           <button class="btn btn-small toolbar-btn table-builder-align-btn align-icon-btn" id="tableAlignLeftBtn"
-            type="button" data-align="left" aria-label="Align selected cell left"><img src="icons/links.png"
-              alt="" class="app-icon"></button>
+            type="button" data-align="left" aria-label="Align selected cell left"><img src="icons/links.png" alt=""
+              class="app-icon"></button>
           <button class="btn btn-small toolbar-btn table-builder-align-btn align-icon-btn" id="tableAlignCenterBtn"
-            type="button" data-align="center" aria-label="Align selected cell center"><img src="icons/center.png"
-              alt="" class="app-icon"></button>
+            type="button" data-align="center" aria-label="Align selected cell center"><img src="icons/center.png" alt=""
+              class="app-icon"></button>
           <button class="btn btn-small toolbar-btn table-builder-align-btn align-icon-btn" id="tableAlignRightBtn"
-            type="button" data-align="right" aria-label="Align selected cell right"><img src="icons/rechts.png"
-              alt="" class="app-icon"></button>
+            type="button" data-align="right" aria-label="Align selected cell right"><img src="icons/rechts.png" alt=""
+              class="app-icon"></button>
         </div>
       </div>
       <div class="table-builder-merge" role="group" aria-label="Merge selected cells">

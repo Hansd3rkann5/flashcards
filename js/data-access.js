@@ -365,6 +365,23 @@ async function getStats(options = {}) {
   };
 }
 
+function getLatestCardTimestampByTopic(cards = []) {
+  const latestByTopic = new Map();
+
+  cards.forEach(card => {
+    const topicId = String(card?.topicId || card?.topic_id || '').trim();
+    if (!topicId) return;
+
+    const ts = new Date(card?.updated_at || 0).getTime();
+    if (!ts) return;
+
+    const prev = latestByTopic.get(topicId) || 0;
+    if (ts > prev) latestByTopic.set(topicId, ts);
+  });
+
+  return latestByTopic;
+}
+
 /**
  * @function getTopicsBySubject
  * @description Returns the topics by subject.
@@ -380,8 +397,19 @@ async function getTopicsBySubject(subjectId, options = {}) {
     loadingLabel: opts.loadingLabel
   });
   const scoped = topicDirectoryBySubject.get(id) || [];
+  // const subjectId = '516f44c8-6952-4e82-9ab9-9abe8dd6fcc8';
+
+  // const topics = topicDirectoryBySubject?.get(subjectId) || [];
+
+  console.table(
+    scoped.map(t => ({
+      name: t.name,
+      updated_at: t.updated_at
+    }))
+  );
   return cloneData(scoped);
 }
+
 
 /**
  * @function getCardsByTopicIds
@@ -429,7 +457,7 @@ async function getCardRefsByTopicIds(topicIds, options = {}) {
 
   const baseParams = new URLSearchParams();
   ids.forEach(topicId => baseParams.append('topicId', topicId));
-  baseParams.set('fields', 'id,topicId');
+  baseParams.set('fields', 'id,topicId,updated_at');
   const baseQueryPath = `${API_BASE}/cards?${baseParams.toString()}`;
   const requestParams = new URLSearchParams(baseParams.toString());
   let payloadLabel = String(opts.payloadLabel || '').trim();
