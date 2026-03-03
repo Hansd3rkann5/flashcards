@@ -2106,7 +2106,7 @@ textarea:focus-visible {
 }
 
 .flashcard {
-  width: min(1000px, 95%);
+  width: min(1200px, 95%);
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
@@ -6419,7 +6419,8 @@ dialog::backdrop {
   padding: var(--space-2);
   background: rgba(12, 18, 34, 0.5);
   box-sizing: border-box;
-  width: 100%
+  width: 100%;
+  text-align: center;
 }
 
 .session-complete-stat strong {
