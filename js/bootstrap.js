@@ -1168,7 +1168,11 @@ async function boot() {
       if (sessionCompleteConfettiEmitter && typeof sessionCompleteConfettiEmitter.reset === 'function') {
         sessionCompleteConfettiEmitter.reset();
       }
+      document.body.classList.remove('session-complete-dialog-open');
       document.body.classList.remove('session-complete-confetti-active');
+      if (typeof hideSessionCompleteConfettiLayer === 'function') {
+        hideSessionCompleteConfettiLayer();
+      }
     });
     sessionCompleteDialog.addEventListener('cancel', e => {
       e.preventDefault();
@@ -1764,11 +1768,6 @@ async function boot() {
   const editorShell = document.querySelector('#editorPanel .editor-shell');
   const editorOverlay = el('editorOverlay');
   const toggleSidebarBtn = el('toggleEditorSidebarBtn');
-  const mcqContainer = el('mcqOptionsContainer');
-  const mcqContainerSes = el('mcqOptionsContainerSes');
-  const optToolbar = el('editOptionsToolbar');
-  const editMcq = el('editMcqOptions');
-  const toggleOrder = el('mcqOrderToggle')
   const openEditorIntroBtn = el('openEditorIntroBtn');
   if (toggleSidebarBtn && editorShell) {
     toggleSidebarBtn.onclick = () => editorShell.classList.toggle('sidebar-open');
@@ -1793,28 +1792,15 @@ async function boot() {
     editingCardSnapshot = null;
     el('editCardDialog').close();
   };
-  el('editAddMcqOptionBtn').onclick = () => {
-    console.log('Adding MCQ option in edit mode');
-    optToolbar.classList.remove('hidden');
-    editMcq.classList.remove('hidden');
-    toggleOrder.classList.remove('hidden');
-    mcqContainerSes.classList.remove('hidden');
-    setMcqModeState(true, true);
-    console.log(mcqContainerSes.classList.contains('hidden'));
-    console.log(getComputedStyle(mcqContainerSes).display)
-    console.log(el('mcqOptionsContainerSes').classList);
-    console.log(el('editMcqOptions').classList);
-    addEditMcqRow();
-    syncMcqPrimaryAnswerMode(true);
+  const handleAddMcqOption = edit => {
+    setMcqModeState(edit, true);
+    if (edit) addEditMcqRow();
+    else addMcqRow();
+    syncMcqPrimaryAnswerMode(edit);
   };
+  el('editAddMcqOptionBtn').onclick = () => handleAddMcqOption(true);
   el('openCreateCardBtn').onclick = openCreateCardEditor;
-  el('addMcqOptionBtn').onclick = () => {
-    mcqContainer.classList.remove('hidden');
-    console.log('Adding MCQ option in main editpanel mode');
-    setMcqModeState(false, true);
-    addMcqRow();
-    syncMcqPrimaryAnswerMode(false);
-  };
+  el('addMcqOptionBtn').onclick = () => handleAddMcqOption(false);
   attachAutoClose(el('cardPrompt'));
   attachAutoClose(el('cardAnswer'));
   attachAutoClose(el('editCardPrompt'));
@@ -2254,8 +2240,6 @@ async function boot() {
       meta: { createdAt }
     };
     applyOptimisticCardCreate(card);
-    mcqContainer.classList.remove('hidden');
-    console.log("Create show mcq options");
     const createdTopicId = String(card.topicId || '').trim();
     if (createdTopicId) {
       const bumpTopicCount = topic => {
@@ -2361,7 +2345,16 @@ async function boot() {
       return;
     }
 
-    const options = parseEditMcqOptions();
+    let options;
+    try {
+      options = parseEditMcqOptions();
+    } catch (err) {
+      console.warn('Failed to parse edit MCQ options:', err);
+      alert('Could not save the card because answer options are invalid. Please check the MCQ options and try again.');
+      saveBtn.dataset.busy = '0';
+      saveBtn.disabled = false;
+      return;
+    }
     const type = options.length > 1 ? 'mcq' : 'qa';
     const updated = {
       ...card,

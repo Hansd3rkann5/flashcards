@@ -639,13 +639,14 @@
                         <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                           data-group="create-options" data-align="center" aria-label="Options align center"
                           title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
+                        <label class="toggle mcq-order-toggle">
+                          <input type="checkbox" id="mcqRequireOrderToggle" />
+                          <span class="toggle-slider"></span>
+                          <span>Require ordered answers</span>
+                        </label>
                       </div>
                     </div>
-                    <label id="mcqOrderToggle" class="toggle mcq-order-toggle">
-                      <input type="checkbox" id="editMcqRequireOrderToggle" />
-                      <span class="toggle-slider"></span>
-                      <span>Require ordered answers</span>
-                    </label>
+
                     <div id="mcqOptions" class="hidden"></div>
                   </div>
                   <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
@@ -696,7 +697,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.02.02';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.07.01';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -1037,7 +1038,7 @@
     </div>
   </dialog>
 
-  <canvas id="sessionCompleteConfettiCanvas" aria-hidden="true"></canvas>
+  <canvas id="sessionCompleteConfettiCanvas" aria-hidden="true" popover="manual"></canvas>
 
   <dialog id="sessionCompleteDialog" class="modal">
     <div class="editor-header">
@@ -1174,20 +1175,10 @@
             <div class="mcq-primary-row" id="editPrimaryAnswerRow">
               <div class="mcq-primary-header hidden" id="editPrimaryAnswerHeader">
                 <span class="mcq-badge correct" id="editPrimaryAnswerBadge">Correct Answer ✓</span>
-                <!-- <label class="toggle mcq-toggle">
-                <input type="checkbox" id="editPrimaryAnswerToggle" checked />
-                <span class="toggle-slider"></span>
-              </label> -->
-                <div class="mcq-toggle-wrap">
-                  <span class="toggle-label left">x</span>
-
-                  <label class="toggle mcq-toggle">
-                    <input type="checkbox">
-                    <span class="toggle-slider"></span>
-                  </label>
-
-                  <span class="toggle-label right">✓</span>
-                </div>
+                <label class="toggle mcq-toggle">
+                  <input type="checkbox" id="editPrimaryAnswerToggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
                 <label class="mcq-order-control hidden">
                   <span class="tiny">Order</span>
                   <select id="editPrimaryAnswerOrder" class="mcq-order-select"></select>
@@ -1233,13 +1224,13 @@
                   <button class="btn btn-small toolbar-btn align-icon-btn" type="button" data-action="align"
                     data-group="edit-options" data-align="center" aria-label="Options align center"
                     title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
+                  <label class="toggle mcq-order-toggle">
+                    <input type="checkbox" id="editMcqRequireOrderToggle" />
+                    <span class="toggle-slider"></span>
+                    <span>Require ordered answers</span>
+                  </label>
                 </div>
               </div>
-              <label id="mcqOrderToggle" class="toggle mcq-order-toggle">
-                <input type="checkbox" id="editMcqRequireOrderToggle" />
-                <span class="toggle-slider"></span>
-                <span>Require ordered answers</span>
-              </label>
               <div id="editMcqOptions" class="hidden"></div>
             </div>
           </div>

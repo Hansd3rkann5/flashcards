@@ -1164,6 +1164,23 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   --next-card-tilt-end: 0deg;
 }
 
+#studySessionSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 8;
+  background: rgba(7, 12, 24, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 0.18s ease;
+}
+
+body.session-complete-dialog-open #studySessionSection::before {
+  opacity: 1;
+}
+
 #studySessionSection .flash-area {
   flex: 1;
   min-height: 0;
@@ -4124,6 +4141,7 @@ body.session-image-open {
   gap: 8px;
   font-size: 0.9rem;
   color: var(--muted);
+  margin-left: var(--space-1);
 }
 
 .toggle input {
@@ -4294,6 +4312,12 @@ dialog.modal.subject-edit-modal {
 ::backdrop {
   background: rgba(7, 12, 24, 0.185);
   backdrop-filter: blur(5px);
+}
+
+#sessionCompleteDialog::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .archive-dialog-meta {
@@ -4904,6 +4928,22 @@ dialog.modal.subject-edit-modal {
   z-index: 40;
   opacity: 0;
   transition: opacity 0.16s ease;
+}
+
+#sessionCompleteConfettiCanvas[popover] {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+#sessionCompleteConfettiCanvas:popover-open {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
 }
 
 body.session-complete-confetti-active #sessionCompleteConfettiCanvas {

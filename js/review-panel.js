@@ -3301,6 +3301,41 @@ function updateSessionRepeatCounter() {
 }
 
 /**
+ * @function showSessionCompleteConfettiLayer
+ * @description Moves the confetti canvas into the top layer (when supported) so it stays above dialog backdrops.
+ */
+
+function showSessionCompleteConfettiLayer() {
+  const canvas = el('sessionCompleteConfettiCanvas');
+  if (!(canvas instanceof HTMLCanvasElement)) return null;
+  if (typeof canvas.showPopover === 'function') {
+    try {
+      if (!canvas.matches(':popover-open')) canvas.showPopover();
+    } catch (err) {
+      // Ignore popover state errors and fall back to normal document layering.
+    }
+  }
+  return canvas;
+}
+
+/**
+ * @function hideSessionCompleteConfettiLayer
+ * @description Hides the top-layer confetti canvas after the session-complete flow closes.
+ */
+
+function hideSessionCompleteConfettiLayer() {
+  const canvas = el('sessionCompleteConfettiCanvas');
+  if (!(canvas instanceof HTMLCanvasElement)) return;
+  if (typeof canvas.hidePopover === 'function') {
+    try {
+      if (canvas.matches(':popover-open')) canvas.hidePopover();
+    } catch (err) {
+      // Ignore popover state errors.
+    }
+  }
+}
+
+/**
  * @function getSessionCompleteConfettiEmitter
  * @description Returns a canvas-confetti emitter bound to the global session-complete confetti canvas layer.
  */
@@ -3326,12 +3361,15 @@ function getSessionCompleteConfettiEmitter() {
 function playSessionCompleteConfetti() {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     document.body.classList.remove('session-complete-confetti-active');
+    hideSessionCompleteConfettiLayer();
     return;
   }
+  showSessionCompleteConfettiLayer();
   document.body.classList.add('session-complete-confetti-active');
   const emit = getSessionCompleteConfettiEmitter();
   if (!emit) {
     document.body.classList.remove('session-complete-confetti-active');
+    hideSessionCompleteConfettiLayer();
     return;
   }
 
@@ -3434,6 +3472,8 @@ async function openSessionCompleteDialog() {
     }
   }
   updateSessionRepeatCounter();
+  document.body.classList.add('session-complete-dialog-open');
+  showSessionCompleteConfettiLayer();
   showDialog(el('sessionCompleteDialog'));
   requestAnimationFrame(() => playSessionCompleteConfetti());
 }
@@ -3447,7 +3487,9 @@ function dismissSessionCompleteDialog() {
   if (sessionCompleteConfettiEmitter && typeof sessionCompleteConfettiEmitter.reset === 'function') {
     sessionCompleteConfettiEmitter.reset();
   }
+  document.body.classList.remove('session-complete-dialog-open');
   document.body.classList.remove('session-complete-confetti-active');
+  hideSessionCompleteConfettiLayer();
   closeDialog(el('sessionCompleteDialog'));
   closeStudyImageLightbox();
   setDeckSelectionMode(false);

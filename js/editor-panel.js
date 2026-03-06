@@ -26,12 +26,14 @@ function setMcqModeState(edit = false, enabled = false) {
   const field = el(edit ? 'editPrimaryAnswerRow' : 'primaryAnswerRow');
   const header = el(edit ? 'editPrimaryAnswerHeader' : 'primaryAnswerHeader');
   const toggle = el(edit ? 'editPrimaryAnswerToggle' : 'primaryAnswerToggle');
+  const optionsContainer = el(edit ? 'mcqOptionsContainerSes' : 'mcqOptionsContainer');
   const optionsEl = el(edit ? 'editMcqOptions' : 'mcqOptions');
   const optionsToolbar = el(edit ? 'editOptionsToolbar' : 'createOptionsToolbar');
   const answerInput = el(edit ? 'editCardAnswer' : 'cardAnswer');
   if (!field || !header || !toggle || !optionsEl) return;
   if (edit) editMcqMode = enabled;
   else mcqMode = enabled;
+  if (optionsContainer) optionsContainer.classList.toggle('hidden', !enabled);
   optionsEl.classList.toggle('hidden', !enabled);
   if (optionsToolbar) optionsToolbar.classList.toggle('hidden', !enabled);
   header.classList.toggle('hidden', !enabled);
@@ -2244,7 +2246,7 @@ function getCreateOptionCount() {
 
 function parseMcqOptions() {
   if (!mcqMode) return [];
-  const options = [];
+  let options = [];
   const primaryText = el('cardAnswer').value.trim();
   const primaryToggle = el('primaryAnswerToggle');
   const primaryOrderEl = el('primaryAnswerOrder');
@@ -2275,16 +2277,16 @@ function parseMcqOptions() {
 }
 
 /**
- * @function addMcqRow
- * @description Adds one additional MCQ answer row in the create editor.
+ * @function addMcqRowInternal
+ * @description Adds one additional MCQ answer row for create/editor dialog.
  */
 
-function addMcqRow(text = '', correct = false, options = {}) {
+function addMcqRowInternal(edit = false, text = '', correct = false, options = {}) {
   const opts = (options && typeof options === 'object') ? options : {};
   const insertAtTop = opts.insertAtTop !== false;
   const focusInput = opts.focusInput !== false;
-  const mcqContainer = el('mcqOptionsContainer');
-  const optionsWrap = el('mcqOptions');
+  const optionsWrap = el(edit ? 'editMcqOptions' : 'mcqOptions');
+  if (!optionsWrap) return;
   const wrap = document.createElement('div');
   wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
   wrap.dataset.primary = 'false';
@@ -2307,18 +2309,10 @@ function addMcqRow(text = '', correct = false, options = {}) {
         </div>
       `;
   const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
-  const update = () => {
-    const isCorrect = toggle.checked;
-    wrap.classList.toggle('correct', isCorrect);
-    wrap.classList.toggle('wrong', !isCorrect);
-    const badge = wrap.querySelector('.mcq-badge');
-    badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
-    badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
-  };
-  toggle.addEventListener('change', update);
+  if (toggle) toggle.addEventListener('change', () => updateMcqRowCorrectState(wrap));
   const input = wrap.querySelector('input[type="text"]');
   if (input) {
-    input.addEventListener('input', () => updateCreateValidation());
+    if (!edit) input.addEventListener('input', () => updateCreateValidation());
     input.addEventListener('keydown', handleInlineFormatShortcut);
     input.addEventListener('keydown', handleTextAlignShortcut);
   }
@@ -2334,20 +2328,17 @@ function addMcqRow(text = '', correct = false, options = {}) {
       orderSelect.dataset.value = orderSelect.value;
     });
   }
-  wrap.querySelector('.mcq-remove').onclick = () => {
-    wrap.remove();
-    const remaining = optionsWrap
-      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
-      : 0;
-    console.log('Remaining options 1:', remaining);
-    if (mcqContainer && remaining === 0) mcqContainer.classList.add('hidden');
-    syncMcqPrimaryAnswerMode(false);
-  };
-  update();
-  if (!optionsWrap) return;
+  const removeBtn = wrap.querySelector('.mcq-remove');
+  if (removeBtn) {
+    removeBtn.onclick = () => {
+      wrap.remove();
+      syncMcqPrimaryAnswerMode(edit);
+    };
+  }
+  updateMcqRowCorrectState(wrap);
   if (insertAtTop && optionsWrap.firstChild) optionsWrap.insertBefore(wrap, optionsWrap.firstChild);
   else optionsWrap.appendChild(wrap);
-  syncMcqOrderUi(false);
+  syncMcqOrderUi(edit);
   if (focusInput && input instanceof HTMLInputElement) {
     requestAnimationFrame(() => {
       input.focus();
@@ -2364,7 +2355,7 @@ function addMcqRow(text = '', correct = false, options = {}) {
 
 function parseEditMcqOptions() {
   if (!editMcqMode) return [];
-  const options = [];
+  let options = [];
   const primaryText = el('editCardAnswer').value.trim();
   const primaryToggle = el('editPrimaryAnswerToggle');
   const primaryOrderEl = el('editPrimaryAnswerOrder');
@@ -2395,86 +2386,21 @@ function parseEditMcqOptions() {
 }
 
 /**
+ * @function addMcqRow
+ * @description Adds one additional MCQ answer row in the create editor.
+ */
+
+function addMcqRow(text = '', correct = false, options = {}) {
+  addMcqRowInternal(false, text, correct, options);
+}
+
+/**
  * @function addEditMcqRow
  * @description Adds one additional MCQ answer row in the edit dialog.
  */
 
 function addEditMcqRow(text = '', correct = false, options = {}) {
-  const opts = (options && typeof options === 'object') ? options : {};
-  const insertAtTop = opts.insertAtTop !== false;
-  const focusInput = opts.focusInput !== false;
-  const optionsWrap = el('editMcqOptions');
-  const wrap = document.createElement('div');
-  const mcqContainer = el('mcqOptionsContainer');
-  const mcqContainerSes = el('mcqOptionsContainerSes');
-  wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
-  wrap.dataset.primary = 'false';
-  wrap.innerHTML = `
-        <div class="mcq-row-header">
-          <span class="mcq-badge ${correct ? 'correct' : 'wrong'}">${correct ? 'Correct Answer ✓' : 'Wrong Answer ✕'}</span>
-          <label class="toggle mcq-toggle">
-            <input type="checkbox" ${correct ? 'checked' : ''} />
-            <span class="toggle-slider"></span>
-          </label>
-          <label class="mcq-order-control hidden">
-            <span class="tiny">Order</span>
-            <select class="mcq-order-select" data-value="${nextOptionOrderId}"></select>
-          </label>
-        </div>
-        <input type="text" placeholder="Answer option..." value="${escapeHTML(text)}" />
-        <div class="mcq-row-actions">
-          <div class="tiny">Additional answer option</div>
-          <button class="btn mcq-remove" type="button">Remove</button>
-        </div>
-      `;
-  const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
-  const update = () => {
-    const isCorrect = toggle.checked;
-    wrap.classList.toggle('correct', isCorrect);
-    wrap.classList.toggle('wrong', !isCorrect);
-    const badge = wrap.querySelector('.mcq-badge');
-    badge.className = `mcq-badge ${isCorrect ? 'correct' : 'wrong'}`;
-    badge.textContent = isCorrect ? 'Correct Answer ✓' : 'Wrong Answer ✕';
-  };
-  toggle.addEventListener('change', update);
-  const input = wrap.querySelector('input[type="text"]');
-  if (input) {
-    input.addEventListener('keydown', handleInlineFormatShortcut);
-    input.addEventListener('keydown', handleTextAlignShortcut);
-  }
-  const orderSelect = wrap.querySelector('.mcq-order-select');
-  if (orderSelect) {
-    const currentCount = optionsWrap
-      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
-      : 0;
-    const initialOrder = Number(opts.order || currentCount + 1);
-    orderSelect.value = String(initialOrder);
-    orderSelect.dataset.value = String(initialOrder);
-    orderSelect.addEventListener('change', () => {
-      orderSelect.dataset.value = orderSelect.value;
-    });
-  }
-  wrap.querySelector('.mcq-remove').onclick = () => {
-    wrap.remove();
-    const remaining = optionsWrap
-      ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
-      : 0;
-    console.log('Remaining options 2:', remaining);
-    if (mcqContainer && remaining === 0) mcqContainerSes.classList.add('hidden');
-    syncMcqPrimaryAnswerMode(true);
-  };
-  update();
-  if (!optionsWrap) return;
-  if (insertAtTop && optionsWrap.firstChild) optionsWrap.insertBefore(wrap, optionsWrap.firstChild);
-  else optionsWrap.appendChild(wrap);
-  syncMcqOrderUi(true);
-  if (focusInput && input instanceof HTMLInputElement) {
-    requestAnimationFrame(() => {
-      input.focus();
-      const caret = input.value.length;
-      input.setSelectionRange(caret, caret);
-    });
-  }
+  addMcqRowInternal(true, text, correct, options);
 }
 
 /**
