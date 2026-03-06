@@ -1248,7 +1248,7 @@ function getDailyReviewFilteredCardIdsByTopic(topicId) {
   const cardIds = dailyReviewState.cardsByTopicId.get(key) || [];
   return cardIds.filter(cardId => (
     cardMatchesDailyReviewStatus(cardId)
-    && cardMatchesDailyReviewDate(cardId)
+    // && cardMatchesDailyReviewDate(cardId)
     && !isCardMasteredOnDay(cardId)
   ));
 }
@@ -1868,6 +1868,7 @@ function computeCurrentActivityStreakDays(activityDayKeys = new Set(), reference
 
 function renderOverviewSegmentBar(barEl, legendEl, segments = [], options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
+  console.log('Rendering overview segment bar with segments:', segments, 'and options:', opts);
   const rows = Array.isArray(segments)
     ? segments
       .map(seg => ({
@@ -1892,7 +1893,7 @@ function renderOverviewSegmentBar(barEl, legendEl, segments = [], options = {}) 
         const ratio = (seg.value / total) * 100;
         const isLast = idx === nonZeroRows.length - 1;
         return `
-          <span class="daily-overview-segment daily-overview-segment-${escapeHTML(seg.key)}${isLast ? ' is-last' : ''}"
+          <span class="daily-overview-segment daily-overview-segment-${escapeHTML(seg.key)}${isLast ? ' is-last' : ''} ${seg.key === 'mastered' ? 'innerGlowMastered' : ''}"
             style="width:${ratio.toFixed(3)}%;background:${escapeHTML(seg.color)};"
             title="${escapeHTML(seg.label)}: ${seg.value}"></span>
         `;
@@ -1908,7 +1909,7 @@ function renderOverviewSegmentBar(barEl, legendEl, segments = [], options = {}) 
     } else {
       legendEl.innerHTML = rows.map(seg => `
         <span class="daily-overview-legend-item">
-          <span class="daily-overview-legend-dot" style="background:${escapeHTML(seg.color)};"></span>
+          <span class="daily-overview-legend-dot ${seg.key === 'mastered' ? 'innerGlowMastered' : ''}" style="background:${escapeHTML(seg.color)};"></span>
           <span>${escapeHTML(seg.label)}: ${seg.value}</span>
         </span>
       `).join('');
@@ -1932,11 +1933,13 @@ function renderDailyOverviewStatsCards() {
   if (!grid || !bar || !legend || !streakDaysEl || !streakMetaEl) return;
   const latest = dailyReviewState.latestStateCounts || createEmptyDailyReviewLatestStateCounts();
   const mastered = toCounterInt(latest.mastered);
-  const partially = toCounterInt(latest.correct) + toCounterInt(latest.partial) + toCounterInt(latest.inProgress);
+  const correct = toCounterInt(latest.correct);
+  const partially = toCounterInt(latest.partial)
   const wrong = toCounterInt(latest.wrong);
   const answeredTotal = mastered + partially + wrong;
   renderOverviewSegmentBar(bar, legend, [
-    { key: 'mastered', label: 'Mastered', value: mastered, color: '#22c55e' },
+    { key: 'mastered', label: 'Mastered', value: mastered, color: '#2ffe06' },
+    { key: 'correct', label: 'Correct', value: correct, color: '#22c55e' },
     { key: 'partial', label: 'Partially', value: partially, color: '#f59e0b' },
     { key: 'wrong', label: 'Wrong', value: wrong, color: '#ef4444' }
   ], {
@@ -3066,6 +3069,7 @@ async function renderProgressCheckTable() {
       const score = Number.isFinite(Number(persistedScore))
         ? clampReviewPriorityScore(persistedScore)
         : clampReviewPriorityScore(computedScore);
+      console.log(score, { computedScore, persistedScore, record });
       const history = getProgressHistoryLines(record, cardId);
       const latest = getLatestProgressDayEntry(record, cardId);
       const rawLastAnswered = String(latest?.day?.lastAnsweredAt || record?.lastAnsweredAt || '').trim();

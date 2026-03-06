@@ -4260,11 +4260,11 @@ dialog.modal.subject-edit-modal {
   text-align: center;
 }
 
-#subjectArchiveDialog::backdrop {
+/* #subjectArchiveDialog::backdrop {
   background: rgba(7, 12, 24, 0.56);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-}
+} */
 
 #archiveRestoreLoadingDialog {
   border: none;
@@ -4285,9 +4285,15 @@ dialog.modal.subject-edit-modal {
   justify-content: center;
 }
 
-#archiveRestoreLoadingDialog::backdrop {
+/* #archiveRestoreLoadingDialog::backdrop {
   background: rgba(7, 12, 24, 0.56);
   backdrop-filter: blur(10px);
+} */
+
+
+::backdrop {
+  background: rgba(7, 12, 24, 0.185);
+  backdrop-filter: blur(5px);
 }
 
 .archive-dialog-meta {
@@ -4558,6 +4564,10 @@ dialog.modal.subject-edit-modal {
 .innerGlow {
   box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
   transition: all 0.3s ease;
+}
+
+.innerGlowMastered {
+  box-shadow: inset 0 0 5px 1px #00ff64 !important;
 }
 
 .innerGlow:hover {
@@ -5553,9 +5563,10 @@ button.formula-insert.save-primary {
   width: auto;
 }
 
-dialog::backdrop {
-  background: rgba(6, 10, 20, 0.6);
-}
+/* dialog::backdrop {
+  background: rgba(6, 10, 20, 0.301);
+  backdrop-filter: blur(4px);
+} */
 
 .session-filter-list {
   display: grid;

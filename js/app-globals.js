@@ -9,6 +9,7 @@ const SUPABASE_PICTURES_BUCKET = String(window.__SUPABASE_PICTURES_BUCKET__ || '
 const SUPABASE_TABLE = 'records';
 const LOCAL_SNAPSHOT_MODE = window.__LOCAL_SNAPSHOT_MODE__ === true;
 const LOCAL_SNAPSHOT_PATH = String(window.__LOCAL_SNAPSHOT_PATH__ || '').trim();
+const PLATFORM = getPlatform();
 const STORE_KEYS = {
   subjects: 'id',
   topics: 'id',
@@ -283,6 +284,29 @@ let reviewTraceRunCounter = 0;
 let dailyReviewAnalyticsExpanded = true;
 
 const el = id => document.getElementById(id);
+
+/**
+ * @function getPlatform
+ * @description Returns the platform name for the current browser environment.
+ */
+
+function getPlatform() {
+  // Modern API
+  if (navigator.userAgentData?.platform) {
+    return navigator.userAgentData.platform;
+  }
+
+  // Fallback (User-Agent)
+  const ua = navigator.userAgent.toLowerCase();
+  console.log(navigator);
+  // console.log('User-Agent string:', ua);
+  let platform = "Unknown";
+
+  if (ua.includes('mac') || ua.includes('os x') || ua.includes('win')) platform = 'desktop';
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('android')) platform = 'mobile';
+  console.log('Detected platform:', platform);
+  return platform;
+}
 
 /**
  * @function normalizeSessionSizeModelBucket

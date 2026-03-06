@@ -196,8 +196,8 @@
               <strong id="dailyReviewTotalTopics">0</strong>
             </div>
           </div>
-          <div class="tiny">Status Filter (latest saved state)</div>
-          <div id="dailyReviewStatusFilters" class="session-filter-list daily-review-status-list">
+          <div class="tiny hidden">Status Filter (latest saved state)</div>
+          <div id="dailyReviewStatusFilters" class="session-filter-list daily-review-status-list hidden">
             <label class="session-filter-option daily-review-status-option" style="background-color: var(--success)">
               <input id="dailyReviewFilterGreen" type="checkbox" checked />
               <span>Correct</span>
@@ -641,8 +641,8 @@
                           title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
                       </div>
                     </div>
-                    <label class="toggle mcq-order-toggle">
-                      <input type="checkbox" id="mcqRequireOrderToggle" />
+                    <label id="mcqOrderToggle" class="toggle mcq-order-toggle">
+                      <input type="checkbox" id="editMcqRequireOrderToggle" />
                       <span class="toggle-slider"></span>
                       <span>Require ordered answers</span>
                     </label>
@@ -1223,7 +1223,7 @@
                 </div>
               </div>
             </div>
-            <div class="editor-options">
+            <div class="editor-options hidden" id="mcqOptionsContainerSes">
               <div class="tiny">Multi-select answers (optional)</div>
               <div class="text-toolbar hidden" id="editOptionsToolbar" data-group="edit-options">
                 <div class="toolbar-segment">
@@ -1235,7 +1235,7 @@
                     title="Options align center"><img src="icons/center.png" alt="" class="app-icon"></button>
                 </div>
               </div>
-              <label class="toggle mcq-order-toggle">
+              <label id="mcqOrderToggle" class="toggle mcq-order-toggle">
                 <input type="checkbox" id="editMcqRequireOrderToggle" />
                 <span class="toggle-slider"></span>
                 <span>Require ordered answers</span>

@@ -2339,6 +2339,7 @@ function addMcqRow(text = '', correct = false, options = {}) {
     const remaining = optionsWrap
       ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
       : 0;
+    console.log('Remaining options 1:', remaining);
     if (mcqContainer && remaining === 0) mcqContainer.classList.add('hidden');
     syncMcqPrimaryAnswerMode(false);
   };
@@ -2405,6 +2406,7 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
   const optionsWrap = el('editMcqOptions');
   const wrap = document.createElement('div');
   const mcqContainer = el('mcqOptionsContainer');
+  const mcqContainerSes = el('mcqOptionsContainerSes');
   wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
   wrap.dataset.primary = 'false';
   wrap.innerHTML = `
@@ -2457,7 +2459,8 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
     const remaining = optionsWrap
       ? optionsWrap.querySelectorAll('.mcq-row[data-primary="false"]').length
       : 0;
-    if (mcqContainer && remaining === 0) mcqContainer.classList.add('hidden');
+    console.log('Remaining options 2:', remaining);
+    if (mcqContainer && remaining === 0) mcqContainerSes.classList.add('hidden');
     syncMcqPrimaryAnswerMode(true);
   };
   update();
@@ -2481,6 +2484,7 @@ function addEditMcqRow(text = '', correct = false, options = {}) {
 
 function openEditDialog(card) {
   editingCardId = card.id;
+  editingCardType = card.type;
   editingCardSnapshot = cloneData(card);
   const questionAlign = card.questionTextAlign || card.textAlign || 'center';
   const answerAlign = card.answerTextAlign || card.textAlign || 'center';

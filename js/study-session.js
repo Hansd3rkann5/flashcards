@@ -1340,7 +1340,9 @@ function renderCardContent(card) {
         btn.dataset.key = String(keyNumber);
         const keyHint = document.createElement('span');
         keyHint.className = 'mcq-key-hint';
+      if (PLATFORM === 'desktop') {
         keyHint.textContent = String(keyNumber);
+      }
         btn.appendChild(keyHint);
       }
       const textEl = document.createElement('span');

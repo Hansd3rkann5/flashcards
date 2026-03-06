@@ -21,8 +21,13 @@ function isLocalRuntimeHost() {
   const hostname = String(window.location.hostname || '').trim().toLowerCase();
   if (!hostname) return true;
   const isGithubPagesHost = hostname === 'github.io' || hostname.endsWith('.github.io');
+  if (navigator.userAgentData) {
+    console.log(navigator.userAgentData);
+  }
   return !isGithubPagesHost;
 }
+
+
 
 /**
  * @function updateRuntimeHostHint
@@ -74,6 +79,7 @@ function setAuthMessage(message = '', type = '') {
     messageEl.classList.add(type);
   }
 }
+
 
 
 /**
@@ -1759,6 +1765,10 @@ async function boot() {
   const editorOverlay = el('editorOverlay');
   const toggleSidebarBtn = el('toggleEditorSidebarBtn');
   const mcqContainer = el('mcqOptionsContainer');
+  const mcqContainerSes = el('mcqOptionsContainerSes');
+  const optToolbar = el('editOptionsToolbar');
+  const editMcq = el('editMcqOptions');
+  const toggleOrder = el('mcqOrderToggle')
   const openEditorIntroBtn = el('openEditorIntroBtn');
   if (toggleSidebarBtn && editorShell) {
     toggleSidebarBtn.onclick = () => editorShell.classList.toggle('sidebar-open');
@@ -1784,13 +1794,23 @@ async function boot() {
     el('editCardDialog').close();
   };
   el('editAddMcqOptionBtn').onclick = () => {
+    console.log('Adding MCQ option in edit mode');
+    optToolbar.classList.remove('hidden');
+    editMcq.classList.remove('hidden');
+    toggleOrder.classList.remove('hidden');
+    mcqContainerSes.classList.remove('hidden');
     setMcqModeState(true, true);
+    console.log(mcqContainerSes.classList.contains('hidden'));
+    console.log(getComputedStyle(mcqContainerSes).display)
+    console.log(el('mcqOptionsContainerSes').classList);
+    console.log(el('editMcqOptions').classList);
     addEditMcqRow();
     syncMcqPrimaryAnswerMode(true);
   };
   el('openCreateCardBtn').onclick = openCreateCardEditor;
   el('addMcqOptionBtn').onclick = () => {
     mcqContainer.classList.remove('hidden');
+    console.log('Adding MCQ option in main editpanel mode');
     setMcqModeState(false, true);
     addMcqRow();
     syncMcqPrimaryAnswerMode(false);
@@ -2234,8 +2254,8 @@ async function boot() {
       meta: { createdAt }
     };
     applyOptimisticCardCreate(card);
-    mcqContainer.classList.add('hidden');
-    console.log("Create hide mcq options");
+    mcqContainer.classList.remove('hidden');
+    console.log("Create show mcq options");
     const createdTopicId = String(card.topicId || '').trim();
     if (createdTopicId) {
       const bumpTopicCount = topic => {

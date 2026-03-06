@@ -1,0 +1,15 @@
+- Editing ordered questions not working
+    -> when editing dialog gets opened, all added answers vanish
+- Table Editor not working
+    -> when opening table editor on phone, table editor can't be closed
+- On Desktop: When sorting card, the animation is not working with backFace content
+    -> backFace content vanishes and the turned around frontFace appears and is animated to left/down/right
+- On review panel the state is not shown correctly. Learning State field shows "Partially" cards, but when partially
+    is selected, there are no cards selected. All get selected with "Correct" filter
+- On tablet: the swipe path for a card is limited
+    -> when swiping a card to left/right, the card can't be moved over a certain point but scaling animation of the
+        next card continous
+- On tablet: No card animation when using buttons for Correct, Partially, Wrong
+- On phone and tablet: Number for corresponding number key is appearing for mcq options but that is not needed
+- Global: I integrated a function in app-globals.js that saves the platform of the client -> implement design choices based on the platform
+- Welcome/Introduction Panels should only appear, if the user signs in for the first time overall, not everytime he signs in again
