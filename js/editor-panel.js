@@ -2469,9 +2469,19 @@ function openEditDialog(card) {
 async function deleteCardById(cardId, options = {}) {
   const { skipSubjectTouch = false, uiBlocking = false } = options;
   const card = await getById('cards', cardId);
+  const removedStorageRefs = getCardSupabaseStorageRefs(card);
   await del('cards', cardId, { uiBlocking });
   await del('progress', cardId, { uiBlocking });
   await del('cardbank', cardId, { uiBlocking });
+  if (removedStorageRefs.length) {
+    try {
+      await cleanupOrphanedSupabaseStorageRefs(removedStorageRefs, {
+        allowedCardIds: [cardId]
+      });
+    } catch (err) {
+      console.warn('Storage cleanup after card delete failed:', err);
+    }
+  }
   progressByCardId.delete(cardId);
   if (!skipSubjectTouch && card?.topicId) {
     await touchSubjectByTopicId(card.topicId, undefined, { uiBlocking });

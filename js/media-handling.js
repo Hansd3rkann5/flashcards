@@ -361,6 +361,246 @@ function getCardImageList(card, side = 'Q') {
 }
 
 /**
+ * @function normalizeSupabaseStorageRefList
+ * @description Returns a unique list of valid Supabase storage refs.
+ */
+
+function normalizeSupabaseStorageRefList(storageRefs = []) {
+  const refs = normalizeImageList(storageRefs)
+    .map(ref => String(ref || '').trim())
+    .filter(isSupabaseStorageRef)
+    .filter(ref => !!parseSupabaseStorageRef(ref));
+  return Array.from(new Set(refs));
+}
+
+/**
+ * @function getCardSupabaseStorageRefs
+ * @description Returns all storage refs used by one card (question + answer).
+ */
+
+function getCardSupabaseStorageRefs(card = null) {
+  const safeCard = (card && typeof card === 'object') ? card : null;
+  if (!safeCard) return [];
+  const refs = [
+    ...getCardImageList(safeCard, 'Q'),
+    ...getCardImageList(safeCard, 'A')
+  ];
+  return normalizeSupabaseStorageRefList(refs);
+}
+
+/**
+ * @function getRemovedCardSupabaseStorageRefs
+ * @description Returns refs present in previousCard but no longer referenced in nextCard.
+ */
+
+function getRemovedCardSupabaseStorageRefs(previousCard = null, nextCard = null) {
+  const before = new Set(getCardSupabaseStorageRefs(previousCard));
+  if (!before.size) return [];
+  const after = new Set(getCardSupabaseStorageRefs(nextCard));
+  return Array.from(before).filter(ref => !after.has(ref));
+}
+
+/**
+ * @function removeSupabaseStorageRefs
+ * @description Removes concrete storage refs from Supabase Storage (owner-scoped).
+ */
+
+async function removeSupabaseStorageRefs(storageRefs = [], options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const refs = normalizeSupabaseStorageRefList(storageRefs);
+  if (!refs.length) return { requested: 0, deleted: 0, skipped: 0 };
+  if (isLocalSnapshotModeEnabled()) {
+    return { requested: refs.length, deleted: 0, skipped: refs.length };
+  }
+
+  await initSupabaseBackend();
+  const ownerIdRaw = await getSupabaseOwnerId();
+  const ownerPrefix = `${String(ownerIdRaw || '').trim()}/`;
+  if (!ownerPrefix || ownerPrefix === '/') {
+    return { requested: refs.length, deleted: 0, skipped: refs.length };
+  }
+  const allowedCardIds = Array.isArray(opts.allowedCardIds)
+    ? new Set(opts.allowedCardIds.map(id => String(id || '').trim()).filter(Boolean))
+    : null;
+
+  const groupedByBucket = new Map();
+  let skipped = 0;
+  refs.forEach(ref => {
+    const parsed = parseSupabaseStorageRef(ref);
+    const bucket = String(parsed?.bucket || '').trim();
+    const path = String(parsed?.path || '').trim().replace(/^\/+/, '');
+    const pathParts = path.split('/').filter(Boolean);
+    const cardPathId = String(pathParts[1] || '').trim();
+    if (!bucket || !path || !path.startsWith(ownerPrefix)) {
+      skipped += 1;
+      return;
+    }
+    if (allowedCardIds && allowedCardIds.size && !allowedCardIds.has(cardPathId)) {
+      skipped += 1;
+      return;
+    }
+    if (!groupedByBucket.has(bucket)) groupedByBucket.set(bucket, new Set());
+    groupedByBucket.get(bucket).add(path);
+  });
+
+  let deleted = 0;
+  const chunkSize = Math.max(1, Math.trunc(Number(opts.chunkSize) || 100));
+  for (const [bucket, pathSet] of groupedByBucket.entries()) {
+    const paths = Array.from(pathSet);
+    for (let idx = 0; idx < paths.length; idx += chunkSize) {
+      const chunk = paths.slice(idx, idx + chunkSize);
+      if (!chunk.length) continue;
+      const { error } = await supabaseClient.storage.from(bucket).remove(chunk);
+      if (error) {
+        const message = String(error?.message || '').toLowerCase();
+        const isMissingError = message.includes('not found')
+          || message.includes('no such object')
+          || message.includes('does not exist');
+        if (!isMissingError) {
+          throw new Error(`Failed to delete storage images (${bucket}): ${String(error?.message || 'unknown error')}`);
+        }
+      }
+      deleted += chunk.length;
+      chunk.forEach(path => {
+        const cacheKey = `${bucket}/${path}`;
+        storageImageResolvedUrlCache.delete(cacheKey);
+        storageImageResolveInFlight.delete(cacheKey);
+      });
+    }
+  }
+  return { requested: refs.length, deleted, skipped };
+}
+
+/**
+ * @function cleanupOrphanedSupabaseStorageRefs
+ * @description Deletes candidate refs only if no card still references them.
+ */
+
+async function cleanupOrphanedSupabaseStorageRefs(storageRefs = [], options = {}) {
+  const refs = normalizeSupabaseStorageRefList(storageRefs);
+  if (!refs.length) return { candidates: 0, orphaned: 0, deleted: 0, skipped: 0 };
+
+  const cards = await getAll('cards', { force: true, uiBlocking: false });
+  const referenced = new Set();
+  (Array.isArray(cards) ? cards : []).forEach(card => {
+    getCardSupabaseStorageRefs(card).forEach(ref => referenced.add(ref));
+  });
+
+  const orphanedRefs = refs.filter(ref => !referenced.has(ref));
+  if (!orphanedRefs.length) {
+    return { candidates: refs.length, orphaned: 0, deleted: 0, skipped: refs.length };
+  }
+
+  const removalResult = await removeSupabaseStorageRefs(orphanedRefs, options);
+  return {
+    candidates: refs.length,
+    orphaned: orphanedRefs.length,
+    deleted: removalResult.deleted,
+    skipped: removalResult.skipped
+  };
+}
+
+/**
+ * @function listSupabaseStoragePathsRecursive
+ * @description Lists all file paths recursively below one bucket prefix.
+ */
+
+async function listSupabaseStoragePathsRecursive(bucket = '', prefix = '', options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const safeBucket = String(bucket || '').trim();
+  const safePrefix = String(prefix || '').trim().replace(/^\/+/, '').replace(/\/+$/, '');
+  if (!safeBucket) return [];
+
+  await initSupabaseBackend();
+  const limit = Math.max(1, Math.min(1000, Math.trunc(Number(opts.limit) || 100)));
+  const queue = [safePrefix];
+  const filePaths = [];
+  const bucketClient = supabaseClient.storage.from(safeBucket);
+
+  while (queue.length) {
+    const currentPrefix = queue.shift() || '';
+    let offset = 0;
+    while (true) {
+      const { data, error } = await bucketClient.list(currentPrefix, {
+        limit,
+        offset,
+        sortBy: { column: 'name', order: 'asc' }
+      });
+      assertSupabaseSuccess(error, `Failed to list storage path "${safeBucket}/${currentPrefix}".`);
+      const rows = Array.isArray(data) ? data : [];
+      rows.forEach(row => {
+        const name = String(row?.name || '').trim();
+        if (!name) return;
+        const path = currentPrefix ? `${currentPrefix}/${name}` : name;
+        if (row?.id === null) queue.push(path);
+        else filePaths.push(path);
+      });
+      if (rows.length < limit) break;
+      offset += rows.length;
+    }
+  }
+  return filePaths;
+}
+
+/**
+ * @function runStorageImageGarbageCollection
+ * @description Removes unreferenced images under the current user's storage folder.
+ */
+
+async function runStorageImageGarbageCollection(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const safeBucket = String(opts.bucket || SUPABASE_PICTURES_BUCKET || 'Pictures').trim();
+  if (!safeBucket) return { scanned: 0, referenced: 0, orphaned: 0, deleted: 0, skipped: 0 };
+  if (isLocalSnapshotModeEnabled()) {
+    return { scanned: 0, referenced: 0, orphaned: 0, deleted: 0, skipped: 0 };
+  }
+
+  await initSupabaseBackend();
+  const ownerId = String(await getSupabaseOwnerId() || '').trim();
+  if (!ownerId) return { scanned: 0, referenced: 0, orphaned: 0, deleted: 0, skipped: 0 };
+
+  const cards = await getAll('cards', { force: true, uiBlocking: false });
+  const referencedOwnedRefs = new Set();
+  (Array.isArray(cards) ? cards : []).forEach(card => {
+    getCardSupabaseStorageRefs(card).forEach(ref => {
+      const parsed = parseSupabaseStorageRef(ref);
+      if (!parsed) return;
+      if (String(parsed.bucket || '').trim() !== safeBucket) return;
+      if (!String(parsed.path || '').trim().startsWith(`${ownerId}/`)) return;
+      referencedOwnedRefs.add(buildSupabaseStorageRef(safeBucket, parsed.path));
+    });
+  });
+
+  const ownedPaths = await listSupabaseStoragePathsRecursive(safeBucket, ownerId, {
+    limit: opts.listLimit
+  });
+  const orphanedRefs = ownedPaths
+    .map(path => buildSupabaseStorageRef(safeBucket, path))
+    .filter(ref => !referencedOwnedRefs.has(ref));
+
+  if (opts.dryRun) {
+    return {
+      scanned: ownedPaths.length,
+      referenced: referencedOwnedRefs.size,
+      orphaned: orphanedRefs.length,
+      deleted: 0,
+      skipped: 0
+    };
+  }
+
+  const removalResult = await removeSupabaseStorageRefs(orphanedRefs, {
+    chunkSize: opts.chunkSize
+  });
+  return {
+    scanned: ownedPaths.length,
+    referenced: referencedOwnedRefs.size,
+    orphaned: orphanedRefs.length,
+    deleted: removalResult.deleted,
+    skipped: removalResult.skipped
+  };
+}
+
+/**
  * @function resetSessionImagePreloadCache
  * @description Clears the in-memory image preload cache used to warm upcoming study cards.
  */

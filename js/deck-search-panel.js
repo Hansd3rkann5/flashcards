@@ -252,7 +252,7 @@ function playTileShatterAnimation(tileEl, options = {}) {
 
   const opts = options && typeof options === 'object' ? options : {};
   const holdMsRaw = Number(opts.holdMs);
-  const holdMs = Number.isFinite(holdMsRaw) ? Math.max(120, Math.trunc(holdMsRaw)) : 560;
+  const holdMs = Number.isFinite(holdMsRaw) ? Math.max(120, Math.trunc(holdMsRaw)) : 1120;
   const persistHide = opts.persistHide === true;
   const rect = tile.getBoundingClientRect();
   if (rect.width < 20 || rect.height < 20) return Promise.resolve(false);

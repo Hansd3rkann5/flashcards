@@ -1932,7 +1932,7 @@ textarea:focus-visible {
     0 1px 0 rgba(255, 255, 255, 0.12) inset,
     0 6px 14px rgba(0, 0, 0, 0.24);
   border: 1px solid color-mix(in srgb, var(--piece-accent, #2dd4bf) 45%, rgba(255, 255, 255, 0.2));
-  animation: tile-shatter-piece-fly 560ms cubic-bezier(0.18, 0.72, 0.24, 1) forwards;
+  animation: tile-shatter-piece-fly 960ms cubic-bezier(0.18, 0.72, 0.24, 1) forwards;
   animation-delay: var(--delay, 0ms);
   will-change: transform, opacity, filter;
 }

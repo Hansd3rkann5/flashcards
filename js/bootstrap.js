@@ -2375,6 +2375,7 @@ async function boot() {
       type,
       ...imagePayload
     };
+    const removedStorageRefs = getRemovedCardSupabaseStorageRefs(card, updated);
 
     // Immediate UI update first (fast close and optimistic rendering).
     syncSessionCard(updated);
@@ -2393,6 +2394,15 @@ async function boot() {
         await put('cards', updated, { uiBlocking: false });
         await putCardBank(updated, { uiBlocking: false });
         await touchSubjectByTopicId(updated.topicId, undefined, { uiBlocking: false });
+        if (removedStorageRefs.length) {
+          try {
+            await cleanupOrphanedSupabaseStorageRefs(removedStorageRefs, {
+              allowedCardIds: [updated.id]
+            });
+          } catch (cleanupErr) {
+            console.warn('Deferred storage cleanup after card edit failed:', cleanupErr);
+          }
+        }
       } catch (err) {
         console.warn('Deferred card edit sync failed:', err);
       } finally {
