@@ -1,7 +1,5 @@
 - Table Editor not working
     -> when opening table editor on phone, table editor can't be closed
-- On Desktop: When evaluating card to correct/partially/wrong, the animation is not working with backFace content
-    -> backFace content vanishes and the turned around frontFace appears and is animated to left/down/right
 - On review panel the state is not shown correctly. Learning State field shows "Partially" cards, but when partially
     is selected, there are no cards selected. All get selected with "Correct" filter
 - On tablet: the swipe path for a card is limited

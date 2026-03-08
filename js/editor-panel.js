@@ -40,7 +40,7 @@ function setMcqModeState(edit = false, enabled = false) {
   field.classList.toggle('mcq-primary', enabled);
   field.classList.toggle('mcq-row', enabled);
   if (answerInput instanceof HTMLTextAreaElement) {
-    answerInput.wrap = enabled ? 'off' : 'soft';
+    answerInput.wrap = 'soft';
   }
   if (!enabled) {
     field.classList.remove('correct', 'wrong');
@@ -48,9 +48,6 @@ function setMcqModeState(edit = false, enabled = false) {
   }
   toggle.onchange = () => syncPrimaryMcqUi(edit);
   syncPrimaryMcqUi(edit);
-  if (answerInput instanceof HTMLTextAreaElement) {
-    enforcePrimaryMcqAnswerSingleLine(answerInput);
-  }
   if (!edit) updateCreateValidation();
 }
 
@@ -61,8 +58,7 @@ function setMcqModeState(edit = false, enabled = false) {
 
 function isPrimaryMcqAnswerSingleLineMode(textarea) {
   if (!(textarea instanceof HTMLTextAreaElement)) return false;
-  if (textarea.id === 'cardAnswer') return !!el('primaryAnswerRow')?.classList.contains('mcq-primary');
-  if (textarea.id === 'editCardAnswer') return !!el('editPrimaryAnswerRow')?.classList.contains('mcq-primary');
+  // MCQ answers now support multiline input.
   return false;
 }
 
@@ -2232,7 +2228,7 @@ function openFormulaDialog(targetId) {
 function getCreateOptionCount() {
   const primaryText = el('cardAnswer').value.trim();
   let count = primaryText ? 1 : 0;
-  Array.from(el('mcqOptions').querySelectorAll('.mcq-row[data-primary="false"] input[type="text"]'))
+  Array.from(el('mcqOptions').querySelectorAll('.mcq-row[data-primary="false"] .mcq-option-input'))
     .forEach(input => {
       if (input.value.trim()) count += 1;
     });
@@ -2256,7 +2252,8 @@ function parseMcqOptions() {
   }
   const rows = Array.from(el('mcqOptions').querySelectorAll('.mcq-row[data-primary="false"]'));
   rows.forEach(row => {
-    const text = row.querySelector('input[type="text"]').value.trim();
+    const optionInput = row.querySelector('.mcq-option-input');
+    const text = String(optionInput?.value || '').trim();
     const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
     const orderEl = row.querySelector('.mcq-order-select');
     const order = Number(orderEl?.value || orderEl?.dataset.value || 0);
@@ -2302,7 +2299,7 @@ function addMcqRowInternal(edit = false, text = '', correct = false, options = {
             <select class="mcq-order-select" data-value="${nextOptionOrderId}"></select>
           </label>
         </div>
-        <input type="text" placeholder="Answer option..." value="${escapeHTML(text)}" />
+        <textarea class="mcq-option-input" rows="3" placeholder="Answer option...">${escapeHTML(text)}</textarea>
         <div class="mcq-row-actions">
           <div class="tiny">Additional answer option</div>
           <button class="btn mcq-remove" type="button">Remove</button>
@@ -2310,8 +2307,9 @@ function addMcqRowInternal(edit = false, text = '', correct = false, options = {
       `;
   const toggle = wrap.querySelector('.mcq-toggle input[type="checkbox"]');
   if (toggle) toggle.addEventListener('change', () => updateMcqRowCorrectState(wrap));
-  const input = wrap.querySelector('input[type="text"]');
+  const input = wrap.querySelector('.mcq-option-input');
   if (input) {
+    attachAutoClose(input);
     if (!edit) input.addEventListener('input', () => updateCreateValidation());
     input.addEventListener('keydown', handleInlineFormatShortcut);
     input.addEventListener('keydown', handleTextAlignShortcut);
@@ -2339,7 +2337,7 @@ function addMcqRowInternal(edit = false, text = '', correct = false, options = {
   if (insertAtTop && optionsWrap.firstChild) optionsWrap.insertBefore(wrap, optionsWrap.firstChild);
   else optionsWrap.appendChild(wrap);
   syncMcqOrderUi(edit);
-  if (focusInput && input instanceof HTMLInputElement) {
+  if (focusInput && (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
     requestAnimationFrame(() => {
       input.focus();
       const caret = input.value.length;
@@ -2365,7 +2363,8 @@ function parseEditMcqOptions() {
   }
   const rows = Array.from(el('editMcqOptions').querySelectorAll('.mcq-row[data-primary="false"]'));
   rows.forEach(row => {
-    const text = row.querySelector('input[type="text"]').value.trim();
+    const optionInput = row.querySelector('.mcq-option-input');
+    const text = String(optionInput?.value || '').trim();
     const correct = row.querySelector('.mcq-toggle input[type="checkbox"]').checked;
     const orderEl = row.querySelector('.mcq-order-select');
     const order = Number(orderEl?.value || orderEl?.dataset.value || 0);
@@ -2468,14 +2467,14 @@ function openEditDialog(card) {
  */
 
 async function deleteCardById(cardId, options = {}) {
-  const { skipSubjectTouch = false, uiBlocking = true } = options;
+  const { skipSubjectTouch = false, uiBlocking = false } = options;
   const card = await getById('cards', cardId);
   await del('cards', cardId, { uiBlocking });
   await del('progress', cardId, { uiBlocking });
   await del('cardbank', cardId, { uiBlocking });
   progressByCardId.delete(cardId);
   if (!skipSubjectTouch && card?.topicId) {
-    await touchSubjectByTopicId(card.topicId);
+    await touchSubjectByTopicId(card.topicId, undefined, { uiBlocking });
   }
   if (session.active) {
     session.activeQueue = session.activeQueue.filter(c => c.id !== cardId);

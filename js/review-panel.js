@@ -3380,7 +3380,7 @@ function playSessionCompleteConfetti() {
   // const scale = 1;
   const scale = Math.min(1.2, Math.max(0.6, vw / BASE_WIDTH));
 
-  const origin = { x: 0.5, y: 1.02 };
+  const origin = { x: 0.5, y: 0 };
   const colors = ['#22c55e', '#38bdf8', '#f59e0b', '#ef4444', '#a78bfa', '#facc15', '#14b8a6'];
   const base = {
     origin,

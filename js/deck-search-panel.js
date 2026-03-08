@@ -102,6 +102,143 @@ function findTopicTileById(topicId = '') {
 }
 
 /**
+ * @function findCardTilesById
+ * @description Finds rendered card tiles by card id (deck + editor list).
+ */
+
+function findCardTilesById(cardId = '') {
+  const safeId = String(cardId || '').trim();
+  if (!safeId) return [];
+  const selector = `.card-tile[data-card-id="${escapeDataSelectorValue(safeId)}"]`;
+  return Array.from(document.querySelectorAll(selector)).filter(node => node instanceof HTMLElement);
+}
+
+/**
+ * @function playCardDeleteAnimation
+ * @description Plays the shared shatter animation for one or multiple card tiles.
+ */
+
+async function playCardDeleteAnimation(cardIds = [], options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const fallbackTile = opts.fallbackTile instanceof HTMLElement ? opts.fallbackTile : null;
+  const uniqueTiles = [];
+  const seen = new Set();
+  const ids = Array.isArray(cardIds) ? cardIds : [];
+
+  ids.forEach(cardId => {
+    findCardTilesById(cardId).forEach(tile => {
+      if (seen.has(tile)) return;
+      seen.add(tile);
+      uniqueTiles.push(tile);
+    });
+  });
+
+  if (fallbackTile && !seen.has(fallbackTile)) uniqueTiles.push(fallbackTile);
+  if (!uniqueTiles.length) return false;
+
+  await Promise.all(uniqueTiles.map(tile => playTileShatterAnimation(tile, { persistHide: true })));
+  return true;
+}
+
+/**
+ * @function formatCardCountLabel
+ * @description Returns localized count label for card counters.
+ */
+
+function formatCardCountLabel(count = 0) {
+  const safe = Math.max(0, Math.trunc(Number(count) || 0));
+  return `${safe} ${safe === 1 ? 'card' : 'cards'}`;
+}
+
+/**
+ * @function getTopicCardCountValue
+ * @description Returns a normalized topic card-count number.
+ */
+
+function getTopicCardCountValue(topic = null) {
+  const raw = Number(topic?.cardCount);
+  return Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0;
+}
+
+/**
+ * @function setSelectedTopicCardCountValue
+ * @description Updates the selected topic count in memory and visible topic tile.
+ */
+
+function setSelectedTopicCardCountValue(nextCount = 0) {
+  const topicId = String(selectedTopic?.id || '').trim();
+  if (!topicId) return null;
+  const safeCount = Math.max(0, Math.trunc(Number(nextCount) || 0));
+
+  const applyCount = topic => {
+    const safeTopic = (topic && typeof topic === 'object') ? topic : null;
+    if (!safeTopic || String(safeTopic.id || '').trim() !== topicId) return safeTopic;
+    return { ...safeTopic, cardCount: safeCount };
+  };
+
+  selectedTopic = applyCount(selectedTopic) || selectedTopic;
+  if (Array.isArray(currentSubjectTopics) && currentSubjectTopics.length) {
+    currentSubjectTopics = currentSubjectTopics.map(topic => applyCount(topic) || topic);
+  }
+
+  const topicMeta = Array.isArray(currentSubjectTopics)
+    ? currentSubjectTopics.find(topic => String(topic?.id || '').trim() === topicId)
+    : null;
+  const resolvedCount = getTopicCardCountValue(topicMeta || selectedTopic);
+  const topicTile = document.querySelector(`#topicList .topic-tile[data-topic-id="${escapeDataSelectorValue(topicId)}"]`);
+  if (topicTile) {
+    const tileCount = topicTile.querySelector('.topic-card-count');
+    if (tileCount) tileCount.textContent = formatCardCountLabel(resolvedCount);
+  }
+  return { topicId, count: resolvedCount };
+}
+
+/**
+ * @function syncSelectedTopicCardCount
+ * @description Syncs selected-topic list counters with the currently loaded deck size.
+ */
+
+function syncSelectedTopicCardCount(nextCount = null) {
+  if (!Number.isFinite(nextCount)) return;
+  const synced = setSelectedTopicCardCountValue(nextCount);
+  if (!synced) return;
+
+  const totalCardsEl = el('topicListTotalCards');
+  if (!totalCardsEl || !Array.isArray(currentSubjectTopics) || !currentSubjectTopics.length) return;
+  const totalCount = currentSubjectTopics.reduce(
+    (sum, topic) => sum + getTopicCardCountValue(topic),
+    0
+  );
+  totalCardsEl.textContent = formatCardCountLabel(totalCount);
+}
+
+/**
+ * @function applyOptimisticSelectedTopicCardCountDelta
+ * @description Applies a local delta to visible topic/deck card counters before background reloads finish.
+ */
+
+function applyOptimisticSelectedTopicCardCountDelta(delta = 0) {
+  const safeDelta = Math.trunc(Number(delta) || 0);
+  if (!safeDelta) return;
+
+  bumpDeckTopicCardCount(safeDelta);
+  const currentCount = getTopicCardCountValue(selectedTopic);
+  const synced = setSelectedTopicCardCountValue(currentCount + safeDelta);
+  if (!synced) return;
+
+  const totalCardsEl = el('topicListTotalCards');
+  if (totalCardsEl) {
+    const match = String(totalCardsEl.textContent || '').match(/^(\d+)/);
+    if (match) {
+      const currentTotal = Number(match[1]);
+      if (Number.isFinite(currentTotal)) {
+        totalCardsEl.textContent = formatCardCountLabel(Math.max(0, currentTotal + safeDelta));
+      }
+    }
+  }
+}
+
+/**
  * @function playTileShatterAnimation
  * @description Plays a short "break into pieces" animation for one tile before deletion.
  */
@@ -614,15 +751,35 @@ async function deleteSelectedDeckCards() {
   if (!ids.length) return;
   const label = ids.length === 1 ? 'this card' : `these ${ids.length} cards`;
   if (!confirm(`Do you want to delete ${label}?`)) return;
-  for (const cardId of ids) {
-    await deleteCardById(cardId, { skipSubjectTouch: true });
+  const optimisticDelta = -ids.length;
+  applyOptimisticSelectedTopicCardCountDelta(optimisticDelta);
+  try {
+    await playCardDeleteAnimation(ids);
+    for (const cardId of ids) {
+      await deleteCardById(cardId, { skipSubjectTouch: true, uiBlocking: false });
+    }
+    if (selectedSubject?.id) await touchSubject(selectedSubject.id, undefined, { uiBlocking: false });
+    setDeckSelectionMode(false);
+    await Promise.all([
+      loadDeck({ force: true, uiBlocking: false }),
+      loadEditorCards({ force: true, uiBlocking: false }),
+      refreshSidebar({ uiBlocking: false }),
+      selectedSubject
+        ? loadTopics({ force: true, uiBlocking: false, prefetch: false })
+        : Promise.resolve()
+    ]);
+  } catch (err) {
+    applyOptimisticSelectedTopicCardCountDelta(-optimisticDelta);
+    console.error('deleteSelectedDeckCards failed:', err);
+    alert(err?.message || 'Delete failed.');
+    await Promise.all([
+      loadDeck({ force: true, uiBlocking: false }),
+      loadEditorCards({ force: true, uiBlocking: false }),
+      selectedSubject
+        ? loadTopics({ force: true, uiBlocking: false, prefetch: false })
+        : Promise.resolve()
+    ]);
   }
-  if (selectedSubject?.id) await touchSubject(selectedSubject.id);
-  setDeckSelectionMode(false);
-  await loadDeck();
-  await loadEditorCards();
-  await refreshSidebar();
-  if (selectedSubject) await refreshTopicSessionMeta();
 }
 
 /**
@@ -739,20 +896,45 @@ function buildCardTile(card, idx, compact = false) {
           <button class="btn card-menu-btn innerGlow" type="button" aria-label="Edit card" title="Edit card"><img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" /></button>
           <div class="card-menu">
             <button class="btn card-menu-item card-menu-item-edit" type="button">Edit</button>
+            <button class="btn card-menu-item card-menu-item-duplicate duplicate-card-btn" type="button">Duplicate</button>
             <button class="btn delete card-menu-item delete-card-btn" type="button">Delete</button>
           </div>
         `;
-    menu.querySelector('.card-menu-item').onclick = (e) => {
-      e.stopPropagation();
-      openEditDialog(card);
-    };
+    const editBtn = menu.querySelector('.card-menu-item-edit');
+    if (editBtn) {
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        openEditDialog(card);
+      };
+    }
+    const duplicateBtn = menu.querySelector('.duplicate-card-btn');
+    if (duplicateBtn) {
+      duplicateBtn.onclick = async (e) => {
+        e.stopPropagation();
+        menu.classList.remove('open');
+        await duplicateCard(card);
+      };
+    }
     menu.querySelector('.delete-card-btn').onclick = async (e) => {
       e.stopPropagation();
       if (!confirm('Delete this flashcard?')) return;
-      await deleteCardById(card.id);
-      loadDeck();
-      loadEditorCards();
-      refreshSidebar();
+      const optimisticDelta = -1;
+      applyOptimisticSelectedTopicCardCountDelta(optimisticDelta);
+      try {
+        await playCardDeleteAnimation([card.id], { fallbackTile: tile });
+        await deleteCardById(card.id, { uiBlocking: false });
+      } catch (err) {
+        applyOptimisticSelectedTopicCardCountDelta(-optimisticDelta);
+        console.error('Card delete failed:', err);
+        alert(err?.message || 'Delete failed.');
+      } finally {
+        void loadDeck({ force: true, uiBlocking: false });
+        void loadEditorCards({ force: true, uiBlocking: false });
+        void refreshSidebar({ uiBlocking: false });
+        if (selectedSubject) {
+          void loadTopics({ force: true, uiBlocking: false, prefetch: false });
+        }
+      }
     };
     menu.querySelector('.card-menu-btn').onclick = (e) => {
       e.stopPropagation();
@@ -834,13 +1016,67 @@ function prependCardTileToContainer(container, card, compact = false) {
  * @description Updates editor/deck card overviews immediately after create without waiting for a refetch.
  */
 
-function applyOptimisticCardCreate(card) {
+function applyOptimisticCardCreate(card, options = {}) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const bumpCount = opts.bumpCount !== false;
   if (!card?.id) return;
   prependCardTileToContainer(el('editorCardsList'), card, true);
   if (selectedTopic?.id === card.topicId) {
     prependCardTileToContainer(el('cardsGrid'), card, false);
-    bumpDeckTopicCardCount(1);
+    if (bumpCount) bumpDeckTopicCardCount(1);
   }
+}
+
+/**
+ * @function duplicateCard
+ * @description Duplicates a card in-place (same topic) and persists in the background.
+ */
+
+async function duplicateCard(card) {
+  const source = (card && typeof card === 'object') ? cloneData(card) : null;
+  if (!source?.id || !source?.topicId) return null;
+
+  const nowIso = new Date().toISOString();
+  const duplicated = {
+    ...source,
+    id: uid(),
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    meta: {
+      ...(source.meta || {}),
+      createdAt: nowIso,
+      updatedAt: nowIso
+    }
+  };
+  delete duplicated.sessionCorrectCount;
+  delete duplicated.reviewCarryOver;
+  delete duplicated.reviewDowngraded;
+
+  applyOptimisticCardCreate(duplicated, { bumpCount: false });
+  applyOptimisticSelectedTopicCardCountDelta(1);
+
+  void (async () => {
+    try {
+      await put('cards', duplicated, {
+        uiBlocking: false,
+        skipFlushPending: true
+      });
+      await putCardBank(duplicated, { uiBlocking: false });
+      if (selectedSubject?.id) await touchSubject(selectedSubject.id, undefined, { uiBlocking: false });
+    } catch (err) {
+      console.warn('Deferred card duplicate sync failed:', err);
+      alert(`Duplicate failed: ${err?.message || err}`);
+    } finally {
+      void loadDeck({ force: true, uiBlocking: false });
+      void loadEditorCards({ force: true, uiBlocking: false });
+      void refreshSidebar({ uiBlocking: false });
+      if (selectedSubject) {
+        void loadTopics({ force: true, uiBlocking: false, prefetch: false });
+      }
+    }
+  })();
+
+  return duplicated;
 }
 
 /**
@@ -1370,6 +1606,7 @@ async function loadDeck(options = {}) {
   setDeckTitle(selectedTopic.name);
   const cards = await getCardsByTopicIds([selectedTopic.id], { force, uiBlocking });
   setDeckTopicCardCount(cards.length);
+  syncSelectedTopicCardCount(cards.length);
   cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
   const cardIds = new Set(cards.map(card => card.id));
   deckSelectedCardIds.forEach(cardId => {
@@ -1447,11 +1684,16 @@ function getCardCreatedAt(card) {
  */
 
 async function loadEditorCards(options = {}) {
-  if (!selectedTopic) return;
+  if (!selectedTopic) {
+    setDeckTopicCardCount(null);
+    return;
+  }
   const opts = (options && typeof options === 'object') ? options : {};
   const force = !!opts.force;
   const uiBlocking = opts.uiBlocking !== false;
   const cards = await getCardsByTopicIds([selectedTopic.id], { force, uiBlocking });
+  setDeckTopicCardCount(cards.length);
+  syncSelectedTopicCardCount(cards.length);
   cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));
   const list = el('editorCardsList');
   if (!cards.length) {

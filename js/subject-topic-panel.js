@@ -256,6 +256,19 @@ function openTopicEditDialog(topic = null) {
   });
 }
 
+function getTopicLastUpdatedTimestamp(topic = null) {
+  const raw = topic?.meta?.updatedAt
+    ?? topic?.updatedAt
+    ?? topic?.updated_at
+    ?? topic?.meta?.createdAt
+    ?? topic?.createdAt
+    ?? 0;
+  const dateTs = new Date(raw).getTime();
+  if (Number.isFinite(dateTs) && dateTs > 0) return dateTs;
+  const numTs = Number(raw);
+  return Number.isFinite(numTs) && numTs > 0 ? numTs : 0;
+}
+
 /**
  * @function loadTopics
  * @description Loads and renders topics for the active subject including selection and bulk actions.
@@ -285,6 +298,50 @@ async function loadTopics(options = {}) {
   topics = (Array.isArray(topics) ? topics : []).filter(topic => {
     const topicId = String(topic?.id || '').trim();
     return !!topicId && !pendingTopicDeletionIds.has(topicId);
+  });
+  const topicIdsForSort = topics
+    .map(topic => String(topic?.id || '').trim())
+    .filter(Boolean);
+  let latestCardTimestampByTopic = new Map();
+  let cardCountByTopic = new Map();
+  if (topicIdsForSort.length) {
+    const refs = await getCardRefsByTopicIds(topicIdsForSort, {
+      force,
+      uiBlocking: false,
+      payloadLabel: `topic-sort-refs-${topicIdsForSort.length}`
+    });
+    if (typeof getLatestCardTimestampByTopic === 'function') {
+      latestCardTimestampByTopic = getLatestCardTimestampByTopic(refs);
+    }
+    refs.forEach(ref => {
+      const topicId = String(ref?.topicId || '').trim();
+      if (!topicId) return;
+      cardCountByTopic.set(topicId, (cardCountByTopic.get(topicId) || 0) + 1);
+    });
+  }
+  if (topicIdsForSort.length) {
+    topics = topics.map(topic => {
+      const topicId = String(topic?.id || '').trim();
+      return {
+        ...topic,
+        cardCount: Number(cardCountByTopic.get(topicId) || 0)
+      };
+    });
+  }
+  topics.sort((a, b) => {
+    const topicIdA = String(a?.id || '').trim();
+    const topicIdB = String(b?.id || '').trim();
+    const tsA = Math.max(
+      getTopicLastUpdatedTimestamp(a),
+      Number(latestCardTimestampByTopic.get(topicIdA) || 0)
+    );
+    const tsB = Math.max(
+      getTopicLastUpdatedTimestamp(b),
+      Number(latestCardTimestampByTopic.get(topicIdB) || 0)
+    );
+    const tsDiff = tsB - tsA;
+    if (tsDiff !== 0) return tsDiff;
+    return String(a?.name || '').localeCompare(String(b?.name || ''));
   });
   // Subject may have changed while data was loading in the background.
   if (!selectedSubject || String(selectedSubject.id || '').trim() !== subjectId) return;

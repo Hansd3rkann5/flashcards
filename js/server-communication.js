@@ -573,6 +573,13 @@ async function listStoreRecordsSupabase(store = '', ownerId = '') {
     if (!(keyField in payload) || payload[keyField] === undefined || payload[keyField] === null || payload[keyField] === '') {
       payload[keyField] = String(row?.record_key || '').trim();
     }
+    const rowUpdatedAt = String(row?.updated_at || '').trim();
+    if (rowUpdatedAt) {
+      if (!String(payload?.updatedAt || '').trim()) payload.updatedAt = rowUpdatedAt;
+      const meta = (payload?.meta && typeof payload.meta === 'object') ? { ...payload.meta } : {};
+      if (!String(meta?.updatedAt || '').trim()) meta.updatedAt = rowUpdatedAt;
+      payload.meta = meta;
+    }
     return payload;
   });
 }
@@ -812,6 +819,8 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
     prompt: 'prompt:payload->>prompt',
     question: 'question:payload->>question',
     answer: 'answer:payload->>answer',
+    updated_at: 'updated_at',
+    updatedAt: 'updated_at',
     imageDataQ: 'imageDataQ:payload->>imageDataQ',
     imageDataA: 'imageDataA:payload->>imageDataA',
     imageData: 'imageData:payload->>imageData'
@@ -909,6 +918,8 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
       const next = {};
       if (fields.includes('id')) next.id = String(row?.record_key || '').trim();
       if (fields.includes('topicId')) next.topicId = String(row?.topic_id || '').trim();
+      if (fields.includes('updated_at')) next.updated_at = String(row?.updated_at || '');
+      if (fields.includes('updatedAt')) next.updatedAt = String(row?.updated_at || '');
       if (fields.includes('prompt')) next.prompt = String(row?.prompt || '');
       if (fields.includes('question')) next.question = String(row?.question || '');
       if (fields.includes('answer')) next.answer = String(row?.answer || '');

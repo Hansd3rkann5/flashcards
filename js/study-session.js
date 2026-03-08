@@ -117,6 +117,7 @@ const SESSION_DESKTOP_AUTO_SWIPE_ARC_COMMIT_ANGLE = 0.82;
 const SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS = 420;
 const SESSION_DESKTOP_AUTO_SWIPE_EASING = 'cubic-bezier(0.42, 0, 1, 1)';
 const SESSION_DESKTOP_AUTO_SWIPE_COMMIT_DELAY_MS = 420;
+const SESSION_COARSE_POINTER_BUTTON_SWIPE_MIN_WIDTH = 768;
 let sessionProgrammaticSwipeInFlight = false;
 
 function clampSessionScaleNumber(value, min, max, fallback = 0) {
@@ -1754,7 +1755,7 @@ function canUseDesktopAutoSwipeMotion(flashcardEl, result) {
   if (!flashcardEl || !session.active) return false;
   if (!['correct', 'partial', 'wrong'].includes(result)) return false;
   if (!isStudySessionVisible()) return false;
-  if (isCoarsePointerDevice()) return false;
+  if (isCoarsePointerDevice() && window.innerWidth < SESSION_COARSE_POINTER_BUTTON_SWIPE_MIN_WIDTH) return false;
   if (document.body.classList.contains('session-image-open')) return false;
   if (flashcardEl.dataset.type === 'mcq') return false;
   if (flashcardEl.classList.contains('swiping')) return false;
@@ -1775,16 +1776,20 @@ async function gradeCardWithDesktopAutoMove(result) {
   flashcardEl.classList.remove('swipe-correct', 'swipe-wrong', 'swipe-partial');
   flashcardEl.classList.add('swiping', `swipe-${safeResult}`);
   flashcardEl.style.setProperty('--swipe-intensity', '1');
-  flashcardEl.style.transition = `transform ${SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS}ms ${SESSION_DESKTOP_AUTO_SWIPE_EASING}, opacity ${SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS}ms ${SESSION_DESKTOP_AUTO_SWIPE_EASING}`;
-  flashcardEl.style.willChange = 'transform, opacity';
-  flashcardEl.style.opacity = '1';
+  flashcardEl.style.willChange = 'transform';
+  const baseTransform = flashcardEl.classList.contains('flipped') ? ' rotateX(180deg)' : '';
+  // Keep identical transform function lists between start/end to avoid face-flip glitches
+  // while animating a card that is currently showing the back face.
+  flashcardEl.style.transition = 'none';
+  flashcardEl.style.transform = `translate3d(0px, 0px, 0) rotate(0deg)${baseTransform}`;
+  flashcardEl.style.opacity = '';
   setNextCardSwipeProgress(1);
+  void flashcardEl.offsetWidth;
+  flashcardEl.style.transition = `transform ${SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS}ms ${SESSION_DESKTOP_AUTO_SWIPE_EASING}`;
 
   const transform = getProgrammaticSessionSwipeTransform(flashcardEl, safeResult);
   requestAnimationFrame(() => {
-    const baseTransform = flashcardEl.classList.contains('flipped') ? ' rotateX(180deg)' : '';
     flashcardEl.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) rotate(${transform.rotate}deg)${baseTransform}`;
-    flashcardEl.style.opacity = safeResult === 'partial' ? '0.12' : '0.05';
   });
 
   try {
@@ -2139,6 +2144,7 @@ function wireSwipe() {
   const rotateLimit = SESSION_PROGRAMMATIC_SWIPE_ROTATE_LIMIT;
   const ARC_RADIUS = Math.max(window.innerHeight * 1.4, 1200);
   const ARC_COMMIT_ANGLE = SESSION_PROGRAMMATIC_SWIPE_ARC_COMMIT_ANGLE;
+  const ARC_DRAG_MAX_ANGLE = 0.85;
   const UP_CANCEL_RATIO = 1.25;
   const UP_CANCEL_MIN_PX = 26;
 
@@ -2340,7 +2346,7 @@ function wireSwipe() {
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight + ARC_RADIUS;
 
-    const angle = clamp(dx / ARC_RADIUS, -0.6, 0.6);
+    const angle = clamp(dx / ARC_RADIUS, -ARC_DRAG_MAX_ANGLE, ARC_DRAG_MAX_ANGLE);
 
     const arcX = cx + ARC_RADIUS * Math.sin(angle);
     const arcY = cy - ARC_RADIUS * Math.cos(angle);
@@ -2447,7 +2453,9 @@ function wireSwipe() {
       ? computeThresholdGlowIntensity(thresholdResult, dx, dy)
       : 0;
     applySwipeFeedback(thresholdResult, glowIntensity);
-    setNextCardSwipeProgress(computeNextCardProgress(result, absX, dy), { dragging: true });
+    // Use the rendered horizontal displacement so next-card scaling stays in sync
+    // even when the swipe arc applies easing/clamping.
+    setNextCardSwipeProgress(computeNextCardProgress(result, Math.abs(x), dy), { dragging: true });
   }, { passive: false });
 
   const finishSwipe = () => {
