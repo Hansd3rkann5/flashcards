@@ -1448,6 +1448,165 @@ function wireImageMigrationLogDialog() {
 }
 
 /**
+ * @function runStorageCleanupFromSettings
+ * @description Runs one orphaned-image cleanup pass (dry run + explicit confirmation) from Settings.
+ */
+
+async function runStorageCleanupFromSettings() {
+  if (isLocalSnapshotModeEnabled()) {
+    alert('Storage cleanup is only available when using the Supabase backend.');
+    return;
+  }
+
+  const triggerBtn = el('runStorageCleanupBtn');
+  if (triggerBtn?.dataset.busy === '1') return;
+  if (triggerBtn) {
+    triggerBtn.dataset.busy = '1';
+    triggerBtn.disabled = true;
+  }
+
+  const settingsDialog = el('settingsDialog');
+  if (settingsDialog?.open) closeDialog(settingsDialog);
+
+  setAppLoadingState(true, 'Scanning storage for orphaned images...');
+  try {
+    const dryRun = await runStorageImageGarbageCollection({ dryRun: true });
+    const scanned = Number(dryRun?.scanned || 0);
+    const orphaned = Number(dryRun?.orphaned || 0);
+    if (!orphaned) {
+      alert(`Storage cleanup: no orphaned images found (${scanned} files scanned).`);
+      return;
+    }
+
+    const proceed = confirm(
+      `Storage cleanup found ${orphaned} orphaned image(s) out of ${scanned} scanned file(s).\n\nDelete these orphaned images now?`
+    );
+    if (!proceed) return;
+
+    setAppLoadingLabel(`Deleting ${orphaned} orphaned image(s)...`);
+    const result = await runStorageImageGarbageCollection();
+    const deleted = Number(result?.deleted || 0);
+    const skipped = Number(result?.skipped || 0);
+    alert(
+      `Storage cleanup finished.\nScanned: ${scanned}\nOrphaned: ${orphaned}\nDeleted: ${deleted}\nSkipped: ${skipped}`
+    );
+  } catch (err) {
+    console.error('Storage cleanup failed:', err);
+    alert(err?.message || 'Storage cleanup failed.');
+  } finally {
+    setAppLoadingState(false);
+    if (triggerBtn) {
+      triggerBtn.dataset.busy = '0';
+      triggerBtn.disabled = false;
+    }
+  }
+}
+
+/**
+ * @function restoreMissingImagesFromLocalBackup
+ * @description Restores card image payloads from local SQLite-derived backup JSON and re-uploads to storage.
+ */
+
+async function restoreMissingImagesFromLocalBackup() {
+  if (isLocalSnapshotModeEnabled()) {
+    alert('Image restore is only available when using the Supabase backend.');
+    return;
+  }
+
+  const triggerBtn = el('restoreMissingImagesBtn');
+  if (triggerBtn?.dataset.busy === '1') return;
+  if (triggerBtn) {
+    triggerBtn.dataset.busy = '1';
+    triggerBtn.disabled = true;
+  }
+
+  const settingsDialog = el('settingsDialog');
+  if (settingsDialog?.open) closeDialog(settingsDialog);
+
+  setAppLoadingState(true, 'Loading local image restore backup...');
+  let restored = 0;
+  let skipped = 0;
+  let failed = 0;
+  try {
+    const response = await fetch('./image-restore-from-sqlite.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Missing image restore file (HTTP ${response.status}).`);
+    }
+    const payload = await response.json();
+    const entries = Array.isArray(payload?.cards) ? payload.cards : [];
+    if (!entries.length) {
+      alert('Image restore file is empty. Nothing to restore.');
+      return;
+    }
+
+    const proceed = confirm(
+      `Restore missing images from local backup for ${entries.length} card(s)?\n\nThis will re-upload image data to storage and update only image fields.`
+    );
+    if (!proceed) return;
+
+    for (let idx = 0; idx < entries.length; idx += 1) {
+      const row = entries[idx];
+      const cardId = String(row?.id || '').trim();
+      if (!cardId) {
+        skipped += 1;
+        continue;
+      }
+      setAppLoadingLabel(`Restoring images... ${idx + 1}/${entries.length}`);
+      try {
+        const existing = await getById('cards', cardId, {
+          force: true,
+          uiBlocking: false,
+          loadingLabel: ''
+        });
+        if (!existing || typeof existing !== 'object') {
+          skipped += 1;
+          continue;
+        }
+
+        const imagesQ = normalizeImageList(row?.imagesQ, row?.imageDataQ || '');
+        const imagesA = normalizeImageList(row?.imagesA, row?.imageDataA || '');
+        if (!imagesQ.length && !imagesA.length) {
+          skipped += 1;
+          continue;
+        }
+
+        const imagePayload = await buildCardImagePayloadForSave(cardId, imagesQ, imagesA);
+        const updatedAt = new Date().toISOString();
+        const nextCard = {
+          ...existing,
+          ...imagePayload,
+          meta: {
+            ...(existing.meta || {}),
+            updatedAt
+          }
+        };
+        await put('cards', nextCard, { uiBlocking: false, loadingLabel: '' });
+        await putCardBank(nextCard, { uiBlocking: false, loadingLabel: '' });
+        restored += 1;
+      } catch (err) {
+        failed += 1;
+        console.warn(`Image restore failed for card ${cardId}:`, err);
+      }
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    await refreshSidebar({ uiBlocking: false, force: true });
+    if (selectedSubject) await loadTopics({ uiBlocking: false, force: true });
+    if (selectedTopic) await loadDeck({ uiBlocking: false, force: true });
+    alert(`Image restore finished.\nRestored: ${restored}\nSkipped: ${skipped}\nFailed: ${failed}`);
+  } catch (err) {
+    console.error('Image restore failed:', err);
+    alert(err?.message || 'Image restore failed.');
+  } finally {
+    setAppLoadingState(false);
+    if (triggerBtn) {
+      triggerBtn.dataset.busy = '0';
+      triggerBtn.disabled = false;
+    }
+  }
+}
+
+/**
  * @function migrateImagesToStorage
  * @description Migrates legacy inline base64 card images into Supabase Storage refs.
  */

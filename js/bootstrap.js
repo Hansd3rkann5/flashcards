@@ -1029,6 +1029,22 @@ async function boot() {
       openContentExchangeBtn.onclick = () => { void openContentExchangeDialog(); };
     }
   }
+  const runStorageCleanupBtn = el('runStorageCleanupBtn');
+  if (runStorageCleanupBtn) {
+    if (isLocalSnapshotModeEnabled()) {
+      runStorageCleanupBtn.classList.add('hidden');
+    } else {
+      runStorageCleanupBtn.onclick = () => { void runStorageCleanupFromSettings(); };
+    }
+  }
+  const restoreMissingImagesBtn = el('restoreMissingImagesBtn');
+  if (restoreMissingImagesBtn) {
+    if (isLocalSnapshotModeEnabled()) {
+      restoreMissingImagesBtn.classList.add('hidden');
+    } else {
+      restoreMissingImagesBtn.onclick = () => { void restoreMissingImagesFromLocalBackup(); };
+    }
+  }
   const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
   if (migrateImagesToStorageBtn) migrateImagesToStorageBtn.onclick = migrateImagesToStorage;
   const importInput = el('importInput');
