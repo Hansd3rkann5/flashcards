@@ -939,9 +939,35 @@ async function boot() {
     document.body.classList.remove('sidebar-open');
     void refreshDailyReviewHomePanel({ useExisting: false });
   };
+  const fsrsDueOnlyToggle = el('fsrsDueOnlyToggle');
+  const syncFsrsDueOnlyToggle = async () => {
+    if (!fsrsDueOnlyToggle) return;
+    try {
+      if (typeof ensureFsrsSettingsLoadedFromServer === 'function') {
+        await ensureFsrsSettingsLoadedFromServer({ uiBlocking: false });
+      }
+    } catch (_) {
+      // Keep local settings when remote sync fails.
+    }
+    if (typeof isDailyReviewFsrsDueOnlyEnabled === 'function') {
+      fsrsDueOnlyToggle.checked = !!isDailyReviewFsrsDueOnlyEnabled();
+    }
+  };
+  if (fsrsDueOnlyToggle) {
+    fsrsDueOnlyToggle.onchange = () => {
+      if (typeof setDailyReviewFsrsDueOnlyEnabled === 'function') {
+        setDailyReviewFsrsDueOnlyEnabled(!!fsrsDueOnlyToggle.checked);
+      }
+      if (currentView === 0 || currentView === 2) {
+        void refreshDailyReviewHomePanel({ useExisting: false });
+      }
+    };
+    void syncFsrsDueOnlyToggle();
+  }
   el('settingsBtn').onclick = () => {
     const settingsDialog = el('settingsDialog');
     if (!settingsDialog) return;
+    void syncFsrsDueOnlyToggle();
     // Modal interactions should not keep the background sidebar state alive.
     document.body.classList.remove('sidebar-open');
     showDialog(settingsDialog);
@@ -2299,6 +2325,9 @@ async function boot() {
           skipFlushPending: true
         });
         await putCardBank(card, { uiBlocking: false });
+        if (typeof initializeProgressForNewCard === 'function') {
+          await initializeProgressForNewCard(card.id, { now: createdAt });
+        }
         if (selectedSubject?.id) await touchSubject(selectedSubject.id, undefined, { uiBlocking: false });
 
         const cardsOverviewSection = el('cardsOverviewSection');

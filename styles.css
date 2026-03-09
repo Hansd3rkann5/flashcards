@@ -4295,6 +4295,25 @@ dialog.modal.subject-edit-modal {
   border-color: #435479;
 }
 
+#settingsDialog .settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 2px;
+  color: #dce8ff;
+  font-size: 0.9rem;
+}
+
+#settingsDialog .settings-toggle-row .toggle {
+  margin-left: 0;
+}
+
+#settingsDialog .settings-toggle-hint {
+  color: #b9c9ea;
+}
+
 #subjectArchiveDialog {
   width: min(760px, calc(100vw - (2 * var(--space-6))));
 }

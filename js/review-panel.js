@@ -90,6 +90,774 @@ function isSubjectExcludedFromDailyReview(subject = null, todayKey = getTodayKey
 const REVIEW_PRIORITY_BACKFILL_LIMIT = 180;
 const REVIEW_PRIORITY_BACKFILL_COOLDOWN_MS = 60 * 1000;
 const progressScoreBackfillAttemptAtByCardId = new Map();
+const FSRS_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.2.3/dist/index.mjs';
+const FSRS_SETTINGS_STORAGE_KEY = 'flashcards.fsrs.settings.v1';
+const FSRS_SETTINGS_ID = 'fsrs-settings';
+const FSRS_TARGET_RETENTION_DEFAULT = 0.9;
+const FSRS_TARGET_RETENTION_MIN = 0.7;
+const FSRS_TARGET_RETENTION_MAX = 0.99;
+const FSRS_DUE_ONLY_DEFAULT = true;
+const FSRS_SEED_BACKFILL_LIMIT = 2000;
+const FSRS_SEED_BACKFILL_COOLDOWN_MS = 60 * 1000;
+let fsrsLibPromise = null;
+let fsrsSettingsCache = null;
+let fsrsSettingsLoadedFromServer = false;
+let fsrsSettingsLoadPromise = null;
+let fsrsSettingsSyncTimer = null;
+let fsrsSeedBackfillRunCount = 0;
+const fsrsSchedulerByRetentionKey = new Map();
+const fsrsSeedBackfillAttemptAtByCardId = new Map();
+const fsrsSeedBackfillInFlightByCardId = new Set();
+
+/**
+ * @typedef {Object} FsrsCardState
+ * @property {string} due
+ * @property {number} stability
+ * @property {number} difficulty
+ * @property {number} elapsed_days
+ * @property {number} scheduled_days
+ * @property {number} reps
+ * @property {number} lapses
+ * @property {number|string} state
+ * @property {string} last_review
+ */
+
+/**
+ * @function clampFsrsTargetRetention
+ * @description Clamps the configured FSRS target retention to a safe range.
+ */
+
+function clampFsrsTargetRetention(value = FSRS_TARGET_RETENTION_DEFAULT) {
+  const raw = Number(value);
+  const fallback = Math.max(FSRS_TARGET_RETENTION_MIN, Math.min(FSRS_TARGET_RETENTION_MAX, FSRS_TARGET_RETENTION_DEFAULT));
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.max(FSRS_TARGET_RETENTION_MIN, Math.min(FSRS_TARGET_RETENTION_MAX, raw));
+}
+
+/**
+ * @function normalizeFsrsCustomGrade
+ * @description Normalizes app-specific 3-button grades to a stable key set.
+ */
+
+function normalizeFsrsCustomGrade(value = '') {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'wrong') return 'wrong';
+  if (raw === 'partial' || raw === 'partially') return 'partial';
+  if (raw === 'correct') return 'correct';
+  return '';
+}
+
+/**
+ * @function parseFsrsTimestamp
+ * @description Parses a timestamp-like value into epoch milliseconds.
+ */
+
+function parseFsrsTimestamp(value = '') {
+  if (value instanceof Date) {
+    const direct = value.getTime();
+    return Number.isFinite(direct) ? direct : null;
+  }
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const ts = Date.parse(raw);
+  return Number.isFinite(ts) ? ts : null;
+}
+
+/**
+ * @function toFsrsIsoTimestamp
+ * @description Converts timestamp-like input to ISO string, or empty string when invalid.
+ */
+
+function toFsrsIsoTimestamp(value = '', fallback = null) {
+  const parsed = parseFsrsTimestamp(value);
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  if (fallback instanceof Date) {
+    const fallbackTs = fallback.getTime();
+    if (Number.isFinite(fallbackTs)) return fallback.toISOString();
+  }
+  return '';
+}
+
+/**
+ * @function normalizeFsrsStateValue
+ * @description Normalizes persisted FSRS state values (numeric enum preferred).
+ */
+
+function normalizeFsrsStateValue(value = null, fallback = 0) {
+  const num = Number(value);
+  if (Number.isFinite(num)) return Math.max(0, Math.trunc(num));
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'new') return 0;
+  if (raw === 'learning') return 1;
+  if (raw === 'review') return 2;
+  if (raw === 'relearning') return 3;
+  return Math.max(0, Math.trunc(Number(fallback) || 0));
+}
+
+/**
+ * @function normalizeFsrsCardState
+ * @description Normalizes an FSRS card payload into the persisted schema.
+ */
+
+function normalizeFsrsCardState(raw = null, options = {}) {
+  const src = (raw && typeof raw === 'object') ? raw : {};
+  const opts = (options && typeof options === 'object') ? options : {};
+  const defaultNow = opts.now instanceof Date ? opts.now : new Date();
+  const dueIso = toFsrsIsoTimestamp(src.due, defaultNow);
+  const lastReviewIso = toFsrsIsoTimestamp(src.last_review, null);
+  return {
+    due: dueIso,
+    stability: Number.isFinite(Number(src.stability)) ? Number(src.stability) : 0,
+    difficulty: Number.isFinite(Number(src.difficulty)) ? Number(src.difficulty) : 0,
+    elapsed_days: Number.isFinite(Number(src.elapsed_days)) ? Math.max(0, Math.trunc(Number(src.elapsed_days))) : 0,
+    scheduled_days: Number.isFinite(Number(src.scheduled_days)) ? Math.max(0, Math.trunc(Number(src.scheduled_days))) : 0,
+    reps: Number.isFinite(Number(src.reps)) ? Math.max(0, Math.trunc(Number(src.reps))) : 0,
+    lapses: Number.isFinite(Number(src.lapses)) ? Math.max(0, Math.trunc(Number(src.lapses))) : 0,
+    state: normalizeFsrsStateValue(src.state, 0),
+    last_review: lastReviewIso
+  };
+}
+
+/**
+ * @function normalizeFsrsReviewLog
+ * @description Normalizes persisted FSRS review-log metadata for diagnostics.
+ */
+
+function normalizeFsrsReviewLog(raw = null) {
+  const src = (raw && typeof raw === 'object') ? raw : {};
+  const reviewIso = toFsrsIsoTimestamp(src.review, null);
+  return {
+    rating: Number.isFinite(Number(src.rating)) ? Math.max(0, Math.trunc(Number(src.rating))) : 0,
+    state: normalizeFsrsStateValue(src.state, 0),
+    scheduled_days: Number.isFinite(Number(src.scheduled_days)) ? Math.max(0, Math.trunc(Number(src.scheduled_days))) : 0,
+    elapsed_days: Number.isFinite(Number(src.elapsed_days)) ? Math.max(0, Math.trunc(Number(src.elapsed_days))) : 0,
+    review: reviewIso
+  };
+}
+
+/**
+ * @function normalizeProgressFsrsState
+ * @description Normalizes the optional FSRS section inside a progress record.
+ */
+
+function normalizeProgressFsrsState(raw = null) {
+  if (!raw || typeof raw !== 'object') return null;
+  const src = raw;
+  const card = normalizeFsrsCardState(src.card || null);
+  return {
+    version: Number.isFinite(Number(src.version)) ? Math.max(1, Math.trunc(Number(src.version))) : 1,
+    targetRetention: clampFsrsTargetRetention(src.targetRetention),
+    card,
+    dueAt: card.due || toFsrsIsoTimestamp(src.dueAt, null),
+    lastRating: normalizeFsrsCustomGrade(src.lastRating),
+    lastFsrsRating: Number.isFinite(Number(src.lastFsrsRating)) ? Math.max(0, Math.trunc(Number(src.lastFsrsRating))) : 0,
+    lastReviewedAt: toFsrsIsoTimestamp(src.lastReviewedAt, null),
+    migratedFromScore: src.migratedFromScore === true,
+    migratedAt: toFsrsIsoTimestamp(src.migratedAt, null),
+    log: normalizeFsrsReviewLog(src.log || null)
+  };
+}
+
+/**
+ * @function normalizeFsrsSettings
+ * @description Normalizes settings payload that controls FSRS scheduler parameters.
+ */
+
+function normalizeFsrsSettings(raw = null) {
+  const src = (raw && typeof raw === 'object') ? raw : {};
+  return {
+    id: FSRS_SETTINGS_ID,
+    targetRetention: clampFsrsTargetRetention(src.targetRetention),
+    dailyReviewDueOnly: src.dailyReviewDueOnly !== false,
+    updatedAt: Number.isFinite(Number(src.updatedAt)) ? Number(src.updatedAt) : 0
+  };
+}
+
+/**
+ * @function loadFsrsSettingsFromLocal
+ * @description Loads FSRS settings from localStorage as an offline-safe fallback.
+ */
+
+function loadFsrsSettingsFromLocal() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return normalizeFsrsSettings(null);
+  }
+  try {
+    const raw = window.localStorage.getItem(FSRS_SETTINGS_STORAGE_KEY);
+    if (!raw) return normalizeFsrsSettings(null);
+    return normalizeFsrsSettings(JSON.parse(raw));
+  } catch (_) {
+    return normalizeFsrsSettings(null);
+  }
+}
+
+/**
+ * @function saveFsrsSettingsToLocal
+ * @description Persists FSRS settings to localStorage.
+ */
+
+function saveFsrsSettingsToLocal() {
+  if (typeof window === 'undefined' || !window.localStorage || !fsrsSettingsCache) return;
+  try {
+    window.localStorage.setItem(FSRS_SETTINGS_STORAGE_KEY, JSON.stringify(normalizeFsrsSettings(fsrsSettingsCache)));
+  } catch (_) {
+    // Ignore local storage write errors (quota, private mode, etc.).
+  }
+}
+
+/**
+ * @function getFsrsSettings
+ * @description Returns the in-memory FSRS settings object.
+ */
+
+function getFsrsSettings() {
+  if (!fsrsSettingsCache) fsrsSettingsCache = loadFsrsSettingsFromLocal();
+  fsrsSettingsCache = normalizeFsrsSettings(fsrsSettingsCache);
+  return fsrsSettingsCache;
+}
+
+/**
+ * @function getFsrsTargetRetention
+ * @description Returns the active FSRS target retention.
+ */
+
+function getFsrsTargetRetention() {
+  return clampFsrsTargetRetention(getFsrsSettings().targetRetention);
+}
+
+/**
+ * @function isDailyReviewFsrsDueOnlyEnabled
+ * @description Returns whether Daily Review should use strict FSRS due-only selection.
+ */
+
+function isDailyReviewFsrsDueOnlyEnabled() {
+  return getFsrsSettings().dailyReviewDueOnly !== false;
+}
+
+/**
+ * @function queueFsrsSettingsSync
+ * @description Debounces remote sync writes for FSRS settings.
+ */
+
+function queueFsrsSettingsSync() {
+  if (fsrsSettingsSyncTimer !== null) {
+    clearTimeout(fsrsSettingsSyncTimer);
+  }
+  fsrsSettingsSyncTimer = setTimeout(() => {
+    fsrsSettingsSyncTimer = null;
+    void syncFsrsSettingsToServer();
+  }, 600);
+}
+
+/**
+ * @function setFsrsTargetRetention
+ * @description Sets the target retention and schedules persistence.
+ */
+
+function setFsrsTargetRetention(value = FSRS_TARGET_RETENTION_DEFAULT, options = {}) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const normalized = clampFsrsTargetRetention(value);
+  const current = getFsrsSettings();
+  if (Math.abs(current.targetRetention - normalized) <= 0.0001) {
+    return current.targetRetention;
+  }
+  fsrsSettingsCache = normalizeFsrsSettings({
+    ...current,
+    targetRetention: normalized,
+    updatedAt: Date.now()
+  });
+  saveFsrsSettingsToLocal();
+  const shouldSync = opts.sync !== false;
+  if (shouldSync && !isLocalSnapshotModeEnabled()) queueFsrsSettingsSync();
+  return fsrsSettingsCache.targetRetention;
+}
+
+/**
+ * @function setDailyReviewFsrsDueOnlyEnabled
+ * @description Enables/disables strict FSRS due-only selection for Daily Review.
+ */
+
+function setDailyReviewFsrsDueOnlyEnabled(enabled = FSRS_DUE_ONLY_DEFAULT, options = {}) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const normalized = enabled !== false;
+  const current = getFsrsSettings();
+  if (current.dailyReviewDueOnly === normalized) {
+    return current.dailyReviewDueOnly;
+  }
+  fsrsSettingsCache = normalizeFsrsSettings({
+    ...current,
+    dailyReviewDueOnly: normalized,
+    updatedAt: Date.now()
+  });
+  saveFsrsSettingsToLocal();
+  const shouldSync = opts.sync !== false;
+  if (shouldSync && !isLocalSnapshotModeEnabled()) queueFsrsSettingsSync();
+  return fsrsSettingsCache.dailyReviewDueOnly;
+}
+
+/**
+ * @function ensureFsrsSettingsLoadedFromServer
+ * @description Loads FSRS settings from the settings store and merges by updatedAt.
+ */
+
+async function ensureFsrsSettingsLoadedFromServer(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const force = !!opts.force;
+  const uiBlocking = opts.uiBlocking === true;
+  if (isLocalSnapshotModeEnabled()) return getFsrsSettings();
+  if (fsrsSettingsLoadedFromServer && !force) return getFsrsSettings();
+  if (fsrsSettingsLoadPromise && !force) return fsrsSettingsLoadPromise;
+  if (typeof getById !== 'function') return getFsrsSettings();
+
+  fsrsSettingsLoadPromise = (async () => {
+    const local = getFsrsSettings();
+    try {
+      const remote = await getById('settings', FSRS_SETTINGS_ID, {
+        uiBlocking,
+        loadingLabel: ''
+      });
+      const remoteSettings = normalizeFsrsSettings(remote);
+      if (remoteSettings.updatedAt > local.updatedAt) {
+        fsrsSettingsCache = remoteSettings;
+        saveFsrsSettingsToLocal();
+      } else if (local.updatedAt > 0 && local.updatedAt > remoteSettings.updatedAt) {
+        queueFsrsSettingsSync();
+      }
+      fsrsSettingsLoadedFromServer = true;
+    } catch (_) {
+      // Keep local settings when remote read fails.
+    }
+    return getFsrsSettings();
+  })();
+
+  try {
+    return await fsrsSettingsLoadPromise;
+  } finally {
+    fsrsSettingsLoadPromise = null;
+  }
+}
+
+/**
+ * @function syncFsrsSettingsToServer
+ * @description Persists FSRS settings to the remote settings store.
+ */
+
+async function syncFsrsSettingsToServer() {
+  if (isLocalSnapshotModeEnabled()) return;
+  if (typeof put !== 'function') return;
+  const payload = normalizeFsrsSettings(getFsrsSettings());
+  if (Number(payload.updatedAt || 0) <= 0) return;
+  try {
+    await put('settings', payload, {
+      uiBlocking: false,
+      loadingLabel: '',
+      invalidate: 'settings'
+    });
+    fsrsSettingsLoadedFromServer = true;
+  } catch (_) {
+    // put() already handles offline queueing/fallback behavior.
+  }
+}
+
+/**
+ * @function resolveFsrsLib
+ * @description Resolves exported API from the dynamic ts-fsrs ESM module.
+ */
+
+function resolveFsrsLib(mod = null) {
+  const candidate = (mod && typeof mod === 'object') ? mod : {};
+  const merged = (candidate.default && typeof candidate.default === 'object')
+    ? { ...candidate.default, ...candidate }
+    : candidate;
+  const fsrsFactory = typeof merged.fsrs === 'function' ? merged.fsrs : null;
+  const createEmptyCard = typeof merged.createEmptyCard === 'function' ? merged.createEmptyCard : null;
+  const generatorParameters = typeof merged.generatorParameters === 'function' ? merged.generatorParameters : null;
+  const ratingEnum = (merged.Rating && typeof merged.Rating === 'object') ? merged.Rating : {};
+  const stateEnum = (merged.State && typeof merged.State === 'object') ? merged.State : {};
+  if (!fsrsFactory || !createEmptyCard) {
+    throw new Error('Failed to resolve ts-fsrs exports.');
+  }
+  return {
+    fsrsFactory,
+    createEmptyCard,
+    generatorParameters,
+    ratingEnum,
+    stateEnum
+  };
+}
+
+/**
+ * @function ensureFsrsLibLoaded
+ * @description Lazily loads ts-fsrs from the official package CDN.
+ */
+
+async function ensureFsrsLibLoaded() {
+  if (fsrsLibPromise) return fsrsLibPromise;
+  fsrsLibPromise = import(FSRS_LIBRARY_URL)
+    .then(mod => resolveFsrsLib(mod))
+    .catch(err => {
+      fsrsLibPromise = null;
+      throw err;
+    });
+  return fsrsLibPromise;
+}
+
+/**
+ * @function getFsrsSchedulerForTargetRetention
+ * @description Returns a cached scheduler instance for one target retention value.
+ */
+
+function getFsrsSchedulerForTargetRetention(fsrsLib, targetRetention = FSRS_TARGET_RETENTION_DEFAULT) {
+  const safeRetention = clampFsrsTargetRetention(targetRetention);
+  const key = safeRetention.toFixed(4);
+  if (fsrsSchedulerByRetentionKey.has(key)) return fsrsSchedulerByRetentionKey.get(key);
+
+  const { fsrsFactory, generatorParameters } = fsrsLib || {};
+  if (typeof fsrsFactory !== 'function') {
+    throw new Error('FSRS factory is unavailable.');
+  }
+
+  let scheduler = null;
+  if (typeof generatorParameters === 'function') {
+    try {
+      scheduler = fsrsFactory(generatorParameters({ request_retention: safeRetention }));
+    } catch (_) {
+      try {
+        scheduler = fsrsFactory(generatorParameters({ desired_retention: safeRetention }));
+      } catch (_) {
+        scheduler = null;
+      }
+    }
+  }
+  if (!scheduler) {
+    try {
+      scheduler = fsrsFactory({ request_retention: safeRetention });
+    } catch (_) {
+      scheduler = fsrsFactory();
+    }
+  }
+  fsrsSchedulerByRetentionKey.set(key, scheduler);
+  return scheduler;
+}
+
+/**
+ * @function mapCustomGradeToFsrsRating
+ * @description Maps app custom grades to FSRS ratings: wrong->Again(1), partial->Hard(2), correct->Good(3).
+ */
+
+function mapCustomGradeToFsrsRating(customGrade = '', ratingEnum = {}) {
+  const normalized = normalizeFsrsCustomGrade(customGrade);
+  if (normalized === 'wrong') return Number.isFinite(Number(ratingEnum.Again)) ? Number(ratingEnum.Again) : 1;
+  if (normalized === 'partial') return Number.isFinite(Number(ratingEnum.Hard)) ? Number(ratingEnum.Hard) : 2;
+  if (normalized === 'correct') return Number.isFinite(Number(ratingEnum.Good)) ? Number(ratingEnum.Good) : 3;
+  return null;
+}
+
+/**
+ * @function createFreshFsrsCard
+ * @description Creates a fresh FSRS card state for newly created cards.
+ */
+
+async function createFreshFsrsCard(now = new Date(), options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const nowDate = now instanceof Date ? now : new Date();
+  const fsrsLib = await ensureFsrsLibLoaded();
+  const card = normalizeFsrsCardState(fsrsLib.createEmptyCard(nowDate), { now: nowDate });
+  return {
+    version: 1,
+    targetRetention: clampFsrsTargetRetention(opts.targetRetention ?? getFsrsTargetRetention()),
+    card,
+    dueAt: card.due,
+    lastRating: '',
+    lastFsrsRating: 0,
+    lastReviewedAt: '',
+    migratedFromScore: false,
+    migratedAt: '',
+    log: normalizeFsrsReviewLog(null)
+  };
+}
+
+/**
+ * @function readLegacyScoreForFsrsSeed
+ * @description Reads the best available legacy score to seed FSRS migration.
+ */
+
+function readLegacyScoreForFsrsSeed(record = null, fallbackCardId = '') {
+  const persisted = readProgressReviewPriorityScore(record);
+  if (Number.isFinite(persisted)) return clampReviewPriorityScore(persisted);
+  const computed = computeProgressReviewPriorityScore(record, fallbackCardId);
+  if (Number.isFinite(computed)) return clampReviewPriorityScore(computed);
+  return null;
+}
+
+/**
+ * @function buildFsrsSeedFromLegacyScore
+ * @description Translates legacy score/progress history into an initial FSRS card state.
+ */
+
+async function buildFsrsSeedFromLegacyScore(record = null, fallbackCardId = '', now = new Date()) {
+  const nowDate = now instanceof Date ? now : new Date();
+  const safeRecord = normalizeProgressRecord(record, String(record?.cardId || fallbackCardId || ''));
+  const fsrsLib = await ensureFsrsLibLoaded();
+  const base = fsrsLib.createEmptyCard(nowDate);
+  const totals = safeRecord.totals || {};
+  const correct = toCounterInt(totals.correct);
+  const partial = toCounterInt(totals.partial);
+  const wrong = toCounterInt(totals.wrong);
+  const attempts = correct + partial + wrong;
+  const legacyScore = readLegacyScoreForFsrsSeed(safeRecord, fallbackCardId);
+  const scoreSeed = Number.isFinite(legacyScore)
+    ? legacyScore
+    : attempts > 0
+      ? clampReviewPriorityScore(50 + ((correct - wrong) * 7))
+      : null;
+  if (!Number.isFinite(scoreSeed) && attempts <= 0) {
+    return {
+      card: normalizeFsrsCardState(base, { now: nowDate }),
+      migratedFromScore: false,
+      scoreSeed: null
+    };
+  }
+
+  const scoreRatio = Math.max(0, Math.min(1, Number(scoreSeed || 0) / 100));
+  const successRatio = attempts > 0
+    ? (correct + (0.5 * partial)) / Math.max(1, attempts)
+    : scoreRatio;
+  const latestEntry = getLatestProgressDayEntry(safeRecord, fallbackCardId);
+  const latestDay = normalizeDayProgress(latestEntry?.day);
+  const lastGrade = normalizeFsrsCustomGrade(latestDay.lastGrade || safeRecord.lastGrade || '');
+  const lastReviewIso = latestDay.lastAnsweredAt || safeRecord.lastAnsweredAt || nowDate.toISOString();
+  const lastReviewTs = parseFsrsTimestamp(lastReviewIso);
+  const lastReviewDate = Number.isFinite(lastReviewTs) ? new Date(lastReviewTs) : nowDate;
+  const difficulty = Math.max(1, Math.min(10, 10 - (successRatio * 6.5)));
+  const stability = Math.max(
+    0.1,
+    Math.min(365, 0.4 + ((scoreRatio * scoreRatio * 40) / (1 + (wrong * 0.12) + (partial * 0.06))))
+  );
+  let state = normalizeFsrsStateValue(base.state, 0);
+  if (attempts <= 0) state = normalizeFsrsStateValue(fsrsLib.stateEnum.New, state);
+  else if (lastGrade === 'wrong') state = normalizeFsrsStateValue(fsrsLib.stateEnum.Relearning, normalizeFsrsStateValue(fsrsLib.stateEnum.Learning, state));
+  else if (lastGrade === 'partial') state = normalizeFsrsStateValue(fsrsLib.stateEnum.Learning, normalizeFsrsStateValue(fsrsLib.stateEnum.Review, state));
+  else state = normalizeFsrsStateValue(fsrsLib.stateEnum.Review, state);
+  const scheduledDays = attempts > 0 ? Math.max(0, Math.round(stability)) : 0;
+  const dueDate = new Date(lastReviewDate.getTime() + (scheduledDays * 86400000));
+  const elapsedDays = attempts > 0 ? Math.max(0, Math.floor((nowDate.getTime() - lastReviewDate.getTime()) / 86400000)) : 0;
+  const seededCard = normalizeFsrsCardState({
+    ...base,
+    due: dueDate,
+    stability,
+    difficulty,
+    elapsed_days: elapsedDays,
+    scheduled_days: scheduledDays,
+    reps: attempts,
+    lapses: wrong,
+    state,
+    last_review: attempts > 0 ? lastReviewDate : null
+  }, { now: nowDate });
+  return {
+    card: seededCard,
+    migratedFromScore: Number.isFinite(scoreSeed),
+    scoreSeed: Number.isFinite(scoreSeed) ? clampReviewPriorityScore(scoreSeed) : null
+  };
+}
+
+/**
+ * @function applyFsrsReviewForCustomGrade
+ * @description Runs one FSRS scheduler step with app custom 3-button grades.
+ */
+
+async function applyFsrsReviewForCustomGrade(currentFsrs = null, grade = '', options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const normalizedGrade = normalizeFsrsCustomGrade(grade);
+  if (!normalizedGrade) return null;
+  await ensureFsrsSettingsLoadedFromServer({ uiBlocking: false });
+  const nowDate = opts.now instanceof Date ? opts.now : new Date();
+  const fsrsLib = await ensureFsrsLibLoaded();
+  const targetRetention = clampFsrsTargetRetention(opts.targetRetention ?? getFsrsTargetRetention());
+  const scheduler = getFsrsSchedulerForTargetRetention(fsrsLib, targetRetention);
+  const rating = mapCustomGradeToFsrsRating(normalizedGrade, fsrsLib.ratingEnum);
+  if (!Number.isFinite(rating)) return null;
+  const seedState = currentFsrs && typeof currentFsrs === 'object'
+    ? normalizeProgressFsrsState(currentFsrs)
+    : await createFreshFsrsCard(nowDate, { targetRetention });
+  const baseCard = normalizeFsrsCardState(seedState?.card || null, { now: nowDate });
+  const cardInput = {
+    ...baseCard,
+    due: new Date(parseFsrsTimestamp(baseCard.due) || nowDate.getTime()),
+    last_review: baseCard.last_review ? new Date(parseFsrsTimestamp(baseCard.last_review) || nowDate.getTime()) : undefined
+  };
+  const candidates = scheduler.repeat(cardInput, nowDate);
+  const scheduled = candidates?.[rating] || candidates?.[String(rating)] || null;
+  const nextCard = normalizeFsrsCardState(scheduled?.card || cardInput, { now: nowDate });
+  return {
+    version: 1,
+    targetRetention,
+    card: nextCard,
+    dueAt: nextCard.due,
+    lastRating: normalizedGrade,
+    lastFsrsRating: Math.max(0, Math.trunc(rating)),
+    lastReviewedAt: nowDate.toISOString(),
+    migratedFromScore: seedState?.migratedFromScore === true,
+    migratedAt: toFsrsIsoTimestamp(seedState?.migratedAt || null, null),
+    log: normalizeFsrsReviewLog(scheduled?.log || null)
+  };
+}
+
+/**
+ * @function canAttemptFsrsSeedBackfill
+ * @description Rate-limits FSRS migration backfill writes per card.
+ */
+
+function canAttemptFsrsSeedBackfill(cardId = '') {
+  const safeCardId = String(cardId || '').trim();
+  if (!safeCardId) return false;
+  const ownerKey = String(supabaseOwnerId || 'local').trim() || 'local';
+  const scopedKey = `${ownerKey}::${safeCardId}`;
+  const now = Date.now();
+  const previousTs = Number(fsrsSeedBackfillAttemptAtByCardId.get(scopedKey) || 0);
+  if (now - previousTs < FSRS_SEED_BACKFILL_COOLDOWN_MS) return false;
+  fsrsSeedBackfillAttemptAtByCardId.set(scopedKey, now);
+  return true;
+}
+
+/**
+ * @function queueFsrsSeedBackfill
+ * @description Backfills one progress record with an FSRS seed in the background.
+ */
+
+function queueFsrsSeedBackfill(record = null, fallbackCardId = '') {
+  const cardId = String(record?.cardId || fallbackCardId || '').trim();
+  if (!cardId) return false;
+  if (fsrsSeedBackfillRunCount >= FSRS_SEED_BACKFILL_LIMIT) return false;
+  if (!canAttemptFsrsSeedBackfill(cardId)) return false;
+  if (fsrsSeedBackfillInFlightByCardId.has(cardId)) return false;
+  fsrsSeedBackfillRunCount += 1;
+  fsrsSeedBackfillInFlightByCardId.add(cardId);
+  void (async () => {
+    try {
+      const seeded = await buildFsrsSeedFromLegacyScore(record, cardId, new Date());
+      const safeRecord = normalizeProgressRecord(record, cardId);
+      if (safeRecord.fsrs?.card) return;
+      safeRecord.fsrs = normalizeProgressFsrsState({
+        ...seeded,
+        version: 1,
+        targetRetention: getFsrsTargetRetention(),
+        dueAt: seeded.card?.due || '',
+        lastRating: normalizeFsrsCustomGrade(safeRecord.lastGrade),
+        lastFsrsRating: 0,
+        lastReviewedAt: toFsrsIsoTimestamp(safeRecord.lastAnsweredAt, null),
+        migratedAt: seeded.migratedFromScore ? new Date().toISOString() : '',
+        log: null
+      });
+      progressByCardId.set(cardId, safeRecord);
+      await queueProgressRecordPersist(safeRecord);
+    } catch (err) {
+      console.warn('Failed to backfill FSRS seed state:', err);
+    } finally {
+      fsrsSeedBackfillInFlightByCardId.delete(cardId);
+    }
+  })();
+  return true;
+}
+
+/**
+ * @function maybeQueueFsrsSeedBackfill
+ * @description Starts FSRS seed backfill only for records that have no FSRS state yet.
+ */
+
+function maybeQueueFsrsSeedBackfill(record = null, cardId = '') {
+  const safeRecord = normalizeProgressRecord(record, cardId);
+  if (safeRecord.fsrs?.card) return false;
+  const totals = safeRecord.totals || {};
+  const attempts = toCounterInt(totals.correct) + toCounterInt(totals.partial) + toCounterInt(totals.wrong);
+  const hasLegacyScore = Number.isFinite(readProgressReviewPriorityScore(safeRecord));
+  if (attempts <= 0 && !hasLegacyScore) return false;
+  return queueFsrsSeedBackfill(safeRecord, safeRecord.cardId || cardId);
+}
+
+/**
+ * @function getProgressFsrsDueTimestamp
+ * @description Returns due timestamp in ms for one progress record, or null.
+ */
+
+function getProgressFsrsDueTimestamp(record = null) {
+  const dueValue = record?.fsrs?.dueAt || record?.fsrs?.card?.due || '';
+  const ts = parseFsrsTimestamp(dueValue);
+  return Number.isFinite(ts) ? ts : null;
+}
+
+/**
+ * @function isProgressRecordDueForFsrsReview
+ * @description Returns true when the FSRS due date/time is reached (dueAt <= now).
+ */
+
+function isProgressRecordDueForFsrsReview(record = null, now = Date.now()) {
+  const dueTs = getProgressFsrsDueTimestamp(record);
+  if (!Number.isFinite(dueTs)) return false;
+  const nowTs = Number.isFinite(Number(now)) ? Number(now) : Date.now();
+  return dueTs <= nowTs;
+}
+
+/**
+ * @function computeFsrsDueUrgencyWeight
+ * @description Returns extra urgency weight (0..1) based on FSRS due/overdue timing.
+ */
+
+function computeFsrsDueUrgencyWeight(record = null, now = Date.now()) {
+  const dueTs = getProgressFsrsDueTimestamp(record);
+  if (!Number.isFinite(dueTs)) return 0;
+  const nowTs = Number.isFinite(Number(now)) ? Number(now) : Date.now();
+  const dayMs = 86400000;
+  const deltaDays = (dueTs - nowTs) / dayMs;
+  if (deltaDays <= 0) {
+    const overdueDays = Math.abs(deltaDays);
+    return Math.max(0, Math.min(1, 0.45 + Math.min(0.55, overdueDays / 14)));
+  }
+  if (deltaDays <= 2) {
+    return Math.max(0, Math.min(1, 0.2 * (1 - (deltaDays / 2))));
+  }
+  return 0;
+}
+
+/**
+ * @function initializeProgressForNewCard
+ * @description Creates an initial progress row with a fresh FSRS state.
+ */
+
+async function initializeProgressForNewCard(cardId = '', options = {}) {
+  const safeCardId = String(cardId || '').trim();
+  if (!safeCardId) return null;
+  const opts = (options && typeof options === 'object') ? options : {};
+  const nowDate = opts.now instanceof Date
+    ? opts.now
+    : (Number.isFinite(parseFsrsTimestamp(opts.now)) ? new Date(parseFsrsTimestamp(opts.now)) : new Date());
+  let fsrsState = null;
+  try {
+    fsrsState = await createFreshFsrsCard(nowDate);
+  } catch (err) {
+    console.warn('Failed to initialize fresh FSRS state for new card:', err);
+  }
+  const record = normalizeProgressRecord({
+    cardId: safeCardId,
+    byDay: {},
+    totals: { correct: 0, partial: 0, wrong: 0 },
+    lastGrade: '',
+    lastAnsweredAt: '',
+    fsrs: fsrsState
+  }, safeCardId);
+  progressByCardId.set(safeCardId, record);
+  void queueProgressRecordPersist(record);
+  return record;
+}
+
+if (typeof window !== 'undefined') {
+  window.createFreshFsrsCard = createFreshFsrsCard;
+  window.applyFsrsReviewForCustomGrade = applyFsrsReviewForCustomGrade;
+  window.getFsrsTargetRetention = getFsrsTargetRetention;
+  window.setFsrsTargetRetention = setFsrsTargetRetention;
+  window.isDailyReviewFsrsDueOnlyEnabled = isDailyReviewFsrsDueOnlyEnabled;
+  window.setDailyReviewFsrsDueOnlyEnabled = setDailyReviewFsrsDueOnlyEnabled;
+}
 
 /**
  * @function clampReviewPriorityScore
@@ -181,10 +949,11 @@ function computeProgressReviewPriorityScore(record = null, fallbackCardId = '') 
   const latestDay = normalizeDayProgress(latestEntry?.day);
   const recovery = Math.min(3, toCounterInt(latestDay.correctStreak)) / 3;
   const singleSlipFactor = (wrong <= 1 && correct >= 4 && partial <= 1) ? 0.5 : 1;
+  const fsrsDueUrgency = computeFsrsDueUrgencyWeight(safeRecord);
 
   const rawPriority = 100 * Math.max(
     0,
-    Math.min(1, (0.5 * ratioRisk) + (0.3 * historyVolume) + (0.2 * stateRisk) - (0.08 * recovery))
+    Math.min(1, (0.44 * ratioRisk) + (0.26 * historyVolume) + (0.18 * stateRisk) + (0.12 * fsrsDueUrgency) - (0.08 * recovery))
   ) * singleSlipFactor;
   return clampReviewPriorityScore(rawPriority);
 }
@@ -380,6 +1149,7 @@ function normalizeProgressRecord(record, cardId) {
     },
     lastGrade: typeof src.lastGrade === 'string' ? src.lastGrade : '',
     lastAnsweredAt: typeof src.lastAnsweredAt === 'string' ? src.lastAnsweredAt : '',
+    fsrs: normalizeProgressFsrsState(src.fsrs || null),
     reviewPriorityScore: Number.isFinite(Number(persistedReviewPriorityScore))
       ? clampReviewPriorityScore(persistedReviewPriorityScore)
       : null,
@@ -442,11 +1212,14 @@ async function ensureProgressForCardIds(cardIds, options = {}) {
       }
     }
     progressByCardId.set(key, normalizedRecord);
+    maybeQueueFsrsSeedBackfill(normalizedRecord, key);
     loaded.add(key);
   });
   toLoad.forEach(cardId => {
     if (loaded.has(cardId)) return;
-    progressByCardId.set(cardId, normalizeProgressRecord(null, cardId));
+    const emptyRecord = normalizeProgressRecord(null, cardId);
+    progressByCardId.set(cardId, emptyRecord);
+    maybeQueueFsrsSeedBackfill(emptyRecord, cardId);
   });
 }
 
@@ -499,7 +1272,8 @@ function queueProgressRecordPersist(record = null) {
 
 async function recordCardProgress(cardId, grade, options = {}) {
   if (!cardId) return;
-  if (!['correct', 'wrong', 'partial'].includes(grade)) return;
+  const normalizedGrade = normalizeFsrsCustomGrade(grade);
+  if (!['correct', 'wrong', 'partial'].includes(normalizedGrade)) return;
   const opts = options && typeof options === 'object' ? options : {};
   const masteryTargetRaw = Number(opts.masteryTarget);
   const masteryTarget = Number.isFinite(masteryTargetRaw)
@@ -509,24 +1283,58 @@ async function recordCardProgress(cardId, grade, options = {}) {
     payloadLabel: 'progress-update',
     uiBlocking: false
   });
-  const nowIso = new Date().toISOString();
+  const nowDate = new Date();
+  const nowIso = nowDate.toISOString();
   const todayKey = getTodayKey();
   const record = normalizeProgressRecord(progressByCardId.get(cardId), cardId);
   const day = normalizeDayProgress(record.byDay[todayKey]);
-  day[grade] += 1;
-  if (grade === 'correct') {
+  day[normalizedGrade] += 1;
+  if (normalizedGrade === 'correct') {
     day.correctStreak += 1;
     day.mastered = day.correctStreak >= masteryTarget;
   } else {
     day.correctStreak = 0;
     day.mastered = false;
   }
-  day.lastGrade = grade;
+  day.lastGrade = normalizedGrade;
   day.lastAnsweredAt = nowIso;
   record.byDay[todayKey] = day;
-  record.totals[grade] += 1;
-  record.lastGrade = grade;
+  record.totals[normalizedGrade] += 1;
+  record.lastGrade = normalizedGrade;
   record.lastAnsweredAt = nowIso;
+  try {
+    let fsrsBase = normalizeProgressFsrsState(record.fsrs || null);
+    if (!fsrsBase?.card) {
+      const seeded = await buildFsrsSeedFromLegacyScore(record, cardId, nowDate);
+      fsrsBase = normalizeProgressFsrsState({
+        ...seeded,
+        version: 1,
+        targetRetention: getFsrsTargetRetention(),
+        dueAt: seeded.card?.due || '',
+        lastRating: normalizeFsrsCustomGrade(record.lastGrade),
+        lastFsrsRating: 0,
+        lastReviewedAt: toFsrsIsoTimestamp(record.lastAnsweredAt, null),
+        migratedAt: seeded.migratedFromScore ? nowIso : '',
+        log: null
+      });
+    }
+    const reviewedFsrs = await applyFsrsReviewForCustomGrade(fsrsBase, normalizedGrade, {
+      now: nowDate,
+      targetRetention: fsrsBase?.targetRetention ?? getFsrsTargetRetention()
+    });
+    if (reviewedFsrs) {
+      const migratedFromScore = reviewedFsrs.migratedFromScore === true || fsrsBase?.migratedFromScore === true;
+      record.fsrs = normalizeProgressFsrsState({
+        ...reviewedFsrs,
+        migratedFromScore,
+        migratedAt: migratedFromScore
+          ? (reviewedFsrs.migratedAt || fsrsBase?.migratedAt || nowIso)
+          : ''
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to apply FSRS scheduling step:', err);
+  }
   record.reviewPriorityScore = computeProgressReviewPriorityScore(record, cardId);
   record.reviewPriorityUpdatedAt = nowIso;
   progressByCardId.set(cardId, record);
@@ -1246,11 +2054,23 @@ function getDailyReviewFilteredCardIdsByTopic(topicId) {
   const key = String(topicId || '').trim();
   if (!key) return [];
   const cardIds = dailyReviewState.cardsByTopicId.get(key) || [];
-  return cardIds.filter(cardId => (
-    cardMatchesDailyReviewStatus(cardId)
-    // && cardMatchesDailyReviewDate(cardId)
-    && !isCardMasteredOnDay(cardId)
-  ));
+  const dueOnly = isDailyReviewFsrsDueOnlyEnabled();
+
+  return cardIds.filter(cardId => {
+    if (!cardMatchesDailyReviewStatus(cardId)) return false;
+
+    const record = progressByCardId.get(cardId);
+
+    // When FSRS "due‑only" mode is enabled, only show cards whose due date has arrived
+    if (dueOnly) {
+      if (!isProgressRecordDueForFsrsReview(record)) return false;
+    }
+
+    // Optional: still avoid cards already mastered today if not using strict FSRS mode
+    if (!dueOnly && isCardMasteredOnDay(cardId)) return false;
+
+    return true;
+  });
 }
 
 /**
@@ -1274,22 +2094,41 @@ function getDailyReviewCardPriorityScore(cardId = '') {
  */
 
 function compareDailyReviewCardPriority(cardIdA = '', cardIdB = '') {
+  const recordA = progressByCardId.get(String(cardIdA || '').trim());
+  const recordB = progressByCardId.get(String(cardIdB || '').trim());
+
+  const now = Date.now();
+
+  const dueA = getProgressFsrsDueTimestamp(recordA);
+  const dueB = getProgressFsrsDueTimestamp(recordB);
+
+  const overdueA = Number.isFinite(dueA) ? (now - dueA) : -Infinity;
+  const overdueB = Number.isFinite(dueB) ? (now - dueB) : -Infinity;
+
+  const isOverdueA = overdueA > 0;
+  const isOverdueB = overdueB > 0;
+
+  // 1. Overdue cards first
+  if (isOverdueA !== isOverdueB) return isOverdueB - isOverdueA;
+
+  // 2. If both overdue, most overdue first
+  if (isOverdueA && isOverdueB) {
+    const diff = overdueB - overdueA;
+    if (Math.abs(diff) > 1) return diff;
+  }
+
+  // 3. Higher difficulty first
+  const diffA = Number(recordA?.fsrs?.card?.difficulty || 0);
+  const diffB = Number(recordB?.fsrs?.card?.difficulty || 0);
+  if (diffA !== diffB) return diffB - diffA;
+
+  // 4. Fallback: legacy priority score
   const scoreA = getDailyReviewCardPriorityScore(cardIdA);
   const scoreB = getDailyReviewCardPriorityScore(cardIdB);
   const scoreDiff = scoreB - scoreA;
   if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
 
-  const statusRank = { red: 3, yellow: 2, green: 1 };
-  const rankA = statusRank[String(getDailyReviewCardStatus(cardIdA) || '').trim()] || 0;
-  const rankB = statusRank[String(getDailyReviewCardStatus(cardIdB) || '').trim()] || 0;
-  if (rankA !== rankB) return rankB - rankA;
-
-  const dayA = normalizeDailyReviewDayKey(dailyReviewState.dateByCardId.get(String(cardIdA || '').trim()));
-  const dayB = normalizeDailyReviewDayKey(dailyReviewState.dateByCardId.get(String(cardIdB || '').trim()));
-  if (dayA && dayB && dayA !== dayB) return dayA.localeCompare(dayB);
-  if (dayA && !dayB) return -1;
-  if (!dayA && dayB) return 1;
-
+  // 5. Fallback: deterministic ordering
   return String(cardIdA || '').localeCompare(String(cardIdB || ''));
 }
 
@@ -1977,9 +2816,11 @@ function renderDailyReviewPanelSummary() {
   const cardWord = dailyReviewState.totalCards === 1 ? 'card' : 'cards';
   if (messageEl) {
     if (dailyReviewState.totalCards > 0) {
-      messageEl.textContent = `You have ${dailyReviewState.totalCards} answered ${cardWord} across your saved history. Select status, date range, and topics for review.`;
+      messageEl.textContent = `You have ${dailyReviewState.totalCards} due ${cardWord} for review. Select status, date range, and topics.`;
     } else if ((dailyReviewState.todayStats?.answeredCards || 0) > 0) {
       messageEl.textContent = 'Great work today. No cards match your current review filters.';
+    } else if ((dailyReviewState.activityDaysTotal || 0) > 0) {
+      messageEl.textContent = 'No cards are due for review right now.';
     } else {
       messageEl.textContent = 'No answered cards are available for review yet.';
     }
@@ -2015,6 +2856,8 @@ async function prepareDailyReviewState(options = {}) {
   const traceRunId = Number(opts.traceRunId || 0);
   const traceStartedAt = Number(opts.traceStartedAt || 0);
   const traceEnabled = traceRunId > 0 && Number.isFinite(traceStartedAt) && traceStartedAt > 0;
+  await ensureFsrsSettingsLoadedFromServer({ uiBlocking: false });
+  const fsrsDueOnly = isDailyReviewFsrsDueOnlyEnabled();
   resetDailyReviewState();
   if (traceEnabled) logReviewTrace(traceRunId, 'reset-state', traceStartedAt);
   const yesterdayKey = getDayKeyByOffset(-1);
@@ -2029,9 +2872,14 @@ async function prepareDailyReviewState(options = {}) {
     });
   }
   const rows = Array.isArray(progressRecords) ? progressRecords : [];
+  const nowDate = new Date();
+  const nowTs = nowDate.getTime();
   const computedReviewPriorityByCardId = new Map();
   let queuedScoreBackfills = 0;
-  const scoreBackfillNowIso = new Date().toISOString();
+  let queuedFsrsSeedBackfills = 0;
+  const scoreBackfillNowIso = nowDate.toISOString();
+  const fsrsTargetRetention = getFsrsTargetRetention();
+  const fsrsSeedTasks = [];
   rows.forEach(row => {
     const cardId = String(row?.cardId || '').trim();
     if (!cardId) return;
@@ -2047,15 +2895,57 @@ async function prepareDailyReviewState(options = {}) {
     ) {
       queuedScoreBackfills += 1;
     }
+    const attempts = toCounterInt(normalizedRecord.totals?.correct)
+      + toCounterInt(normalizedRecord.totals?.partial)
+      + toCounterInt(normalizedRecord.totals?.wrong);
+    if (!normalizedRecord.fsrs?.card && attempts > 0) {
+      fsrsSeedTasks.push((async () => {
+        try {
+          const seeded = await buildFsrsSeedFromLegacyScore(normalizedRecord, cardId, nowDate);
+          const seededFsrs = normalizeProgressFsrsState({
+            ...seeded,
+            version: 1,
+            targetRetention: fsrsTargetRetention,
+            dueAt: seeded.card?.due || '',
+            lastRating: normalizeFsrsCustomGrade(normalizedRecord.lastGrade),
+            lastFsrsRating: 0,
+            lastReviewedAt: toFsrsIsoTimestamp(normalizedRecord.lastAnsweredAt, null),
+            migratedAt: seeded.migratedFromScore ? scoreBackfillNowIso : '',
+            log: null
+          });
+          if (!seededFsrs?.card) return;
+          const seededRecord = normalizeProgressRecord({
+            ...normalizedRecord,
+            fsrs: seededFsrs
+          }, cardId);
+          const reseededScore = computeProgressReviewPriorityScore(seededRecord, cardId);
+          seededRecord.reviewPriorityScore = reseededScore;
+          seededRecord.reviewPriorityUpdatedAt = scoreBackfillNowIso;
+          computedReviewPriorityByCardId.set(cardId, reseededScore);
+          progressByCardId.set(cardId, seededRecord);
+          if (queuedFsrsSeedBackfills < FSRS_SEED_BACKFILL_LIMIT && canAttemptFsrsSeedBackfill(cardId)) {
+            queuedFsrsSeedBackfills += 1;
+            void queueProgressRecordPersist(seededRecord);
+          }
+        } catch (err) {
+          console.warn('Failed to seed FSRS state during daily-review preparation:', err);
+        }
+      })());
+    }
   });
+  if (fsrsSeedTasks.length) {
+    await Promise.allSettled(fsrsSeedTasks);
+  }
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'priority-score-backfill', traceStartedAt, {
       computedScores: computedReviewPriorityByCardId.size,
-      queued: queuedScoreBackfills
+      queued: queuedScoreBackfills,
+      fsrsSeedQueued: queuedFsrsSeedBackfills
     });
   }
   const candidateCardIdSet = new Set();
   let skippedSameDayCount = 0;
+  let skippedNotDueCount = 0;
   rows.forEach(row => {
     const cardId = String(row?.cardId || '').trim();
     if (!cardId) return;
@@ -2069,9 +2959,13 @@ async function prepareDailyReviewState(options = {}) {
       || normalizedRecord?.lastAnsweredAt
     );
     if (!latestDayKey) return;
-    // Exclude same-day activity from Daily Review panel + statistics.
-    if (latestDayKey === todayKey) {
+    // Legacy mode: optionally exclude same-day activity before due filtering.
+    if (!fsrsDueOnly && latestDayKey === todayKey) {
       skippedSameDayCount += 1;
+      return;
+    }
+    if (!isProgressRecordDueForFsrsReview(normalizedRecord, nowTs)) {
+      skippedNotDueCount += 1;
       return;
     }
     candidateCardIdSet.add(cardId);
@@ -2081,7 +2975,9 @@ async function prepareDailyReviewState(options = {}) {
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'review-candidates-derived', traceStartedAt, {
       uniqueCardIds: uniqueCardIds.length,
-      skippedSameDayCount
+      skippedSameDayCount,
+      skippedNotDueCount,
+      fsrsDueOnly
     });
   }
   const cardsByTopicId = new Map();
@@ -2347,9 +3243,11 @@ async function startDailyReviewFromHomePanel() {
     alert('Select at least one topic.');
     return;
   }
+  const excludeMasteredToday = !isDailyReviewFsrsDueOnlyEnabled();
   const todayKey = getTodayKey();
-  const cardIds = getDailyReviewSelectedCardIds()
-    .filter(cardId => !isCardMasteredOnDay(cardId, todayKey));
+  const cardIds = excludeMasteredToday
+    ? getDailyReviewSelectedCardIds().filter(cardId => !isCardMasteredOnDay(cardId, todayKey))
+    : getDailyReviewSelectedCardIds();
   if (!cardIds.length) {
     alert('No review cards match the selected topics/status/date filter.');
     return;
@@ -3063,13 +3961,13 @@ async function renderProgressCheckTable() {
       const subjectName = String(subjectById.get(String(topic?.subjectId || '').trim()) || 'Unknown subject');
       const topicName = String(topic?.name || 'Unknown topic');
       const record = progressByCardId.get(cardId) || null;
+      console.log('Processing card for progress check:', { record });
       const current = getCurrentProgressState(record, cardId);
       const computedScore = computeProgressReviewPriorityScore(record, cardId);
       const persistedScore = readProgressReviewPriorityScore(record);
       const score = Number.isFinite(Number(persistedScore))
         ? clampReviewPriorityScore(persistedScore)
         : clampReviewPriorityScore(computedScore);
-      console.log(score, { computedScore, persistedScore, record });
       const history = getProgressHistoryLines(record, cardId);
       const latest = getLatestProgressDayEntry(record, cardId);
       const rawLastAnswered = String(latest?.day?.lastAnsweredAt || record?.lastAnsweredAt || '').trim();
