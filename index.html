@@ -94,7 +94,7 @@
   </div>
 
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
-  <div id="appLoadingOverlay" class="app-loading-overlay" aria-hidden="true">
+  <dialog id="appLoadingOverlay" class="app-loading-overlay" aria-hidden="true">
     <div class="app-loading-inner" role="status" aria-live="polite" aria-atomic="true">
       <div class="app-loader-stack" aria-hidden="true">
         <span class="app-loader-card card-one"></span>
@@ -103,7 +103,7 @@
       </div>
       <div class="tiny app-loading-label" id="appLoadingLabel">Preparing session...</div>
     </div>
-  </div>
+  </dialog>
   <aside class="sidebar">
     <div>
       <div class="app-title">⚙️ Engineering Flashcards</div>
@@ -212,17 +212,6 @@
               <input id="dailyReviewFilterRed" type="checkbox" />
               <span>Wrong</span>
             </label>
-          </div>
-          <div class="tiny" id="dailyReviewFilterMeta" style="margin-bottom:8px;">Status: Green</div>
-          <div class="daily-review-date-filter" id="dailyReviewDateFilter">
-            <div class="tiny">Date Filter (latest saved date)</div>
-            <div class="daily-review-date-slider-wrap" id="dailyReviewDateSliderWrap">
-              <input id="dailyReviewDateStart" class="daily-review-range daily-review-range-start" type="range" min="0"
-                max="0" step="1" value="0" />
-              <input id="dailyReviewDateEnd" class="daily-review-range daily-review-range-end" type="range" min="0"
-                max="0" step="1" value="0" />
-            </div>
-            <div class="tiny daily-review-date-ticks" id="dailyReviewDateTicks"></div>
           </div>
           <div class="tiny" id="dailyReviewSelectionMeta" style="margin-bottom:8px;">0 topics selected • 0 cards</div>
           <div id="dailyReviewTopicList" class="session-filter-list daily-review-topic-list"></div>
@@ -527,7 +516,7 @@
 
       <section class="panel" id="editorPanel">
         <div class="section editor-shell">
-          <div class="controls" style="margin-bottom:10px; align-items:center; margin-inline: 0">
+          <div class="controls editor" style="margin-bottom:10px; align-items:center; margin-inline: 0">
             <button class="btn" id="backToDeckBtn" aria-label="Back to deck">
               <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
@@ -699,7 +688,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.09.04';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.11.11';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -966,6 +955,13 @@
                   aria-label="Filter last answered">▾</button>
               </div>
             </th>
+            <th data-col="due">
+              <div class="progress-check-th-content">
+                <span>Due At</span>
+                <button class="progress-check-header-btn" type="button" data-col="due"
+                  aria-label="Filter due">▾</button>
+              </div>
+            </th>
             <th data-col="totals">
               <div class="progress-check-th-content">
                 <span>Totals (C/P/W)</span>
@@ -980,6 +976,7 @@
                   aria-label="Filter history">▾</button>
               </div>
             </th>
+
           </tr>
         </thead>
         <tbody id="progressCheckTableBody"></tbody>
@@ -1104,6 +1101,7 @@
           <button class="btn" id="openIntroFromSettingsBtn" type="button">Open Intro</button>
           <button class="btn" id="runStorageCleanupBtn" type="button">Storage Cleanup</button>
           <button class="btn" id="restoreMissingImagesBtn" type="button">Restore Missing Images</button>
+          <button class="btn" id="runFsrsDueRecalcBtn" type="button">Recalculate FSRS Due Dates</button>
         </div>
         <div class="settings-toggle-row">
           <span>Strict FSRS Due-Only Daily Review</span>

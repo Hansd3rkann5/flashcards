@@ -860,8 +860,10 @@ function renderCardTileAnswerContent(container, card, options = {}) {
   optionsWrap.className = 'card-tile-mcq-options';
   const optionsAlign = card?.optionsTextAlign || card?.answerTextAlign || card?.textAlign || 'center';
   card.options.forEach(option => {
+    const isCorrect = option?.correct === true || String(option?.correct || '').trim().toLowerCase() === 'true';
     const row = document.createElement('div');
     row.className = 'card-tile-mcq-option';
+    if (isCorrect) row.classList.add('is-correct');
     const textEl = document.createElement('div');
     textEl.className = 'card-tile-mcq-option-text';
     renderRich(textEl, option?.text || '', { textAlign: optionsAlign });

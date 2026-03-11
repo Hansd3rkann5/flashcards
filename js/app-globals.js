@@ -188,6 +188,7 @@ const PROGRESS_CHECK_COLUMN_KEYS = Object.freeze([
   'streak',
   'lastGrade',
   'lastAnsweredAt',
+  'due',
   'totals',
   'history'
 ]);
@@ -200,6 +201,7 @@ const PROGRESS_CHECK_COLUMN_LABELS = Object.freeze({
   streak: 'Streak',
   lastGrade: 'Last Grade',
   lastAnsweredAt: 'Last Answered',
+  due: 'Due At',
   totals: 'Totals (C/P/W)',
   history: 'History'
 });
@@ -605,10 +607,24 @@ function setAppLoadingLabel(label = 'Loading...') {
 function setAppLoadingState(active = false, label = 'Loading...') {
   const overlay = el('appLoadingOverlay');
   if (!overlay) return;
+  const isDialogOverlay = overlay.tagName === 'DIALOG';
   const nextLabel = String(label || '').trim();
   if (active) {
     appLoadingOverlayCount += 1;
     if (nextLabel) setAppLoadingLabel(nextLabel);
+    if (isDialogOverlay) {
+      overlay.setAttribute('data-nocancel', '1');
+      overlay.oncancel = event => event.preventDefault();
+      if (!overlay.open && typeof overlay.showModal === 'function') {
+        try {
+          overlay.showModal();
+        } catch (_) {
+          // Fallback to class-based visibility below.
+        }
+      } else if (!overlay.open) {
+        overlay.setAttribute('open', '');
+      }
+    }
     overlay.classList.add('is-visible');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('app-loading');
@@ -617,6 +633,15 @@ function setAppLoadingState(active = false, label = 'Loading...') {
   appLoadingOverlayCount = Math.max(0, appLoadingOverlayCount - 1);
   if (appLoadingOverlayCount > 0) return;
   overlay.classList.remove('is-visible');
+  if (isDialogOverlay && overlay.open && typeof overlay.close === 'function') {
+    try {
+      overlay.close();
+    } catch (_) {
+      overlay.removeAttribute('open');
+    }
+  } else if (isDialogOverlay) {
+    overlay.removeAttribute('open');
+  }
   overlay.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('app-loading');
 }

@@ -93,9 +93,12 @@ const progressScoreBackfillAttemptAtByCardId = new Map();
 const FSRS_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.2.3/dist/index.mjs';
 const FSRS_SETTINGS_STORAGE_KEY = 'flashcards.fsrs.settings.v1';
 const FSRS_SETTINGS_ID = 'fsrs-settings';
-const FSRS_TARGET_RETENTION_DEFAULT = 0.9;
+const FSRS_TARGET_RETENTION_DEFAULT = 0.94;
 const FSRS_TARGET_RETENTION_MIN = 0.7;
 const FSRS_TARGET_RETENTION_MAX = 0.99;
+const FSRS_INTERVAL_SCALE_DEFAULT = 0.75;
+const FSRS_INTERVAL_SCALE_MIN = 0.35;
+const FSRS_INTERVAL_SCALE_MAX = 1;
 const FSRS_DUE_ONLY_DEFAULT = true;
 const FSRS_SEED_BACKFILL_LIMIT = 2000;
 const FSRS_SEED_BACKFILL_COOLDOWN_MS = 60 * 1000;
@@ -132,6 +135,18 @@ function clampFsrsTargetRetention(value = FSRS_TARGET_RETENTION_DEFAULT) {
   const fallback = Math.max(FSRS_TARGET_RETENTION_MIN, Math.min(FSRS_TARGET_RETENTION_MAX, FSRS_TARGET_RETENTION_DEFAULT));
   if (!Number.isFinite(raw)) return fallback;
   return Math.max(FSRS_TARGET_RETENTION_MIN, Math.min(FSRS_TARGET_RETENTION_MAX, raw));
+}
+
+/**
+ * @function clampFsrsIntervalScale
+ * @description Clamps interval scaling (1 = unchanged, <1 = shorter intervals).
+ */
+
+function clampFsrsIntervalScale(value = FSRS_INTERVAL_SCALE_DEFAULT) {
+  const raw = Number(value);
+  const fallback = Math.max(FSRS_INTERVAL_SCALE_MIN, Math.min(FSRS_INTERVAL_SCALE_MAX, FSRS_INTERVAL_SCALE_DEFAULT));
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.max(FSRS_INTERVAL_SCALE_MIN, Math.min(FSRS_INTERVAL_SCALE_MAX, raw));
 }
 
 /**
@@ -268,6 +283,7 @@ function normalizeFsrsSettings(raw = null) {
   return {
     id: FSRS_SETTINGS_ID,
     targetRetention: clampFsrsTargetRetention(src.targetRetention),
+    intervalScale: clampFsrsIntervalScale(src.intervalScale),
     dailyReviewDueOnly: src.dailyReviewDueOnly !== false,
     updatedAt: Number.isFinite(Number(src.updatedAt)) ? Number(src.updatedAt) : 0
   };
@@ -326,6 +342,33 @@ function getFsrsTargetRetention() {
 }
 
 /**
+ * @function getFsrsTargetRetentionDefault
+ * @description Returns the compile-time FSRS target retention default.
+ */
+
+function getFsrsTargetRetentionDefault() {
+  return clampFsrsTargetRetention(FSRS_TARGET_RETENTION_DEFAULT);
+}
+
+/**
+ * @function getFsrsIntervalScale
+ * @description Returns global interval scale for FSRS scheduling.
+ */
+
+function getFsrsIntervalScale() {
+  return clampFsrsIntervalScale(getFsrsSettings().intervalScale);
+}
+
+/**
+ * @function getFsrsIntervalScaleDefault
+ * @description Returns the compile-time FSRS interval scale default.
+ */
+
+function getFsrsIntervalScaleDefault() {
+  return clampFsrsIntervalScale(FSRS_INTERVAL_SCALE_DEFAULT);
+}
+
+/**
  * @function isDailyReviewFsrsDueOnlyEnabled
  * @description Returns whether Daily Review should use strict FSRS due-only selection.
  */
@@ -370,6 +413,29 @@ function setFsrsTargetRetention(value = FSRS_TARGET_RETENTION_DEFAULT, options =
   const shouldSync = opts.sync !== false;
   if (shouldSync && !isLocalSnapshotModeEnabled()) queueFsrsSettingsSync();
   return fsrsSettingsCache.targetRetention;
+}
+
+/**
+ * @function setFsrsIntervalScale
+ * @description Sets global FSRS interval scaling and schedules persistence.
+ */
+
+function setFsrsIntervalScale(value = FSRS_INTERVAL_SCALE_DEFAULT, options = {}) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const normalized = clampFsrsIntervalScale(value);
+  const current = getFsrsSettings();
+  if (Math.abs(Number(current.intervalScale) - normalized) <= 0.0001) {
+    return Number(current.intervalScale);
+  }
+  fsrsSettingsCache = normalizeFsrsSettings({
+    ...current,
+    intervalScale: normalized,
+    updatedAt: Date.now()
+  });
+  saveFsrsSettingsToLocal();
+  const shouldSync = opts.sync !== false;
+  if (shouldSync && !isLocalSnapshotModeEnabled()) queueFsrsSettingsSync();
+  return fsrsSettingsCache.intervalScale;
 }
 
 /**
@@ -674,6 +740,7 @@ async function applyFsrsReviewForCustomGrade(currentFsrs = null, grade = '', opt
   const nowDate = opts.now instanceof Date ? opts.now : new Date();
   const fsrsLib = await ensureFsrsLibLoaded();
   const targetRetention = clampFsrsTargetRetention(opts.targetRetention ?? getFsrsTargetRetention());
+  const intervalScale = clampFsrsIntervalScale(opts.intervalScale ?? getFsrsIntervalScale());
   const scheduler = getFsrsSchedulerForTargetRetention(fsrsLib, targetRetention);
   const rating = mapCustomGradeToFsrsRating(normalizedGrade, fsrsLib.ratingEnum);
   if (!Number.isFinite(rating)) return null;
@@ -688,7 +755,16 @@ async function applyFsrsReviewForCustomGrade(currentFsrs = null, grade = '', opt
   };
   const candidates = scheduler.repeat(cardInput, nowDate);
   const scheduled = candidates?.[rating] || candidates?.[String(rating)] || null;
-  const nextCard = normalizeFsrsCardState(scheduled?.card || cardInput, { now: nowDate });
+  const baseNextCard = normalizeFsrsCardState(scheduled?.card || cardInput, { now: nowDate });
+  let scaledScheduledDays = Math.max(0, Math.round(toCounterInt(baseNextCard.scheduled_days) * intervalScale));
+  const hasHistory = toCounterInt(baseNextCard.reps) > 0;
+  if (hasHistory) scaledScheduledDays = Math.max(1, scaledScheduledDays);
+  const scaledDueTs = nowDate.getTime() + (scaledScheduledDays * 86400000);
+  const nextCard = normalizeFsrsCardState({
+    ...baseNextCard,
+    scheduled_days: scaledScheduledDays,
+    due: new Date(scaledDueTs)
+  }, { now: nowDate });
   return {
     version: 1,
     targetRetention,
@@ -700,6 +776,319 @@ async function applyFsrsReviewForCustomGrade(currentFsrs = null, grade = '', opt
     migratedFromScore: seedState?.migratedFromScore === true,
     migratedAt: toFsrsIsoTimestamp(seedState?.migratedAt || null, null),
     log: normalizeFsrsReviewLog(scheduled?.log || null)
+  };
+}
+
+/**
+ * @function computeFsrsScheduledDaysForRetention
+ * @description Computes interval days for one stability + target retention (scheduler-first, curve fallback).
+ */
+
+function computeFsrsScheduledDaysForRetention(stability = 0, targetRetention = FSRS_TARGET_RETENTION_DEFAULT, options = {}) {
+  const stable = Number(stability);
+  if (!Number.isFinite(stable) || stable <= 0) return 0;
+  const safeRetention = clampFsrsTargetRetention(targetRetention);
+  const opts = (options && typeof options === 'object') ? options : {};
+  const fsrsLib = opts.fsrsLib && typeof opts.fsrsLib === 'object' ? opts.fsrsLib : null;
+  let baseDays = null;
+  if (fsrsLib) {
+    try {
+      const scheduler = getFsrsSchedulerForTargetRetention(fsrsLib, safeRetention);
+      if (scheduler && typeof scheduler.next_interval === 'function') {
+        const direct = Number(scheduler.next_interval(stable));
+        if (Number.isFinite(direct) && direct >= 0) baseDays = Math.max(0, Math.round(direct));
+      }
+    } catch (_) {
+      // Fallback below.
+    }
+  }
+  if (!Number.isFinite(baseDays)) {
+    // FSRS forgetting curve fallback:
+    // R(t,S) = (1 + FACTOR * t / S) ^ DECAY
+    // => t = S / FACTOR * (R^(1/DECAY) - 1)
+    const DECAY = -0.5;
+    const FACTOR = 19 / 81;
+    const intervalRaw = (stable / FACTOR) * (Math.pow(safeRetention, 1 / DECAY) - 1);
+    if (!Number.isFinite(intervalRaw) || intervalRaw < 0) baseDays = 0;
+    else baseDays = Math.max(0, Math.round(intervalRaw));
+  }
+  const intervalScale = clampFsrsIntervalScale(opts.intervalScale ?? getFsrsIntervalScale());
+  return Math.max(0, Math.round(baseDays * intervalScale));
+}
+
+/**
+ * @function recalculateFsrsDueStateForTargetRetention
+ * @description Recalculates one persisted FSRS state to the current target retention.
+ */
+
+function recalculateFsrsDueStateForTargetRetention(fsrsState = null, targetRetention = FSRS_TARGET_RETENTION_DEFAULT, options = {}) {
+  const normalized = normalizeProgressFsrsState(fsrsState);
+  if (!normalized?.card) return null;
+  const opts = (options && typeof options === 'object') ? options : {};
+  const nowDate = opts.now instanceof Date ? opts.now : new Date();
+  const nowTs = nowDate.getTime();
+  const fsrsLib = opts.fsrsLib && typeof opts.fsrsLib === 'object' ? opts.fsrsLib : null;
+  const safeRetention = clampFsrsTargetRetention(targetRetention);
+  const card = normalizeFsrsCardState(normalized.card, { now: nowDate });
+  let lastReviewTs = parseFsrsTimestamp(card.last_review || normalized.lastReviewedAt || '');
+  const hasHistory = toCounterInt(card.reps) > 0 || Number.isFinite(lastReviewTs);
+  if (!Number.isFinite(lastReviewTs)) lastReviewTs = nowTs;
+  const intervalScale = clampFsrsIntervalScale(opts.intervalScale ?? getFsrsIntervalScale());
+  let scheduledDays = computeFsrsScheduledDaysForRetention(card.stability, safeRetention, { fsrsLib, intervalScale });
+  if (hasHistory) scheduledDays = Math.max(1, scheduledDays);
+  const dueTs = lastReviewTs + (scheduledDays * 86400000);
+  const elapsedDays = Math.max(0, Math.floor((nowTs - lastReviewTs) / 86400000));
+  const nextCard = normalizeFsrsCardState({
+    ...card,
+    scheduled_days: scheduledDays,
+    elapsed_days: elapsedDays,
+    due: new Date(dueTs),
+    last_review: hasHistory ? new Date(lastReviewTs) : card.last_review
+  }, { now: nowDate });
+  return normalizeProgressFsrsState({
+    ...normalized,
+    targetRetention: safeRetention,
+    card: nextCard,
+    dueAt: nextCard.due
+  });
+}
+
+/**
+ * @function shouldPersistRecalculatedFsrsState
+ * @description Checks if recalculated FSRS payload differs materially from persisted values.
+ */
+
+function shouldPersistRecalculatedFsrsState(previousFsrs = null, nextFsrs = null) {
+  const prev = normalizeProgressFsrsState(previousFsrs);
+  const next = normalizeProgressFsrsState(nextFsrs);
+  if (!prev?.card && !next?.card) return false;
+  if (!prev?.card && next?.card) return true;
+  if (prev?.card && !next?.card) return false;
+  if (Math.abs(Number(prev.targetRetention || 0) - Number(next.targetRetention || 0)) > 0.0001) return true;
+  const prevDue = parseFsrsTimestamp(prev?.dueAt || prev?.card?.due || '');
+  const nextDue = parseFsrsTimestamp(next?.dueAt || next?.card?.due || '');
+  if (Number.isFinite(prevDue) !== Number.isFinite(nextDue)) return true;
+  if (Number.isFinite(prevDue) && Number.isFinite(nextDue) && prevDue !== nextDue) return true;
+  if (toCounterInt(prev?.card?.scheduled_days) !== toCounterInt(next?.card?.scheduled_days)) return true;
+  return false;
+}
+
+/**
+ * @function recalculateFsrsDueForAllProgress
+ * @description Recalculates all persisted FSRS due values to the active target retention and persists updates.
+ */
+
+async function recalculateFsrsDueForAllProgress(options = {}) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
+  await ensureFsrsSettingsLoadedFromServer({ uiBlocking: false });
+  const targetRetention = setFsrsTargetRetention(
+    opts.targetRetention ?? getFsrsTargetRetention(),
+    { sync: opts.syncSettings !== false }
+  );
+  const intervalScale = setFsrsIntervalScale(
+    opts.intervalScale ?? getFsrsIntervalScale(),
+    { sync: opts.syncSettings !== false }
+  );
+  const nowDate = opts.now instanceof Date ? opts.now : new Date();
+  let fsrsLib = null;
+  try {
+    fsrsLib = await ensureFsrsLibLoaded();
+  } catch (_) {
+    fsrsLib = null;
+  }
+  const rows = await getAll('progress', {
+    uiBlocking: opts.uiBlocking !== false,
+    loadingLabel: opts.loadingLabel || 'Recalculating FSRS due dates...'
+  });
+  const records = Array.isArray(rows) ? rows : [];
+  const total = records.length;
+  const nowIso = nowDate.toISOString();
+  let updated = 0;
+  let seeded = 0;
+  let cleared = 0;
+  let skipped = 0;
+  let failed = 0;
+  if (onProgress) {
+    onProgress({
+      current: 0,
+      total,
+      cardId: '',
+      status: 'start',
+      updated,
+      seeded,
+      cleared,
+      skipped,
+      failed
+    });
+  }
+  for (let index = 0; index < records.length; index += 1) {
+    const row = records[index];
+    const cardId = String(row?.cardId || '').trim();
+    let status = 'skipped';
+    if (!cardId) {
+      skipped += 1;
+      status = 'skipped';
+      if (onProgress) {
+        onProgress({
+          current: index + 1,
+          total,
+          cardId: '',
+          status,
+          updated,
+          seeded,
+          cleared,
+          skipped,
+          failed
+        });
+      }
+      continue;
+    }
+    try {
+      const normalizedRecord = normalizeProgressRecord(row, cardId);
+      const attempts = toCounterInt(normalizedRecord.totals?.correct)
+        + toCounterInt(normalizedRecord.totals?.partial)
+        + toCounterInt(normalizedRecord.totals?.wrong);
+      if (attempts <= 0) {
+        if (normalizedRecord.fsrs?.card) {
+          normalizedRecord.fsrs = null;
+          normalizedRecord.reviewPriorityScore = computeProgressReviewPriorityScore(normalizedRecord, cardId);
+          normalizedRecord.reviewPriorityUpdatedAt = nowIso;
+          progressByCardId.set(cardId, normalizedRecord);
+          await put('progress', normalizedRecord, {
+            uiBlocking: false,
+            loadingLabel: '',
+            skipFlushPending: true,
+            invalidate: 'progress'
+          });
+          cleared += 1;
+          status = 'cleared';
+        } else {
+          skipped += 1;
+          status = 'skipped';
+        }
+        if (onProgress) {
+          onProgress({
+            current: index + 1,
+            total,
+            cardId,
+            status,
+            updated,
+            seeded,
+            cleared,
+            skipped,
+            failed
+          });
+        }
+        continue;
+      }
+      let fsrsState = normalizeProgressFsrsState(normalizedRecord.fsrs || null);
+      if (!fsrsState?.card && opts.seedMissing !== false) {
+        const seededFsrs = await buildFsrsSeedFromLegacyScore(normalizedRecord, cardId, nowDate);
+        fsrsState = normalizeProgressFsrsState({
+          ...seededFsrs,
+          version: 1,
+          targetRetention,
+          dueAt: seededFsrs.card?.due || '',
+          lastRating: normalizeFsrsCustomGrade(normalizedRecord.lastGrade),
+          lastFsrsRating: 0,
+          lastReviewedAt: toFsrsIsoTimestamp(normalizedRecord.lastAnsweredAt, null),
+          migratedAt: seededFsrs.migratedFromScore ? nowDate.toISOString() : '',
+          log: null
+        });
+        if (fsrsState?.card) seeded += 1;
+      }
+      if (!fsrsState?.card) {
+        skipped += 1;
+        status = 'skipped';
+        if (onProgress) {
+          onProgress({
+            current: index + 1,
+            total,
+            cardId,
+            status,
+            updated,
+            seeded,
+            cleared,
+            skipped,
+            failed
+          });
+        }
+        continue;
+      }
+      const recalculated = recalculateFsrsDueStateForTargetRetention(fsrsState, targetRetention, {
+        now: nowDate,
+        fsrsLib,
+        intervalScale
+      });
+      if (!recalculated || !shouldPersistRecalculatedFsrsState(fsrsState, recalculated)) {
+        skipped += 1;
+        status = 'unchanged';
+        if (onProgress) {
+          onProgress({
+            current: index + 1,
+            total,
+            cardId,
+            status,
+            updated,
+            seeded,
+            cleared,
+            skipped,
+            failed
+          });
+        }
+        continue;
+      }
+      normalizedRecord.fsrs = recalculated;
+      normalizedRecord.reviewPriorityScore = computeProgressReviewPriorityScore(normalizedRecord, cardId);
+      normalizedRecord.reviewPriorityUpdatedAt = nowIso;
+      progressByCardId.set(cardId, normalizedRecord);
+      await put('progress', normalizedRecord, {
+        uiBlocking: false,
+        loadingLabel: '',
+        skipFlushPending: true,
+        invalidate: 'progress'
+      });
+      updated += 1;
+      status = 'updated';
+    } catch (err) {
+      failed += 1;
+      status = 'failed';
+      console.warn(`Failed to recalculate FSRS due for card ${cardId}:`, err);
+    }
+    if (onProgress) {
+      onProgress({
+        current: index + 1,
+        total,
+        cardId,
+        status,
+        updated,
+        seeded,
+        cleared,
+        skipped,
+        failed
+      });
+    }
+  }
+  if (typeof flushPendingMutations === 'function') {
+    try {
+      await flushPendingMutations();
+    } catch (_) {
+      // Pending queue flush is best-effort.
+    }
+  }
+  if (typeof refreshDailyReviewHomePanel === 'function') {
+    void refreshDailyReviewHomePanel({ useExisting: false, trace: false });
+  }
+  return {
+    total,
+    updated,
+    seeded,
+    cleared,
+    skipped,
+    failed,
+    targetRetention,
+    intervalScale
   };
 }
 
@@ -728,6 +1117,10 @@ function canAttemptFsrsSeedBackfill(cardId = '') {
 function queueFsrsSeedBackfill(record = null, fallbackCardId = '') {
   const cardId = String(record?.cardId || fallbackCardId || '').trim();
   if (!cardId) return false;
+  const safeRecord = normalizeProgressRecord(record, cardId);
+  const totals = safeRecord.totals || {};
+  const attempts = toCounterInt(totals.correct) + toCounterInt(totals.partial) + toCounterInt(totals.wrong);
+  if (attempts <= 0) return false;
   if (fsrsSeedBackfillRunCount >= FSRS_SEED_BACKFILL_LIMIT) return false;
   if (!canAttemptFsrsSeedBackfill(cardId)) return false;
   if (fsrsSeedBackfillInFlightByCardId.has(cardId)) return false;
@@ -735,8 +1128,7 @@ function queueFsrsSeedBackfill(record = null, fallbackCardId = '') {
   fsrsSeedBackfillInFlightByCardId.add(cardId);
   void (async () => {
     try {
-      const seeded = await buildFsrsSeedFromLegacyScore(record, cardId, new Date());
-      const safeRecord = normalizeProgressRecord(record, cardId);
+      const seeded = await buildFsrsSeedFromLegacyScore(safeRecord, cardId, new Date());
       if (safeRecord.fsrs?.card) return;
       safeRecord.fsrs = normalizeProgressFsrsState({
         ...seeded,
@@ -770,8 +1162,7 @@ function maybeQueueFsrsSeedBackfill(record = null, cardId = '') {
   if (safeRecord.fsrs?.card) return false;
   const totals = safeRecord.totals || {};
   const attempts = toCounterInt(totals.correct) + toCounterInt(totals.partial) + toCounterInt(totals.wrong);
-  const hasLegacyScore = Number.isFinite(readProgressReviewPriorityScore(safeRecord));
-  if (attempts <= 0 && !hasLegacyScore) return false;
+  if (attempts <= 0) return false;
   return queueFsrsSeedBackfill(safeRecord, safeRecord.cardId || cardId);
 }
 
@@ -854,9 +1245,14 @@ if (typeof window !== 'undefined') {
   window.createFreshFsrsCard = createFreshFsrsCard;
   window.applyFsrsReviewForCustomGrade = applyFsrsReviewForCustomGrade;
   window.getFsrsTargetRetention = getFsrsTargetRetention;
+  window.getFsrsTargetRetentionDefault = getFsrsTargetRetentionDefault;
   window.setFsrsTargetRetention = setFsrsTargetRetention;
+  window.getFsrsIntervalScale = getFsrsIntervalScale;
+  window.getFsrsIntervalScaleDefault = getFsrsIntervalScaleDefault;
+  window.setFsrsIntervalScale = setFsrsIntervalScale;
   window.isDailyReviewFsrsDueOnlyEnabled = isDailyReviewFsrsDueOnlyEnabled;
   window.setDailyReviewFsrsDueOnlyEnabled = setDailyReviewFsrsDueOnlyEnabled;
+  window.recalculateFsrsDueForAllProgress = recalculateFsrsDueForAllProgress;
 }
 
 /**
@@ -1339,6 +1735,12 @@ async function recordCardProgress(cardId, grade, options = {}) {
   record.reviewPriorityUpdatedAt = nowIso;
   progressByCardId.set(cardId, record);
   void queueProgressRecordPersist(record);
+  return {
+    cardId,
+    grade: normalizedGrade,
+    fsrs: record.fsrs || null,
+    record
+  };
 }
 
 /**
@@ -2538,11 +2940,48 @@ function renderDailyReviewTopicList() {
     groupEl.style.setProperty('--daily-review-subject-accent-glow-soft', hexToRgba(subjectAccent, 0.2));
     const isExpanded = dailyReviewState.expandedSubjectKeys.has(group.subjectKey);
     groupEl.classList.toggle('is-expanded', isExpanded);
+    const groupTopicIds = group.topics
+      .map(topic => String(topic?.topicId || '').trim())
+      .filter(Boolean);
+
+    const availableForSubject = group.topics.reduce((sum, topic) => {
+      return sum + getDailyReviewFilteredCardIdsByTopic(topic.topicId).length;
+    }, 0);
+    const totalForSubject = group.topics.reduce((sum, topic) => sum + topic.count, 0);
+    const selectedForSubject = groupTopicIds.reduce((sum, topicId) => {
+      return sum + (dailyReviewState.selectedTopicIds.has(topicId) ? 1 : 0);
+    }, 0);
+    const allTopicsSelected = groupTopicIds.length > 0 && selectedForSubject === groupTopicIds.length;
+    const partiallySelected = selectedForSubject > 0 && !allTopicsSelected;
+
+    const headerEl = document.createElement('div');
+    headerEl.className = 'daily-review-subject-header';
+
+    const optionEl = document.createElement('label');
+    optionEl.className = 'session-filter-option daily-review-subject-option';
+    if (availableForSubject <= 0) optionEl.classList.add('is-disabled');
+
+    const groupCheckbox = document.createElement('input');
+    groupCheckbox.type = 'checkbox';
+    groupCheckbox.checked = allTopicsSelected;
+    groupCheckbox.indeterminate = partiallySelected;
+    groupCheckbox.addEventListener('change', () => {
+      const nextChecked = !!groupCheckbox.checked;
+      groupTopicIds.forEach(topicId => {
+        if (nextChecked) dailyReviewState.selectedTopicIds.add(topicId);
+        else dailyReviewState.selectedTopicIds.delete(topicId);
+      });
+      syncDailyReviewDateKeysFromStatus();
+      renderDailyReviewDateSlider();
+      renderDailyReviewFilterSummary();
+      renderDailyReviewTopicList();
+    });
 
     const headerBtn = document.createElement('button');
     headerBtn.type = 'button';
-    headerBtn.className = 'daily-review-subject-toggle';
+    headerBtn.className = 'daily-review-subject-expand-btn';
     headerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    headerBtn.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} subject ${group.subjectName}`);
     headerBtn.addEventListener('click', () => {
       let nextExpanded = false;
       if (dailyReviewState.expandedSubjectKeys.has(group.subjectKey)) {
@@ -2554,6 +2993,7 @@ function renderDailyReviewTopicList() {
       }
       groupEl.classList.toggle('is-expanded', nextExpanded);
       headerBtn.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+      headerBtn.setAttribute('aria-label', `${nextExpanded ? 'Collapse' : 'Expand'} subject ${group.subjectName}`);
     });
 
     const titleWrap = document.createElement('div');
@@ -2563,21 +3003,24 @@ function renderDailyReviewTopicList() {
     titleEl.textContent = group.subjectName;
     const metaEl = document.createElement('div');
     metaEl.className = 'tiny';
-    const availableForSubject = group.topics.reduce((sum, topic) => {
-      return sum + getDailyReviewFilteredCardIdsByTopic(topic.topicId).length;
-    }, 0);
-    const totalForSubject = group.topics.reduce((sum, topic) => sum + topic.count, 0);
     const subjectCardWord = totalForSubject === 1 ? 'card' : 'cards';
     metaEl.textContent = `${availableForSubject} / ${totalForSubject} ${subjectCardWord}`;
     titleWrap.append(titleEl, metaEl);
 
     const chevronEl = document.createElement('span');
-    chevronEl.className = 'daily-review-subject-chevron';
+    chevronEl.className = 'daily-review-subject-expand-icon';
     chevronEl.setAttribute('aria-hidden', 'true');
-    chevronEl.textContent = '▾';
+    const chevronIcon = document.createElement('img');
+    chevronIcon.src = 'icons/back.png';
+    chevronIcon.alt = '';
+    chevronIcon.className = 'app-icon';
+    chevronIcon.setAttribute('aria-hidden', 'true');
+    chevronEl.appendChild(chevronIcon);
 
-    headerBtn.append(titleWrap, chevronEl);
-    groupEl.appendChild(headerBtn);
+    optionEl.append(groupCheckbox, titleWrap);
+    headerBtn.append(chevronEl);
+    headerEl.append(optionEl, headerBtn);
+    groupEl.appendChild(headerEl);
 
     const topicsEl = document.createElement('div');
     topicsEl.className = 'daily-review-subject-topics';
@@ -3481,6 +3924,7 @@ function getProgressCheckRowValue(row, columnKey = 'subject') {
   if (key === 'streak') return String(Number.isFinite(Number(safeRow.streak)) ? Number(safeRow.streak) : '');
   if (key === 'lastGrade') return String(safeRow.lastGrade || '');
   if (key === 'lastAnsweredAt') return String(safeRow.lastAnsweredAt || '');
+  if (key === 'due') return String(safeRow.dueText || '');
   if (key === 'totals') return String(safeRow.totalsText || '');
   if (key === 'history') return String(safeRow.history || '');
   return '';
@@ -3614,6 +4058,10 @@ function compareProgressCheckRows(a, b, sortColumn = 'subject', sortDirection = 
   } else if (key === 'lastAnsweredAt') {
     const av = Number(a?.lastAnsweredTs || 0);
     const bv = Number(b?.lastAnsweredTs || 0);
+    if (av !== bv) return (av - bv) * dir;
+  } else if (key === 'due') {
+    const av = Number(a?.due || 0);
+    const bv = Number(b?.due || 0);
     if (av !== bv) return (av - bv) * dir;
   } else {
     const av = normalizeProgressCheckFilterValue(getProgressCheckRowValue(a, key)).toLocaleLowerCase();
@@ -3881,6 +4329,9 @@ function renderProgressCheckRows() {
     const lastAnsweredCell = document.createElement('td');
     lastAnsweredCell.textContent = row.lastAnsweredAt;
 
+    const dueCell = document.createElement('td');
+    dueCell.textContent = row.dueText || '—';
+
     const subjectCell = document.createElement('td');
     subjectCell.textContent = row.subject;
     const topicCell = document.createElement('td');
@@ -3895,6 +4346,7 @@ function renderProgressCheckRows() {
       streakCell,
       lastGradeCell,
       lastAnsweredCell,
+      dueCell,
       totalsCell,
       historyCell
     );
@@ -3961,7 +4413,10 @@ async function renderProgressCheckTable() {
       const subjectName = String(subjectById.get(String(topic?.subjectId || '').trim()) || 'Unknown subject');
       const topicName = String(topic?.name || 'Unknown topic');
       const record = progressByCardId.get(cardId) || null;
-      console.log('Processing card for progress check:', { record });
+      const fsrs = record?.fsrs?.dueAt || [];
+      const due = Date.parse(String(record?.fsrs?.card.due || '').trim()) || 0;
+      const dueText = due ? formatDateAsDdMmYy(new Date(due)) : '—';
+      // console.log('Due at:', { due });
       const current = getCurrentProgressState(record, cardId);
       const computedScore = computeProgressReviewPriorityScore(record, cardId);
       const persistedScore = readProgressReviewPriorityScore(record);
@@ -3985,6 +4440,8 @@ async function renderProgressCheckTable() {
         streak: current.streak,
         lastGrade: current.lastGrade,
         lastAnsweredAt: current.lastAnsweredAt,
+        due,
+        dueText,
         lastAnsweredTs,
         totalsText: `${current.totals.correct}/${current.totals.partial}/${current.totals.wrong}`,
         history,

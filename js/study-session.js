@@ -1672,8 +1672,119 @@ function getSessionCardMasteryTarget(card) {
 }
 
 /**
+ * @function getSessionFsrsCardSnapshot
+ * @description Extracts normalized FSRS card scheduling values used for in-session queue decisions.
+ */
+
+function getSessionFsrsCardSnapshot(fsrsState = null) {
+  const safeFsrs = (fsrsState && typeof fsrsState === 'object') ? fsrsState : {};
+  const card = (safeFsrs.card && typeof safeFsrs.card === 'object') ? safeFsrs.card : null;
+  if (!card) return null;
+  const dueRaw = String(safeFsrs.dueAt || card.due || '').trim();
+  const dueTs = Date.parse(dueRaw);
+  const scheduledDaysRaw = Number(card.scheduled_days);
+  const difficultyRaw = Number(card.difficulty);
+  const lapsesRaw = Number(card.lapses);
+  return {
+    dueTs: Number.isFinite(dueTs) ? dueTs : null,
+    scheduledDays: Number.isFinite(scheduledDaysRaw) ? Math.max(0, Math.round(scheduledDaysRaw)) : 0,
+    difficulty: Number.isFinite(difficultyRaw) ? Math.max(0, Math.min(10, difficultyRaw)) : 0,
+    lapses: Number.isFinite(lapsesRaw) ? Math.max(0, Math.round(lapsesRaw)) : 0
+  };
+}
+
+/**
+ * @function computeSessionFsrsUrgency
+ * @description Converts FSRS next-state values + grade into a 0..1 urgency score for queue reinsertion.
+ */
+
+function computeSessionFsrsUrgency(fsrsState = null, result = 'partial', nowTs = Date.now()) {
+  const safeResult = String(result || '').trim().toLowerCase();
+  const gradeUrgency = safeResult === 'wrong'
+    ? 1
+    : safeResult === 'partial'
+      ? 0.62
+      : safeResult === 'correct'
+        ? 0.26
+        : 0.5;
+  const snapshot = getSessionFsrsCardSnapshot(fsrsState);
+  if (!snapshot) return gradeUrgency;
+
+  let intervalUrgency = gradeUrgency;
+  if (snapshot.scheduledDays <= 0) {
+    intervalUrgency = 1;
+  } else if (Number.isFinite(snapshot.dueTs)) {
+    const dueInDays = (snapshot.dueTs - nowTs) / 86400000;
+    if (dueInDays <= 0) intervalUrgency = 1;
+    else if (dueInDays <= 0.1) intervalUrgency = 0.95;
+    else if (dueInDays <= 0.25) intervalUrgency = 0.9;
+    else if (dueInDays <= 0.5) intervalUrgency = 0.82;
+    else if (dueInDays <= 1) intervalUrgency = 0.72;
+    else if (dueInDays <= 2) intervalUrgency = 0.58;
+    else if (dueInDays <= 4) intervalUrgency = 0.42;
+    else if (dueInDays <= 7) intervalUrgency = 0.28;
+    else intervalUrgency = 0.12;
+  }
+
+  const difficultyUrgency = Math.max(0, Math.min(1, (snapshot.difficulty - 4) / 6));
+  const lapseUrgency = Math.max(0, Math.min(1, snapshot.lapses / 8));
+  const weighted = (intervalUrgency * 0.55)
+    + (gradeUrgency * 0.25)
+    + (difficultyUrgency * 0.15)
+    + (lapseUrgency * 0.05);
+  return Math.max(0, Math.min(1, weighted));
+}
+
+/**
+ * @function shouldRepeatCardWithinSessionFromFsrs
+ * @description Decides whether a correctly answered card should remain active in this session.
+ */
+
+function shouldRepeatCardWithinSessionFromFsrs(fsrsState = null, result = '', remainingActiveCount = 0, nowTs = Date.now()) {
+  const safeResult = String(result || '').trim().toLowerCase();
+  if (safeResult !== 'correct') return true;
+  const snapshot = getSessionFsrsCardSnapshot(fsrsState);
+  if (!snapshot) return true;
+  if (snapshot.scheduledDays <= 0) return true;
+  if (!Number.isFinite(snapshot.dueTs)) return false;
+  const safeRemaining = Math.max(1, Math.trunc(Number(remainingActiveCount) || 0));
+  const estimatedPerCardMs = 45 * 1000;
+  const reviewWindowMs = Math.max(
+    2 * 60 * 1000,
+    Math.min(20 * 60 * 1000, safeRemaining * estimatedPerCardMs)
+  );
+  return (snapshot.dueTs - nowTs) <= reviewWindowMs;
+}
+
+/**
+ * @function computeSessionFsrsReinsertIndex
+ * @description Computes a queue index using FSRS urgency instead of static hard-coded percentages.
+ */
+
+function computeSessionFsrsReinsertIndex(fsrsState = null, result = '', remainingActiveCount = 0, nowTs = Date.now()) {
+  const safeRemaining = Math.max(0, Math.trunc(Number(remainingActiveCount) || 0));
+  if (safeRemaining <= 0) return 0;
+  const safeResult = String(result || '').trim().toLowerCase();
+  const urgency = computeSessionFsrsUrgency(fsrsState, safeResult, nowTs);
+  let target = Math.round((1 - urgency) * safeRemaining);
+  let minIndex = 0;
+  let maxIndex = safeRemaining;
+  if (safeResult === 'wrong') {
+    minIndex = Math.min(1, safeRemaining);
+    maxIndex = Math.max(minIndex, Math.ceil(safeRemaining * 0.55));
+  } else if (safeResult === 'partial') {
+    minIndex = Math.min(2, safeRemaining);
+    maxIndex = Math.max(minIndex, Math.ceil(safeRemaining * 0.8));
+  } else if (safeResult === 'correct') {
+    minIndex = Math.min(3, safeRemaining);
+  }
+  target = Math.max(minIndex, Math.min(maxIndex, target));
+  return Math.max(0, Math.min(safeRemaining, target));
+}
+
+/**
  * @function gradeCard
- * @description Applies a grading result, persists progress, and updates the session queue order.
+ * @description Applies one grade, persists FSRS progress, and repositions the card using FSRS urgency.
  */
 
 async function gradeCard(result) {
@@ -1682,8 +1793,6 @@ async function gradeCard(result) {
   if (!card) return;
   // Remaining cards that can still appear in this session (mastered cards are excluded).
   const remainingActiveCount = Math.max(0, session.activeQueue.length);
-  // Same count including the currently graded card.
-  const remainingNonMasteredCount = remainingActiveCount + 1;
   let count = session.counts[card.id] ?? 0;
 
   if (result === 'correct') count += 1;
@@ -1697,25 +1806,24 @@ async function gradeCard(result) {
 
   session.counts[card.id] = count;
   card.sessionCorrectCount = count;
-  await recordCardProgress(card.id, result, { masteryTarget });
+  const progressState = await recordCardProgress(card.id, result, { masteryTarget });
+  const fsrsAfterReview = (progressState && typeof progressState === 'object')
+    ? (progressState.fsrs || null)
+    : null;
+  const reachedLegacyMastery = result === 'correct' && count >= masteryTarget;
+  const shouldRepeatFromFsrs = shouldRepeatCardWithinSessionFromFsrs(
+    fsrsAfterReview,
+    result,
+    remainingActiveCount
+  );
+  const markMasteredByFsrs = result === 'correct' && !shouldRepeatFromFsrs;
 
-  if (result === 'correct' && count >= masteryTarget) {
+  if (reachedLegacyMastery || markMasteredByFsrs) {
     session.mastered.push(card);
     delete session.gradeMap[card.id];
-  } else if (result === 'wrong') {
-    // Wrong: move ~30% of remaining non-mastered queue length to the back (rounded to nearest int).
-    const moveBack = Math.max(0, Math.round(remainingNonMasteredCount * 0.3));
-    const target = Math.min(moveBack, remainingActiveCount);
-    session.activeQueue.splice(target, 0, card);
-    session.gradeMap[card.id] = result;
-  } else if (result === 'partial') {
-    // Partial: move ~70% of remaining non-mastered queue length to the back (rounded to nearest int).
-    const moveBack = Math.max(0, Math.round(remainingNonMasteredCount * 0.7));
-    const target = Math.min(moveBack, remainingActiveCount);
-    session.activeQueue.splice(target, 0, card);
-    session.gradeMap[card.id] = result;
   } else {
-    session.activeQueue.push(card); // correct, but not mastered yet
+    const target = computeSessionFsrsReinsertIndex(fsrsAfterReview, result, remainingActiveCount);
+    session.activeQueue.splice(target, 0, card);
     session.gradeMap[card.id] = result;
   }
 

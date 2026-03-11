@@ -533,15 +533,26 @@ body.app-loading {
   position: fixed;
   inset: 0;
   z-index: 120;
+  margin: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  padding: var(--space-4);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
   background: rgba(7, 12, 24, 0.56);
   backdrop-filter: blur(10px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease;
+}
+
+.app-loading-overlay::backdrop {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .app-loading-overlay.is-visible {
@@ -2433,6 +2444,11 @@ textarea:focus-visible {
   /* margin-inline: var(--space-3); */
 }
 
+.controls.editor {
+  justify-content: space-between;
+  align-items: center;
+}
+
 .traffic {
   flex: 1;
   min-width: 160px;
@@ -2781,7 +2797,7 @@ textarea:focus-visible {
     padding-inline: var(--space-3);
   } */
 
-  .session-card-image {
+  .session-card-image {
     width: 55%;
   }
 
@@ -3012,6 +3028,13 @@ textarea:focus-visible {
   padding: 6px 8px;
   background: rgba(17, 26, 46, 0.72);
   box-sizing: border-box;
+}
+
+.card-tile-mcq-option.is-correct {
+  border-color: rgba(34, 197, 94, 0.78);
+  background: rgba(22, 101, 52, 0.28);
+  color: #d7ffe6;
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.24);
 }
 
 .card-tile-mcq-option-text {
@@ -3966,7 +3989,7 @@ body.session-image-open {
 }
 
 .editor-header-actions {
-  margin-left: auto;
+  /* margin-left: auto; */
   display: inline-flex;
   align-items: center;
   gap: calc(var(--space-2) + 2px);
@@ -5687,6 +5710,24 @@ button.formula-insert.save-primary {
     0 0 14px var(--daily-review-subject-accent-glow-soft, rgba(45, 212, 191, 0.2));
 }
 
+.daily-review-subject-header {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px 10px 8px 10px;
+}
+
+.daily-review-subject-option {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.daily-review-subject-option.is-disabled {
+  opacity: 0.52;
+}
+
 .daily-review-subject-toggle {
   font: inherit;
   display: flex;
@@ -5706,6 +5747,46 @@ button.formula-insert.save-primary {
 .daily-review-subject-toggle:hover {
   transform: none;
   background: rgba(27, 40, 72, 0.42);
+}
+
+.daily-review-subject-expand-btn {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  border: 1px solid rgba(88, 122, 174, 0.48);
+  border-radius: 10px;
+  background: rgba(15, 25, 44, 0.62);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.daily-review-subject-expand-btn:hover {
+  transform: none;
+  background: rgba(27, 40, 72, 0.46);
+}
+
+.daily-review-subject-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: transform 0.18s ease;
+  transform: rotate(180deg);
+}
+
+.daily-review-subject-expand-icon .app-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+}
+
+.daily-review-subject-group.is-expanded .daily-review-subject-expand-icon {
+  transform: rotate(270deg);
 }
 
 .daily-review-subject-title-wrap {
@@ -5757,7 +5838,7 @@ button.formula-insert.save-primary {
 .daily-review-subject-group.is-expanded .daily-review-subject-topics {
   max-height: 56dvh;
   opacity: 1;
-  padding-top: 2px;
+  padding-top: 8px;
   padding-bottom: 10px;
   overflow-y: auto;
   overscroll-behavior: contain;

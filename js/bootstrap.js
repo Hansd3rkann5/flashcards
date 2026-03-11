@@ -1071,6 +1071,44 @@ async function boot() {
       restoreMissingImagesBtn.onclick = () => { void restoreMissingImagesFromLocalBackup(); };
     }
   }
+  const runFsrsDueRecalcBtn = el('runFsrsDueRecalcBtn');
+  if (runFsrsDueRecalcBtn) {
+    runFsrsDueRecalcBtn.onclick = async () => {
+      if (typeof recalculateFsrsDueForAllProgress !== 'function') return;
+      const forcedTargetRetention = (typeof getFsrsTargetRetentionDefault === 'function')
+        ? clampFsrsTargetRetention(getFsrsTargetRetentionDefault())
+        : 0.99;
+      const forcedIntervalScale = (typeof getFsrsIntervalScaleDefault === 'function')
+        ? clampFsrsIntervalScale(getFsrsIntervalScaleDefault())
+        : 0.75;
+      if (!confirm(`Recalculate all FSRS due dates in the database for target retention ${forcedTargetRetention.toFixed(2)} and interval scale ${forcedIntervalScale.toFixed(2)}?\n\nCards without any answer history will have existing FSRS due values cleared.`)) return;
+      runFsrsDueRecalcBtn.disabled = true;
+      setAppLoadingState(true, 'Recalculating FSRS due dates...');
+      try {
+        const summary = await recalculateFsrsDueForAllProgress({
+          uiBlocking: false,
+          targetRetention: forcedTargetRetention,
+          intervalScale: forcedIntervalScale,
+          seedMissing: true,
+          onProgress: progress => {
+            const current = Number(progress?.current);
+            const total = Number(progress?.total);
+            if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+              setAppLoadingLabel(`Recalculating FSRS due dates... Card ${Math.max(0, current)}/${Math.max(0, total)}`);
+            } else {
+              setAppLoadingLabel('Recalculating FSRS due dates...');
+            }
+          }
+        });
+        alert(`FSRS recalculation finished.\nUpdated: ${summary.updated}\nSeeded: ${summary.seeded}\nCleared (unanswered): ${summary.cleared || 0}\nSkipped: ${summary.skipped}\nFailed: ${summary.failed}\nRetention: ${Number(summary.targetRetention || 0).toFixed(2)}\nScale: ${Number(summary.intervalScale || 0).toFixed(2)}`);
+      } catch (err) {
+        alert(`FSRS recalculation failed: ${err?.message || err}`);
+      } finally {
+        setAppLoadingState(false);
+        runFsrsDueRecalcBtn.disabled = false;
+      }
+    };
+  }
   const migrateImagesToStorageBtn = el('migrateImagesToStorageBtn');
   if (migrateImagesToStorageBtn) migrateImagesToStorageBtn.onclick = migrateImagesToStorage;
   const importInput = el('importInput');
