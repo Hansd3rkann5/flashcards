@@ -152,6 +152,10 @@ function sanitizeStoragePathSegment(value = '', fallback = 'x') {
   return cleaned || fallback;
 }
 
+const RECENT_STORAGE_IMAGE_REFS_STORAGE_PREFIX = 'flashcards.recent-storage-refs.v1.';
+const RECENT_STORAGE_IMAGE_REFS_LIMIT = 240;
+const RECENT_STORAGE_IMAGE_REFS_FETCH_LIMIT = 48;
+
 /**
  * @function resolveImageSourceForDisplay
  * @description Resolves storage refs to signed/public URLs and caches results for rendering/preload.
@@ -371,6 +375,234 @@ function normalizeSupabaseStorageRefList(storageRefs = []) {
     .filter(isSupabaseStorageRef)
     .filter(ref => !!parseSupabaseStorageRef(ref));
   return Array.from(new Set(refs));
+}
+
+/**
+ * @function getRecentStorageImageRefsStorageKey
+ * @description Returns per-user localStorage key for recently used storage refs.
+ */
+
+function getRecentStorageImageRefsStorageKey(ownerId = '') {
+  const safeOwnerId = String(ownerId || supabaseOwnerId || '').trim();
+  return safeOwnerId ? `${RECENT_STORAGE_IMAGE_REFS_STORAGE_PREFIX}${safeOwnerId}` : '';
+}
+
+/**
+ * @function readRecentStorageImageRefsFromLocalStorage
+ * @description Reads recently used storage refs from localStorage.
+ */
+
+function readRecentStorageImageRefsFromLocalStorage(ownerId = '') {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  const key = getRecentStorageImageRefsStorageKey(ownerId);
+  if (!key) return [];
+  try {
+    const raw = String(window.localStorage.getItem(key) || '').trim();
+    if (!raw) return [];
+    const payload = JSON.parse(raw);
+    if (Array.isArray(payload)) return normalizeSupabaseStorageRefList(payload);
+    if (Array.isArray(payload?.refs)) return normalizeSupabaseStorageRefList(payload.refs);
+    return [];
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * @function writeRecentStorageImageRefsToLocalStorage
+ * @description Persists recently used storage refs in localStorage.
+ */
+
+function writeRecentStorageImageRefsToLocalStorage(ownerId = '', refs = []) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  const key = getRecentStorageImageRefsStorageKey(ownerId);
+  if (!key) return;
+  const normalized = normalizeSupabaseStorageRefList(refs);
+  if (!normalized.length) {
+    window.localStorage.removeItem(key);
+    return;
+  }
+  try {
+    window.localStorage.setItem(key, JSON.stringify(normalized));
+  } catch (_) {
+    // Ignore quota/private-mode errors.
+  }
+}
+
+/**
+ * @function extractOwnerIdFromSupabaseStorageRef
+ * @description Extracts owner folder ID from storage refs (bucket/ownerId/cardId/file).
+ */
+
+function extractOwnerIdFromSupabaseStorageRef(storageRef = '') {
+  const parsed = parseSupabaseStorageRef(storageRef);
+  if (!parsed) return '';
+  const parts = String(parsed.path || '').trim().split('/').filter(Boolean);
+  return String(parts[0] || '').trim();
+}
+
+/**
+ * @function rememberRecentSupabaseStorageRefs
+ * @description Updates local recent-storage history with latest refs.
+ */
+
+function rememberRecentSupabaseStorageRefs(storageRefs = [], options = {}) {
+  const refs = normalizeSupabaseStorageRefList(storageRefs);
+  if (!refs.length) return [];
+  const opts = options && typeof options === 'object' ? options : {};
+  const maxItems = Math.max(
+    1,
+    Math.min(
+      500,
+      Math.trunc(Number(opts.limit) || RECENT_STORAGE_IMAGE_REFS_LIMIT)
+    )
+  );
+  let ownerId = String(opts.ownerId || '').trim();
+  if (!ownerId) ownerId = String(supabaseOwnerId || '').trim();
+  if (!ownerId) {
+    ownerId = extractOwnerIdFromSupabaseStorageRef(refs[0]);
+  }
+  if (!ownerId) return refs.slice(0, maxItems);
+  const existing = readRecentStorageImageRefsFromLocalStorage(ownerId);
+  const merged = normalizeSupabaseStorageRefList([...refs, ...existing]).slice(0, maxItems);
+  writeRecentStorageImageRefsToLocalStorage(ownerId, merged);
+  return merged;
+}
+
+/**
+ * @function listRecentSupabaseStorageRefsFromStorage
+ * @description Lists latest storage refs for the current user by object timestamps.
+ */
+
+async function listRecentSupabaseStorageRefsFromStorage(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const bucket = String(opts.bucket || SUPABASE_PICTURES_BUCKET || 'Pictures').trim();
+  if (!bucket || isLocalSnapshotModeEnabled()) return [];
+  let ownerId = String(opts.ownerId || '').trim();
+  if (!ownerId) ownerId = String(supabaseOwnerId || '').trim();
+  if (!ownerId) ownerId = String(await getSupabaseOwnerId() || '').trim();
+  if (!ownerId) return [];
+
+  const maxItems = Math.max(
+    1,
+    Math.min(
+      500,
+      Math.trunc(Number(opts.limit) || RECENT_STORAGE_IMAGE_REFS_FETCH_LIMIT)
+    )
+  );
+  const pageSize = Math.max(20, Math.min(1000, Math.trunc(Number(opts.pageSize) || 200)));
+  const scanCap = Math.max(
+    maxItems,
+    Math.min(
+      5000,
+      Math.trunc(Number(opts.scanCap) || Math.max(maxItems * 4, 80))
+    )
+  );
+  await initSupabaseBackend();
+  const bucketClient = supabaseClient.storage.from(bucket);
+  const queue = [ownerId];
+  const files = [];
+  let scannedFiles = 0;
+  let stopScan = false;
+
+  while (queue.length && !stopScan) {
+    const currentPrefix = queue.shift() || '';
+    let offset = 0;
+    while (!stopScan) {
+      const { data, error } = await bucketClient.list(currentPrefix, {
+        limit: pageSize,
+        offset,
+        sortBy: { column: 'name', order: 'asc' }
+      });
+      assertSupabaseSuccess(error, `Failed to list storage path "${bucket}/${currentPrefix}".`);
+      const rows = Array.isArray(data) ? data : [];
+      for (const row of rows) {
+        const name = String(row?.name || '').trim();
+        if (!name) continue;
+        const path = currentPrefix ? `${currentPrefix}/${name}` : name;
+        if (row?.id === null) {
+          queue.push(path);
+          continue;
+        }
+        const timestampRaw = String(
+          row?.updated_at || row?.created_at || row?.last_accessed_at || ''
+        ).trim();
+        const timestamp = Number(new Date(timestampRaw).getTime()) || 0;
+        files.push({ path, timestamp });
+        scannedFiles += 1;
+        if (scannedFiles >= scanCap && files.length >= maxItems) {
+          stopScan = true;
+          break;
+        }
+      }
+      if (rows.length < pageSize || stopScan) break;
+      offset += rows.length;
+    }
+  }
+
+  files.sort((a, b) => {
+    if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+    return String(a.path || '').localeCompare(String(b.path || ''));
+  });
+  const refs = files
+    .map(file => buildSupabaseStorageRef(bucket, file.path))
+    .filter(Boolean);
+  return normalizeSupabaseStorageRefList(refs).slice(0, maxItems);
+}
+
+/**
+ * @function getRecentSupabaseStorageImageRefs
+ * @description Returns recent storage refs merged from storage listing and local history cache.
+ */
+
+async function getRecentSupabaseStorageImageRefs(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const localOnly = opts.localOnly === true;
+  const forceRemote = opts.forceRemote === true;
+  const preferLocal = opts.preferLocal !== false;
+  const limit = Math.max(
+    1,
+    Math.min(
+      500,
+      Math.trunc(Number(opts.limit) || RECENT_STORAGE_IMAGE_REFS_FETCH_LIMIT)
+    )
+  );
+  let ownerId = String(opts.ownerId || '').trim();
+  if (!ownerId) ownerId = String(supabaseOwnerId || '').trim();
+  if (!ownerId && !isLocalSnapshotModeEnabled()) {
+    try {
+      ownerId = String(await getSupabaseOwnerId() || '').trim();
+    } catch (_) {
+      ownerId = '';
+    }
+  }
+
+  const localRefs = readRecentStorageImageRefsFromLocalStorage(ownerId);
+  if (isLocalSnapshotModeEnabled() || localOnly) return localRefs.slice(0, limit);
+  if (!forceRemote && preferLocal && localRefs.length >= limit) {
+    return localRefs.slice(0, limit);
+  }
+
+  let storageRefs = [];
+  try {
+    storageRefs = await listRecentSupabaseStorageRefsFromStorage({
+      ownerId,
+      bucket: opts.bucket,
+      limit: Math.max(limit, Number(opts.storageLimit) || limit * 2),
+      scanCap: Number(opts.scanCap) || Math.max(limit * 4, 80)
+    });
+  } catch (err) {
+    console.warn('Failed to fetch recent storage images from Supabase:', err);
+  }
+
+  const merged = normalizeSupabaseStorageRefList([...storageRefs, ...localRefs]).slice(0, limit);
+  if (merged.length) {
+    rememberRecentSupabaseStorageRefs(merged, {
+      ownerId,
+      limit: Math.max(limit, RECENT_STORAGE_IMAGE_REFS_LIMIT)
+    });
+  }
+  return merged;
 }
 
 /**
@@ -961,7 +1193,12 @@ async function buildCardImagePayloadForSave(cardId, imagesQ, imagesA, options = 
     normalizeImageList(imagesA),
     { log }
   );
-  return getCardImagePayload(storedQ, storedA);
+  const payload = getCardImagePayload(storedQ, storedA);
+  rememberRecentSupabaseStorageRefs(
+    [...payload.imagesQ, ...payload.imagesA],
+    { limit: RECENT_STORAGE_IMAGE_REFS_LIMIT }
+  );
+  return payload;
 }
 
 /**

@@ -127,6 +127,40 @@ function updateMcqRowCorrectState(row) {
   }
 }
 
+function wireMcqOrderSelect(select, edit = false) {
+  if (!(select instanceof HTMLSelectElement)) return;
+  if (select.dataset.orderBound === '1') return;
+  select.dataset.orderBound = '1';
+
+  const cacheCurrentValue = () => {
+    select.dataset.prev = String(select.value || '');
+    select.dataset.value = String(select.value || '');
+  };
+
+  select.addEventListener('focus', cacheCurrentValue);
+  select.addEventListener('mousedown', cacheCurrentValue);
+  select.addEventListener('touchstart', cacheCurrentValue, { passive: true });
+
+  select.addEventListener('change', () => {
+    const nextValue = String(select.value || '');
+    const prevValue = String(select.dataset.prev || select.dataset.value || '');
+    const rows = getAllMcqRows(edit);
+    const allSelects = rows
+      .map(row => row.querySelector('.mcq-order-select'))
+      .filter(node => node instanceof HTMLSelectElement);
+    const duplicate = allSelects.find(other => other !== select && String(other.value || '') === nextValue);
+    if (duplicate) {
+      const fallback = prevValue || String(duplicate.dataset.value || '');
+      const hasFallbackOption = Array.from(duplicate.options || []).some(opt => String(opt.value || '') === fallback);
+      duplicate.value = hasFallbackOption ? fallback : String(duplicate.value || '');
+      duplicate.dataset.value = String(duplicate.value || '');
+      duplicate.dataset.prev = String(duplicate.value || '');
+    }
+    select.dataset.value = nextValue;
+    select.dataset.prev = nextValue;
+  });
+}
+
 function syncMcqOrderUi(edit = false) {
   let requireOrder = edit ? editOptionsRequireOrder : createOptionsRequireOrder;
   const orderToggle = el(edit ? 'editMcqRequireOrderToggle' : 'mcqRequireOrderToggle');
@@ -165,6 +199,7 @@ function syncMcqOrderUi(edit = false) {
       updateMcqRowCorrectState(row);
     }
 
+    const previousRaw = String(select.dataset.value || select.value || '');
     select.innerHTML = '';
     if (!requireOrder) {
       select.value = '';
@@ -176,10 +211,12 @@ function syncMcqOrderUi(edit = false) {
       opt.textContent = String(i);
       select.appendChild(opt);
     }
-    const current = Number(select.dataset.value || select.value || idx + 1);
+    const current = Number(previousRaw || idx + 1);
     const clamped = Math.min(total, Math.max(1, current));
     select.value = String(clamped);
     select.dataset.value = String(clamped);
+    select.dataset.prev = String(clamped);
+    wireMcqOrderSelect(select, edit);
   });
 }
 

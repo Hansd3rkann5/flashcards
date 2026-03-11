@@ -2014,6 +2014,278 @@ async function boot() {
   if (tableAlignRightBtn) tableAlignRightBtn.onclick = () => applyTableBuilderSelectedAlignment('right');
   if (tableMergeBtn) tableMergeBtn.onclick = mergeTableBuilderSelection;
   if (tableUnmergeBtn) tableUnmergeBtn.onclick = unmergeTableBuilderSelection;
+  const RECENT_STORAGE_PICKER_PAGE_SIZE = 10;
+  const RECENT_STORAGE_PICKER_INITIAL_REMOTE_LIMIT = 60;
+  const RECENT_STORAGE_PICKER_FETCH_STEP = 20;
+  const RECENT_STORAGE_PICKER_MAX_LIMIT = 500;
+  const recentStorageImagePickerDialog = el('recentStorageImagePickerDialog');
+  const recentStorageImagePickerStatus = el('recentStorageImagePickerStatus');
+  const recentStorageImagePickerGrid = el('recentStorageImagePickerGrid');
+  const recentStorageImagePickerLoadMoreBtn = el('recentStorageImagePickerLoadMoreBtn');
+  const closeRecentStorageImagePickerBtn = el('closeRecentStorageImagePickerBtn');
+  const recentStorageImagePickerState = {
+    field: null,
+    preview: null,
+    legacyKey: '',
+    onChange: null,
+    refs: [],
+    visibleCount: RECENT_STORAGE_PICKER_PAGE_SIZE,
+    fetchLimit: RECENT_STORAGE_PICKER_PAGE_SIZE,
+    reachedEnd: false,
+    loading: false,
+    fetchInFlight: false,
+    requestId: 0
+  };
+  const resetRecentStorageImagePickerState = () => {
+    recentStorageImagePickerState.requestId += 1;
+    recentStorageImagePickerState.field = null;
+    recentStorageImagePickerState.preview = null;
+    recentStorageImagePickerState.legacyKey = '';
+    recentStorageImagePickerState.onChange = null;
+    recentStorageImagePickerState.refs = [];
+    recentStorageImagePickerState.visibleCount = RECENT_STORAGE_PICKER_PAGE_SIZE;
+    recentStorageImagePickerState.fetchLimit = RECENT_STORAGE_PICKER_PAGE_SIZE;
+    recentStorageImagePickerState.reachedEnd = false;
+    recentStorageImagePickerState.loading = false;
+    recentStorageImagePickerState.fetchInFlight = false;
+  };
+  const refreshRecentStorageImagePickerLoadMore = () => {
+    if (!recentStorageImagePickerLoadMoreBtn) return;
+    const hasLoadedItems = recentStorageImagePickerState.refs.length > 0;
+    const canShowMoreLoaded = recentStorageImagePickerState.visibleCount < recentStorageImagePickerState.refs.length;
+    const canFetchMore = !recentStorageImagePickerState.reachedEnd
+      && recentStorageImagePickerState.fetchLimit < RECENT_STORAGE_PICKER_MAX_LIMIT;
+    if (!hasLoadedItems || (!canShowMoreLoaded && !canFetchMore)) {
+      recentStorageImagePickerLoadMoreBtn.classList.add('hidden');
+      recentStorageImagePickerLoadMoreBtn.disabled = false;
+      recentStorageImagePickerLoadMoreBtn.textContent = 'Load more';
+      return;
+    }
+    recentStorageImagePickerLoadMoreBtn.classList.remove('hidden');
+    recentStorageImagePickerLoadMoreBtn.disabled = recentStorageImagePickerState.loading;
+    recentStorageImagePickerLoadMoreBtn.textContent = recentStorageImagePickerState.loading ? 'Loading...' : 'Load more';
+  };
+  const renderRecentStorageImagePickerGrid = () => {
+    if (!recentStorageImagePickerGrid || !recentStorageImagePickerStatus) return;
+    recentStorageImagePickerGrid.innerHTML = '';
+    const refs = Array.isArray(recentStorageImagePickerState.refs) ? recentStorageImagePickerState.refs : [];
+    if (!refs.length) {
+      recentStorageImagePickerStatus.textContent = 'No recent storage images found yet.';
+      refreshRecentStorageImagePickerLoadMore();
+      return;
+    }
+    const visibleCount = Math.max(
+      0,
+      Math.min(recentStorageImagePickerState.visibleCount, refs.length)
+    );
+    const visibleRefs = refs.slice(0, visibleCount);
+    const canFetchMore = !recentStorageImagePickerState.reachedEnd
+      && recentStorageImagePickerState.fetchLimit < RECENT_STORAGE_PICKER_MAX_LIMIT;
+    recentStorageImagePickerStatus.textContent = canFetchMore
+      ? `Showing ${visibleRefs.length} of ${refs.length} loaded images.`
+      : `Showing ${visibleRefs.length} images.`;
+    const fragment = document.createDocumentFragment();
+    visibleRefs.forEach(ref => {
+      const itemBtn = document.createElement('button');
+      itemBtn.type = 'button';
+      itemBtn.className = 'recent-storage-image-picker-item';
+      itemBtn.title = 'Reuse this image reference';
+      const thumb = document.createElement('img');
+      thumb.className = 'recent-storage-image-picker-thumb';
+      thumb.alt = 'Stored image';
+      bindImageElementSource(thumb, ref);
+      const label = document.createElement('div');
+      label.className = 'recent-storage-image-picker-label';
+      const parsed = parseSupabaseStorageRef(ref);
+      const fileName = String(parsed?.path || '').split('/').filter(Boolean).pop() || 'storage image';
+      label.textContent = fileName;
+      itemBtn.append(thumb, label);
+      itemBtn.addEventListener('click', () => {
+        const targetField = recentStorageImagePickerState.field;
+        const targetPreview = recentStorageImagePickerState.preview;
+        if (!targetField || !targetPreview) return;
+        appendImagesToField(
+          targetField,
+          targetPreview,
+          [ref],
+          recentStorageImagePickerState.legacyKey,
+          recentStorageImagePickerState.onChange
+        );
+        closeRecentStorageImagePicker();
+      });
+      fragment.appendChild(itemBtn);
+    });
+    recentStorageImagePickerGrid.appendChild(fragment);
+    refreshRecentStorageImagePickerLoadMore();
+  };
+  const fetchRecentStorageImagePickerRefs = async (requestId, options = {}) => {
+    const opts = options && typeof options === 'object' ? options : {};
+    const background = opts.background === true;
+    const forceRemote = opts.forceRemote !== false;
+    const targetLimit = Math.max(
+      RECENT_STORAGE_PICKER_PAGE_SIZE,
+      Math.min(
+        RECENT_STORAGE_PICKER_MAX_LIMIT,
+        Math.trunc(Number(opts.targetLimit) || recentStorageImagePickerState.fetchLimit)
+      )
+    );
+    if (recentStorageImagePickerState.fetchInFlight) return;
+    recentStorageImagePickerState.fetchInFlight = true;
+    recentStorageImagePickerState.loading = !background;
+    recentStorageImagePickerState.fetchLimit = targetLimit;
+    refreshRecentStorageImagePickerLoadMore();
+    let refs = [];
+    try {
+      refs = await getRecentSupabaseStorageImageRefs({
+        limit: targetLimit,
+        localOnly: !forceRemote,
+        forceRemote,
+        storageLimit: Math.max(targetLimit + RECENT_STORAGE_PICKER_FETCH_STEP, targetLimit * 2),
+        scanCap: Math.max(targetLimit * 4, 80)
+      });
+    } catch (err) {
+      console.warn('Failed to load recent storage images:', err);
+      refs = [];
+    }
+    if (requestId === recentStorageImagePickerState.requestId) {
+      recentStorageImagePickerState.refs = Array.isArray(refs) ? refs : [];
+      recentStorageImagePickerState.reachedEnd = forceRemote
+        ? (recentStorageImagePickerState.refs.length < targetLimit || targetLimit >= RECENT_STORAGE_PICKER_MAX_LIMIT)
+        : false;
+      if (recentStorageImagePickerState.visibleCount < RECENT_STORAGE_PICKER_PAGE_SIZE) {
+        recentStorageImagePickerState.visibleCount = RECENT_STORAGE_PICKER_PAGE_SIZE;
+      }
+      if (
+        recentStorageImagePickerState.refs.length
+        && recentStorageImagePickerState.visibleCount > recentStorageImagePickerState.refs.length
+      ) {
+        recentStorageImagePickerState.visibleCount = recentStorageImagePickerState.refs.length;
+      }
+      renderRecentStorageImagePickerGrid();
+    }
+    recentStorageImagePickerState.fetchInFlight = false;
+    recentStorageImagePickerState.loading = false;
+    refreshRecentStorageImagePickerLoadMore();
+  };
+  const closeRecentStorageImagePicker = () => {
+    resetRecentStorageImagePickerState();
+    if (!recentStorageImagePickerDialog?.open) return;
+    closeDialog(recentStorageImagePickerDialog);
+  };
+  const openRecentStorageImagePicker = async (field, preview, legacyKey = '', onChange = null) => {
+    if (!recentStorageImagePickerDialog || !recentStorageImagePickerStatus || !recentStorageImagePickerGrid) return;
+    if (!field || !preview) return;
+    resetRecentStorageImagePickerState();
+    recentStorageImagePickerState.field = field;
+    recentStorageImagePickerState.preview = preview;
+    recentStorageImagePickerState.legacyKey = legacyKey;
+    recentStorageImagePickerState.onChange = onChange;
+    const requestId = recentStorageImagePickerState.requestId;
+    recentStorageImagePickerStatus.textContent = 'Loading recent storage images...';
+    recentStorageImagePickerGrid.innerHTML = '';
+    refreshRecentStorageImagePickerLoadMore();
+    if (!recentStorageImagePickerDialog.open) showDialog(recentStorageImagePickerDialog);
+    await fetchRecentStorageImagePickerRefs(requestId, {
+      forceRemote: false,
+      targetLimit: RECENT_STORAGE_PICKER_INITIAL_REMOTE_LIMIT
+    });
+    if (requestId !== recentStorageImagePickerState.requestId) return;
+    if (recentStorageImagePickerState.refs.length < RECENT_STORAGE_PICKER_PAGE_SIZE) {
+      recentStorageImagePickerStatus.textContent = 'Fetching latest images from storage...';
+    }
+    void fetchRecentStorageImagePickerRefs(requestId, {
+      background: true,
+      forceRemote: true,
+      targetLimit: RECENT_STORAGE_PICKER_INITIAL_REMOTE_LIMIT
+    });
+  };
+  const bindRecentStorageImagePickerButton = (
+    buttonId,
+    fieldId,
+    previewId,
+    legacyKey = '',
+    onChange = null
+  ) => {
+    const button = el(buttonId);
+    if (!button) return;
+    button.onclick = () => {
+      void openRecentStorageImagePicker(
+        el(fieldId),
+        el(previewId),
+        legacyKey,
+        onChange
+      );
+    };
+  };
+  if (closeRecentStorageImagePickerBtn) {
+    closeRecentStorageImagePickerBtn.onclick = closeRecentStorageImagePicker;
+  }
+  if (recentStorageImagePickerLoadMoreBtn) {
+    recentStorageImagePickerLoadMoreBtn.onclick = async () => {
+      if (!recentStorageImagePickerDialog?.open) return;
+      const prevVisible = recentStorageImagePickerState.visibleCount;
+      if (recentStorageImagePickerState.visibleCount < recentStorageImagePickerState.refs.length) {
+        recentStorageImagePickerState.visibleCount = Math.min(
+          recentStorageImagePickerState.refs.length,
+          recentStorageImagePickerState.visibleCount + RECENT_STORAGE_PICKER_PAGE_SIZE
+        );
+        renderRecentStorageImagePickerGrid();
+        return;
+      }
+      if (recentStorageImagePickerState.reachedEnd) {
+        refreshRecentStorageImagePickerLoadMore();
+        return;
+      }
+      recentStorageImagePickerState.fetchLimit = Math.min(
+        RECENT_STORAGE_PICKER_MAX_LIMIT,
+        recentStorageImagePickerState.fetchLimit + RECENT_STORAGE_PICKER_FETCH_STEP
+      );
+      const requestId = recentStorageImagePickerState.requestId;
+      await fetchRecentStorageImagePickerRefs(requestId, {
+        forceRemote: true,
+        targetLimit: recentStorageImagePickerState.fetchLimit
+      });
+      if (requestId !== recentStorageImagePickerState.requestId) return;
+      recentStorageImagePickerState.visibleCount = Math.min(
+        recentStorageImagePickerState.refs.length,
+        prevVisible + RECENT_STORAGE_PICKER_PAGE_SIZE
+      );
+      renderRecentStorageImagePickerGrid();
+    };
+  }
+  if (recentStorageImagePickerDialog) {
+    recentStorageImagePickerDialog.addEventListener('click', event => {
+      if (event.target === recentStorageImagePickerDialog) closeRecentStorageImagePicker();
+    });
+    recentStorageImagePickerDialog.addEventListener('close', resetRecentStorageImagePickerState);
+    recentStorageImagePickerDialog.addEventListener('cancel', resetRecentStorageImagePickerState);
+  }
+  bindRecentStorageImagePickerButton(
+    'openRecentCreateQuestionImagesBtn',
+    'cardPrompt',
+    'questionImagePreview',
+    'imageDataQ',
+    updateCreateValidation
+  );
+  bindRecentStorageImagePickerButton(
+    'openRecentCreateAnswerImagesBtn',
+    'cardAnswer',
+    'answerImagePreview',
+    'imageDataA',
+    updateCreateValidation
+  );
+  bindRecentStorageImagePickerButton(
+    'openRecentEditQuestionImagesBtn',
+    'editCardPrompt',
+    'editQuestionImagePreview',
+    'imageDataQ'
+  );
+  bindRecentStorageImagePickerButton(
+    'openRecentEditAnswerImagesBtn',
+    'editCardAnswer',
+    'editAnswerImagePreview',
+    'imageDataA'
+  );
   attachImageDrop(el('cardPrompt'), dataUrls => {
     appendImagesToField(
       el('cardPrompt'),

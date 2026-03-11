@@ -2979,7 +2979,7 @@ function renderDailyReviewTopicList() {
 
     const headerBtn = document.createElement('button');
     headerBtn.type = 'button';
-    headerBtn.className = 'daily-review-subject-expand-btn';
+    headerBtn.className = 'daily-review-subject-expand-btn innerGlow';
     headerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
     headerBtn.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} subject ${group.subjectName}`);
     headerBtn.addEventListener('click', () => {
@@ -3021,6 +3021,20 @@ function renderDailyReviewTopicList() {
     headerBtn.append(chevronEl);
     headerEl.append(optionEl, headerBtn);
     groupEl.appendChild(headerEl);
+    const syncExpandButtonSquareSize = () => {
+      // Reset first so measuring the label row does not include previous square size.
+      headerBtn.style.removeProperty('width');
+      headerBtn.style.removeProperty('height');
+      headerBtn.style.removeProperty('flex-basis');
+      const optionHeight = Math.ceil(optionEl.getBoundingClientRect().height);
+      if (optionHeight > 0) {
+        headerBtn.style.width = `${optionHeight}px`;
+        headerBtn.style.height = `${optionHeight}px`;
+        headerBtn.style.flexBasis = `${optionHeight}px`;
+      }
+    };
+    syncExpandButtonSquareSize();
+    requestAnimationFrame(syncExpandButtonSquareSize);
 
     const topicsEl = document.createElement('div');
     topicsEl.className = 'daily-review-subject-topics';
