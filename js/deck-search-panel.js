@@ -858,12 +858,31 @@ function renderCardTileAnswerContent(container, card, options = {}) {
   container.classList.add('card-tile-mcq');
   const optionsWrap = document.createElement('div');
   optionsWrap.className = 'card-tile-mcq-options';
+  const requireOrder = card?.optionsRequireOrder === true;
   const optionsAlign = card?.optionsTextAlign || card?.answerTextAlign || card?.textAlign || 'center';
-  card.options.forEach(option => {
+  const optionsList = requireOrder
+    ? [...card.options].sort((a, b) => {
+      const orderA = Number(a?.order || 0);
+      const orderB = Number(b?.order || 0);
+      const safeA = Number.isFinite(orderA) && orderA > 0 ? orderA : Number.MAX_SAFE_INTEGER;
+      const safeB = Number.isFinite(orderB) && orderB > 0 ? orderB : Number.MAX_SAFE_INTEGER;
+      return safeA - safeB;
+    })
+    : card.options;
+  optionsList.forEach((option, idx) => {
     const isCorrect = option?.correct === true || String(option?.correct || '').trim().toLowerCase() === 'true';
+    const optionOrderRaw = Number(option?.order || 0);
+    const optionOrder = Number.isFinite(optionOrderRaw) && optionOrderRaw > 0 ? Math.round(optionOrderRaw) : (idx + 1);
     const row = document.createElement('div');
     row.className = 'card-tile-mcq-option';
-    if (isCorrect) row.classList.add('is-correct');
+    if (requireOrder) row.classList.add('is-ordered');
+    else if (isCorrect) row.classList.add('is-correct');
+    if (requireOrder) {
+      const orderBadge = document.createElement('span');
+      orderBadge.className = 'card-tile-mcq-order-badge';
+      orderBadge.textContent = String(optionOrder);
+      row.appendChild(orderBadge);
+    }
     const textEl = document.createElement('div');
     textEl.className = 'card-tile-mcq-option-text';
     renderRich(textEl, option?.text || '', { textAlign: optionsAlign });

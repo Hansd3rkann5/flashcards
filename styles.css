@@ -3037,6 +3037,28 @@ textarea:focus-visible {
   box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.24);
 }
 
+.card-tile-mcq-option.is-ordered {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-tile-mcq-order-badge {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid #4c6ea7;
+  background: rgba(21, 35, 63, 0.88);
+  color: #d8e9ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .card-tile-mcq-option-text {
   width: 100%;
   min-width: 0;
@@ -5754,9 +5776,11 @@ button.formula-insert.save-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  align-self: stretch;
+  aspect-ratio: 1 / 1;
+  width: auto;
+  height: auto;
+  flex: 0 0 auto;
   padding: 0;
   border: 1px solid rgba(88, 122, 174, 0.48);
   border-radius: 10px;
