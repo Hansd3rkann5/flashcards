@@ -1553,6 +1553,7 @@ async function boot() {
     editDialog.addEventListener('close', () => {
       editingCardId = null;
       editingCardSnapshot = null;
+      setEditSaveBusyState(false);
     });
   }
   const cardPreviewDialog = el('cardPreviewDialog');
@@ -1867,9 +1868,16 @@ async function boot() {
   });
   window.addEventListener('resize', queueSessionFaceOverflowSync);
   window.addEventListener('resize', scheduleOverviewTableFit);
+  const setEditSaveBusyState = (busy = false) => {
+    const saveBtn = el('saveEditCardBtn');
+    if (!saveBtn) return;
+    saveBtn.dataset.busy = busy ? '1' : '0';
+    saveBtn.disabled = !!busy;
+  };
   el('closeEditCardBtn').onclick = () => {
     editingCardId = null;
     editingCardSnapshot = null;
+    setEditSaveBusyState(false);
     el('editCardDialog').close();
   };
   const handleAddMcqOption = edit => {
@@ -2671,116 +2679,115 @@ async function boot() {
     const saveBtn = el('saveEditCardBtn');
     if (!saveBtn || !editingCardId) return;
     if (saveBtn.dataset.busy === '1') return;
-    saveBtn.dataset.busy = '1';
-    saveBtn.disabled = true;
+    setEditSaveBusyState(true);
+    let deferredSaveInFlight = false;
 
-    const editingId = String(editingCardId || '').trim();
-    const snapshot = (editingCardSnapshot && String(editingCardSnapshot?.id || '').trim() === editingId)
-      ? cloneData(editingCardSnapshot)
-      : null;
-    const card = snapshot || await getById('cards', editingId);
-    if (!card) {
-      saveBtn.dataset.busy = '0';
-      saveBtn.disabled = false;
-      return;
-    }
-
-    const createdAt = card?.meta?.createdAt || card?.createdAt || new Date().toISOString();
-    const updatedAt = new Date().toISOString();
-    const imagesQ = getFieldImageList(el('editCardPrompt'), 'imageDataQ');
-    const imagesA = getFieldImageList(el('editCardAnswer'), 'imageDataA');
-    let imagePayload;
     try {
-      imagePayload = await buildCardImagePayloadForSave(card.id, imagesQ, imagesA);
-    } catch (err) {
-      alert('Image upload failed. Please check your connection and try again.');
-      console.warn('Card image upload failed:', err);
-      saveBtn.dataset.busy = '0';
-      saveBtn.disabled = false;
-      return;
-    }
+      const editingId = String(editingCardId || '').trim();
+      const snapshot = (editingCardSnapshot && String(editingCardSnapshot?.id || '').trim() === editingId)
+        ? cloneData(editingCardSnapshot)
+        : null;
+      const card = snapshot || await getById('cards', editingId);
+      if (!card) return;
 
-    let options;
-    try {
-      options = parseEditMcqOptions();
-    } catch (err) {
-      console.warn('Failed to parse edit MCQ options:', err);
-      alert('Could not save the card because answer options are invalid. Please check the MCQ options and try again.');
-      saveBtn.dataset.busy = '0';
-      saveBtn.disabled = false;
-      return;
-    }
-    const type = options.length > 1 ? 'mcq' : 'qa';
-    const updated = {
-      ...card,
-      createdAt,
-      meta: {
-        ...(card.meta || {}),
-        createdAt,
-        updatedAt
-      },
-      textAlign: normalizeTextAlign(editQuestionTextAlign),
-      questionTextAlign: normalizeTextAlign(editQuestionTextAlign),
-      answerTextAlign: normalizeTextAlign(editAnswerTextAlign),
-      optionsTextAlign: normalizeTextAlign(editOptionsTextAlign),
-      prompt: el('editCardPrompt').value,
-      answer: el('editCardAnswer').value,
-      options: type === 'mcq' ? options : [],
-      optionsRequireOrder: type === 'mcq' ? !!editOptionsRequireOrder : false,
-      type,
-      ...imagePayload
-    };
-    const removedStorageRefs = getRemovedCardSupabaseStorageRefs(card, updated);
-
-    // Immediate UI update first (fast close and optimistic rendering).
-    syncSessionCard(updated);
-    applyOptimisticCardUpdate(updated);
-    if (session.active) void renderSessionCard();
-
-    const editDialog = el('editCardDialog');
-    if (editDialog?.open) editDialog.close();
-    replaceFieldImages(el('editCardPrompt'), el('editQuestionImagePreview'), [], 'imageDataQ');
-    replaceFieldImages(el('editCardAnswer'), el('editAnswerImagePreview'), [], 'imageDataA');
-    setPreview('editQuestionPreview', '', editQuestionTextAlign);
-    setPreview('editAnswerPreview', '', editAnswerTextAlign);
-
-    void (async () => {
+      const createdAt = card?.meta?.createdAt || card?.createdAt || new Date().toISOString();
+      const updatedAt = new Date().toISOString();
+      const imagesQ = getFieldImageList(el('editCardPrompt'), 'imageDataQ');
+      const imagesA = getFieldImageList(el('editCardAnswer'), 'imageDataA');
+      let imagePayload;
       try {
-        await put('cards', updated, { uiBlocking: false });
-        await putCardBank(updated, { uiBlocking: false });
-        await touchSubjectByTopicId(updated.topicId, undefined, { uiBlocking: false });
-        if (removedStorageRefs.length) {
-          try {
-            await cleanupOrphanedSupabaseStorageRefs(removedStorageRefs, {
-              allowedCardIds: [updated.id]
-            });
-          } catch (cleanupErr) {
-            console.warn('Deferred storage cleanup after card edit failed:', cleanupErr);
-          }
-        }
+        imagePayload = await buildCardImagePayloadForSave(card.id, imagesQ, imagesA);
       } catch (err) {
-        console.warn('Deferred card edit sync failed:', err);
-      } finally {
+        alert('Image upload failed. Please check your connection and try again.');
+        console.warn('Card image upload failed:', err);
+        return;
+      }
+
+      let options;
+      try {
+        options = parseEditMcqOptions();
+      } catch (err) {
+        console.warn('Failed to parse edit MCQ options:', err);
+        alert('Could not save the card because answer options are invalid. Please check the MCQ options and try again.');
+        return;
+      }
+      const type = options.length > 1 ? 'mcq' : 'qa';
+      const updated = {
+        ...card,
+        createdAt,
+        meta: {
+          ...(card.meta || {}),
+          createdAt,
+          updatedAt
+        },
+        textAlign: normalizeTextAlign(editQuestionTextAlign),
+        questionTextAlign: normalizeTextAlign(editQuestionTextAlign),
+        answerTextAlign: normalizeTextAlign(editAnswerTextAlign),
+        optionsTextAlign: normalizeTextAlign(editOptionsTextAlign),
+        prompt: el('editCardPrompt').value,
+        answer: el('editCardAnswer').value,
+        options: type === 'mcq' ? options : [],
+        optionsRequireOrder: type === 'mcq' ? !!editOptionsRequireOrder : false,
+        type,
+        ...imagePayload
+      };
+      const removedStorageRefs = getRemovedCardSupabaseStorageRefs(card, updated);
+
+      // Immediate UI update first (fast close and optimistic rendering).
+      syncSessionCard(updated);
+      applyOptimisticCardUpdate(updated);
+      if (session.active) void renderSessionCard();
+
+      const editDialog = el('editCardDialog');
+      if (editDialog?.open) editDialog.close();
+      replaceFieldImages(el('editCardPrompt'), el('editQuestionImagePreview'), [], 'imageDataQ');
+      replaceFieldImages(el('editCardAnswer'), el('editAnswerImagePreview'), [], 'imageDataA');
+      setPreview('editQuestionPreview', '', editQuestionTextAlign);
+      setPreview('editAnswerPreview', '', editAnswerTextAlign);
+      deferredSaveInFlight = true;
+
+      void (async () => {
         try {
-          await refreshSidebar({ uiBlocking: false });
-          const cardsOverviewSection = el('cardsOverviewSection');
-          const cardsOverviewVisible = cardsOverviewSection
-            ? !cardsOverviewSection.classList.contains('hidden')
-            : false;
-          if (cardsOverviewVisible && selectedTopic?.id === updated.topicId) {
-            void loadDeck();
-          }
-          if (currentView === 3 && selectedTopic?.id === updated.topicId) {
-            void loadEditorCards();
+          await put('cards', updated, { uiBlocking: false });
+          await putCardBank(updated, { uiBlocking: false });
+          await touchSubjectByTopicId(updated.topicId, undefined, { uiBlocking: false });
+          if (removedStorageRefs.length) {
+            try {
+              await cleanupOrphanedSupabaseStorageRefs(removedStorageRefs, {
+                allowedCardIds: [updated.id]
+              });
+            } catch (cleanupErr) {
+              console.warn('Deferred storage cleanup after card edit failed:', cleanupErr);
+            }
           }
         } catch (err) {
-          console.warn('Deferred post-edit refresh failed:', err);
+          console.warn('Deferred card edit sync failed:', err);
         } finally {
-          saveBtn.dataset.busy = '0';
-          saveBtn.disabled = false;
+          try {
+            await refreshSidebar({ uiBlocking: false });
+            const cardsOverviewSection = el('cardsOverviewSection');
+            const cardsOverviewVisible = cardsOverviewSection
+              ? !cardsOverviewSection.classList.contains('hidden')
+              : false;
+            if (cardsOverviewVisible && selectedTopic?.id === updated.topicId) {
+              void loadDeck();
+            }
+            if (currentView === 3 && selectedTopic?.id === updated.topicId) {
+              void loadEditorCards();
+            }
+          } catch (err) {
+            console.warn('Deferred post-edit refresh failed:', err);
+          } finally {
+            setEditSaveBusyState(false);
+          }
         }
-      }
-    })();
+      })();
+    } catch (err) {
+      console.error('Unexpected edit-save failure:', err);
+      alert('Could not save changes due to an unexpected error. Please try again.');
+    } finally {
+      if (!deferredSaveInFlight) setEditSaveBusyState(false);
+    }
   };
 
   document.querySelectorAll('[data-grade]').forEach(btn => {

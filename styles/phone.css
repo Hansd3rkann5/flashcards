@@ -98,7 +98,7 @@
     --font-size-small: 0.8rem;
     --btn-padding-y: 11px;
     --btn-padding-x: 13px;
-    --counter-height: 44px;
+    /* --counter-height: 44px; */
     --mobile-sidebar-reveal: min(70vw, 300px);
   }
 
@@ -198,7 +198,15 @@
   }
 
   .daily-overview-streak-card {
-    padding-block: 25px;
+    padding-block: 20px;
+  }
+
+  .session-complete-stat strong {
+    font-size: 2.2rem;
+  }
+
+  .tiny.review-stat {
+    font-size: var(--font-size-title, 1rem);
   }
 
   .daily-overview-stats-grid {

@@ -2495,6 +2495,11 @@ function openEditDialog(card) {
   }
   syncMcqPrimaryAnswerMode(true);
   syncMcqOrderUi(true);
+  const saveBtn = el('saveEditCardBtn');
+  if (saveBtn) {
+    saveBtn.dataset.busy = '0';
+    saveBtn.disabled = false;
+  }
   el('editCardDialog').showModal();
 }
 

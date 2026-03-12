@@ -3273,7 +3273,7 @@ function renderDailyReviewPanelSummary() {
   const cardWord = dailyReviewState.totalCards === 1 ? 'card' : 'cards';
   if (messageEl) {
     if (dailyReviewState.totalCards > 0) {
-      messageEl.textContent = `You have ${dailyReviewState.totalCards} due ${cardWord} for review. Select status, date range, and topics.`;
+      messageEl.textContent = `You have ${dailyReviewState.totalCards} due ${cardWord} for review. Select subjects and topics.`;
     } else if ((dailyReviewState.todayStats?.answeredCards || 0) > 0) {
       messageEl.textContent = 'Great work today. No cards match your current review filters.';
     } else if ((dailyReviewState.activityDaysTotal || 0) > 0) {

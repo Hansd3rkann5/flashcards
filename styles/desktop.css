@@ -50,7 +50,7 @@
   --input-padding-x: 14px;
   --tile-padding: 12px;
   --card-min-height: 300px;
-  --counter-height: 48px;
+  --counter-height: 60px;
   --counter-gap: 10px;
   --card-grid-min: 300px;
   --track-panel-count: 5;
@@ -2835,19 +2835,35 @@ textarea:focus-visible {
 
 .counter-btn {
   width: var(--counter-height);
+  min-width: var(--counter-height);
   height: var(--counter-height);
+  min-height: var(--counter-height);
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .counter-value {
   min-width: 108px;
+  height: var(--counter-height);
+  min-height: var(--counter-height);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   font-weight: 800;
   font-size: 1.1rem;
   background: #19253e;
   border: 1px solid #2a3f66;
   border-radius: 14px;
-  padding: 14px 10px;
+  padding: 0 10px;
+}
+
+.session-complete-stat {
+  min-height: var(--counter-height);
 }
 
 #sessionSizeValue {
@@ -6643,12 +6659,14 @@ button.formula-insert.save-primary {
   box-sizing: border-box;
   width: 100%;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
 }
 
 .session-complete-stat strong {
   display: block;
-  margin-top: 6px;
-  font-size: 1.12rem;
+  font-size: 2.2rem;
 }
 
 .session-repeat-controls {
