@@ -478,6 +478,7 @@ async function startSession(options = {}) {
       ...card,
       topicName: resolveCardTopicName(card),
       sessionCorrectCount: 0,
+      sessionHadFailure: false,
       // In daily review, only cards whose latest persisted status is green
       // should start as one-step carry-over candidates.
       reviewCarryOver: reviewMode
@@ -505,6 +506,10 @@ async function startSession(options = {}) {
         else if (stateKey === 'correct' || stateKey === 'mastered') initialGradeMap[card.id] = 'correct';
       });
     }
+    sessionCards.forEach(card => {
+      const initialGrade = String(initialGradeMap?.[card.id] || '').trim().toLowerCase();
+      card.sessionHadFailure = initialGrade === 'wrong' || initialGrade === 'partial';
+    });
     session = {
       active: true,
       activeQueue: sessionCards,
@@ -1797,6 +1802,7 @@ async function gradeCard(result) {
 
   if (result === 'correct') count += 1;
   else count = 0;
+  if (result !== 'correct') card.sessionHadFailure = true;
 
   if (result !== 'correct' && session.mode === 'daily-review' && card.reviewCarryOver === true) {
     card.reviewCarryOver = false;
@@ -1816,7 +1822,9 @@ async function gradeCard(result) {
     result,
     remainingActiveCount
   );
-  const markMasteredByFsrs = result === 'correct' && !shouldRepeatFromFsrs;
+  const markMasteredByFsrs = result === 'correct'
+    && card?.sessionHadFailure !== true
+    && !shouldRepeatFromFsrs;
 
   if (reachedLegacyMastery || markMasteredByFsrs) {
     session.mastered.push(card);
