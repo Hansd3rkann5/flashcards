@@ -1099,6 +1099,33 @@ function queueNextSessionFaceOverflowSync() {
 }
 
 /**
+ * @function prepareSessionQuestionLayout
+ * @description Initializes the front-face question container markup and returns the target nodes.
+ */
+
+function prepareSessionQuestionLayout(container, options = {}) {
+  if (!container) return { qtxtEl: null, questionContainer: null };
+  const opts = options && typeof options === 'object' ? options : {};
+  const isMcq = opts.isMcq === true;
+  const includeLeadSpacer = opts.includeLeadSpacer === true;
+
+  if (isMcq) {
+    container.innerHTML = `<div class="mcq-question-zone"><div class="qtxt"></div></div>`;
+    const questionZone = container.querySelector('.mcq-question-zone');
+    return {
+      qtxtEl: questionZone?.querySelector('.qtxt') || null,
+      questionContainer: questionZone || container
+    };
+  }
+
+  container.innerHTML = includeLeadSpacer ? `<div></div><div class="qtxt"></div>` : `<div class="qtxt"></div>`;
+  return {
+    qtxtEl: container.querySelector('.qtxt'),
+    questionContainer: container
+  };
+}
+
+/**
  * @function renderNextSessionCardPreview
  * @description Renders the upcoming card as a non-interactive stacked preview behind the active card.
  */
@@ -1128,8 +1155,10 @@ function renderNextSessionCardPreview(card) {
   nextCardEl.dataset.type = isMcq ? 'mcq' : 'qa';
   nextCardEl.classList.toggle('mcq-mode', isMcq);
   setCardTopicPill(nextTopicPill, resolveCardTopicName(card));
-  nextContent.innerHTML = `<div></div><div class="qtxt"></div>`;
-  const qtxtEl = nextContent.querySelector('.qtxt');
+  const { qtxtEl, questionContainer } = prepareSessionQuestionLayout(nextContent, {
+    isMcq,
+    includeLeadSpacer: true
+  });
   const prompt = String(card?.prompt || '').trim();
   if (prompt) {
     renderRich(qtxtEl, card.prompt, { textAlign: card.questionTextAlign || card.textAlign || 'center' });
@@ -1138,7 +1167,7 @@ function renderNextSessionCardPreview(card) {
     qtxtEl.textContent = 'Question';
   }
   qtxtEl.classList.toggle('has-question-image', qImages.length > 0);
-  appendSessionImages(nextContent, qImages, 'Question image');
+  appendSessionImages(questionContainer, qImages, 'Question image');
   if (isMcq) {
     nextContent.append(buildDisabledMcqAnswerZone(card));
   }
@@ -1237,12 +1266,11 @@ function renderCardPreviewContent(card) {
   flashcardEl.dataset.type = isMcq ? 'mcq' : 'qa';
   flashcardEl.classList.toggle('mcq-mode', isMcq);
 
-  front.innerHTML = `<div class="qtxt"></div>`;
-  const qtxtEl = front.querySelector('.qtxt');
+  const { qtxtEl, questionContainer } = prepareSessionQuestionLayout(front, { isMcq });
   renderRich(qtxtEl, card.prompt || '', { textAlign: card.questionTextAlign || card.textAlign || 'center' });
   applySessionTextSize(qtxtEl, card.prompt || '', { hasImage: qImages.length > 0, isMcq });
   qtxtEl.classList.toggle('has-question-image', qImages.length > 0);
-  appendSessionImages(front, qImages, 'Question image');
+  appendSessionImages(questionContainer, qImages, 'Question image');
 
   if (isMcq) {
     back.innerHTML = '';
@@ -1303,13 +1331,14 @@ function renderCardContent(card) {
   const sessionSection = el('studySessionSection');
   if (sessionSection) sessionSection.classList.toggle('mcq-mode', isMcq);
 
-  let promptHtml = `<div></div><div class="qtxt"></div>`;
-  front.innerHTML = promptHtml;
-  const qtxtEl = front.querySelector('.qtxt');
+  const { qtxtEl, questionContainer } = prepareSessionQuestionLayout(front, {
+    isMcq,
+    includeLeadSpacer: true
+  });
   renderRich(qtxtEl, card.prompt, { textAlign: card.questionTextAlign || card.textAlign || 'center' });
   applySessionTextSize(qtxtEl, card.prompt, { hasImage: qImages.length > 0, isMcq });
   qtxtEl.classList.toggle('has-question-image', qImages.length > 0);
-  appendSessionImages(front, qImages, 'Question image');
+  appendSessionImages(questionContainer, qImages, 'Question image');
   if (isMcq) {
     const opts = card.options || [];
     const optionCount = opts.length;

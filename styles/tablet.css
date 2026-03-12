@@ -1,0 +1,66 @@
+/*
+ * Tablet / Medium Breakpoint Overrides (<=1200px ranges)
+ * Organized as extracted responsive adjustments for all panels.
+ * Some medium-breakpoint rules also apply on phone to preserve legacy responsive behavior.
+ * Panel order follows the desktop/base flow for easier maintenance.
+ */
+
+@media (max-width: 900px) {
+  .editor-input-media-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-input-media-row .image-preview {
+    min-height: 120px;
+    height: 120px;
+    max-height: 120px;
+  }
+
+  .image-recent-btn {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+
+  dialog.modal.recent-storage-image-picker-dialog {
+    width: min(980px, calc(100vw - (2 * var(--space-3))));
+    max-width: min(980px, calc(100vw - (2 * var(--space-3))));
+    max-height: min(760px, calc(100dvh - (2 * var(--space-3))));
+  }
+
+  .recent-storage-image-picker-panel {
+    max-height: min(760px, calc(100dvh - (2 * var(--space-3))));
+    padding: var(--space-3);
+  }
+
+  .recent-storage-image-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .recent-storage-image-picker-item {
+    grid-template-rows: 94px auto;
+  }
+
+  .pill-dot.current {
+    scale: 1.2;
+  }
+}
+
+@media (max-width: 1100px) {
+  .editor-grid {
+    grid-template-columns: minmax(200px, 35%) 1px 1fr;
+  }
+
+  .editor-separator {
+    display: block;
+  }
+}
+
+@media (max-width: 940px) {
+  :root {
+    --sidebar-width: 240px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}
