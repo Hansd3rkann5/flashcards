@@ -3915,6 +3915,9 @@ function normalizeProgressCheckFilterValue(value = '') {
   return text || '—';
 }
 
+const PROGRESS_CHECK_DUE_FILTER_LE_NOW = '<= Now (Review due)';
+const PROGRESS_CHECK_DUE_FILTER_GT_NOW = '> Now';
+
 /**
  * @function getProgressCheckRowValue
  * @description Returns the display value for one progress check row and column key.
@@ -3945,6 +3948,28 @@ function getProgressCheckRowValue(row, columnKey = 'subject') {
 function getProgressCheckDistinctValues(rows = [], column = 'subject') {
   const safeRows = Array.isArray(rows) ? rows : [];
   const key = normalizeProgressCheckColumnKey(column, 'subject');
+  if (key === 'due') {
+    const nowTs = Date.now();
+    let hasDueLeNow = false;
+    let hasDueGtNow = false;
+    const rawValues = new Set();
+    safeRows.forEach(row => {
+      rawValues.add(normalizeProgressCheckFilterValue(getProgressCheckRowValue(row, key)));
+      const dueTs = Number(row?.due || 0);
+      if (!Number.isFinite(dueTs) || dueTs <= 0) return;
+      const reviewDueNow = dueTs <= nowTs
+        && row?.reviewSubjectEligible === true
+        && Number(row?.attemptsTotal || 0) > 0;
+      if (reviewDueNow) hasDueLeNow = true;
+      if (dueTs > nowTs) hasDueGtNow = true;
+    });
+    const valueRows = Array.from(rawValues)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    const quickFilters = [];
+    if (hasDueLeNow) quickFilters.push(PROGRESS_CHECK_DUE_FILTER_LE_NOW);
+    if (hasDueGtNow) quickFilters.push(PROGRESS_CHECK_DUE_FILTER_GT_NOW);
+    return [...quickFilters, ...valueRows];
+  }
   return Array.from(new Set(
     safeRows.map(row => normalizeProgressCheckFilterValue(getProgressCheckRowValue(row, key)))
   )).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
@@ -4032,7 +4057,22 @@ function doesProgressCheckRowMatchFilters(row, options = {}) {
     if (exclude && column === exclude) return true;
     const selected = getProgressCheckSelectedSet(column);
     const value = normalizeProgressCheckFilterValue(getProgressCheckRowValue(row, column));
-    return selected.has(value);
+    if (column !== 'due') return selected.has(value);
+    let match = selected.has(value);
+    const dueTs = Number(row?.due || 0);
+    const hasDue = Number.isFinite(dueTs) && dueTs > 0;
+    if (!hasDue) return match;
+    const nowTs = Date.now();
+    const reviewDueNow = dueTs <= nowTs
+      && row?.reviewSubjectEligible === true
+      && Number(row?.attemptsTotal || 0) > 0;
+    if (!match && selected.has(PROGRESS_CHECK_DUE_FILTER_LE_NOW) && reviewDueNow) {
+      match = true;
+    }
+    if (!match && selected.has(PROGRESS_CHECK_DUE_FILTER_GT_NOW) && dueTs > nowTs) {
+      match = true;
+    }
+    return match;
   });
 }
 
@@ -4404,24 +4444,26 @@ async function renderProgressCheckTable() {
       uiBlocking: false
     });
 
-    const subjectById = new Map(
-      (subjects || []).map(subject => [String(subject?.id || '').trim(), String(subject?.name || '').trim()])
-    );
     const topicById = new Map(
       topicRows.map(topic => [String(topic?.id || '').trim(), topic])
     );
     const progressByCardId = new Map(
       (progressRows || []).map(row => [String(row?.cardId || '').trim(), row])
     );
+    const todayKey = getTodayKey();
+    const subjectById = new Map(
+      (subjects || []).map(subject => [String(subject?.id || '').trim(), subject || null])
+    );
 
     progressCheckRowsCache = Array.from(cardsById.values()).map(card => {
       const cardId = String(card?.id || '').trim();
       const topic = topicById.get(String(card?.topicId || '').trim()) || {};
-      const subjectName = String(subjectById.get(String(topic?.subjectId || '').trim()) || 'Unknown subject');
+      const subjectId = String(topic?.subjectId || '').trim();
+      const subjectRow = subjectById.get(subjectId) || null;
+      const subjectName = String(subjectRow?.name || 'Unknown subject');
       const topicName = String(topic?.name || 'Unknown topic');
       const record = progressByCardId.get(cardId) || null;
-      const fsrs = record?.fsrs?.dueAt || [];
-      const due = Date.parse(String(record?.fsrs?.card.due || '').trim()) || 0;
+      const due = getProgressFsrsDueTimestamp(record) || 0;
       const dueText = due ? formatDateAsDdMmYy(new Date(due)) : '—';
       // console.log('Due at:', { due });
       const current = getCurrentProgressState(record, cardId);
@@ -4435,9 +4477,11 @@ async function renderProgressCheckTable() {
       const rawLastAnswered = String(latest?.day?.lastAnsweredAt || record?.lastAnsweredAt || '').trim();
       const parsedTs = Date.parse(rawLastAnswered);
       const lastAnsweredTs = Number.isFinite(parsedTs) ? parsedTs : 0;
+      const reviewSubjectEligible = !isSubjectExcludedFromDailyReview(subjectRow, todayKey);
       return {
         cardId,
         subject: subjectName,
+        subjectId,
         topic: topicName,
         question: getQuestionPreviewText(card),
         currentKey: current.key,
@@ -4449,6 +4493,7 @@ async function renderProgressCheckTable() {
         lastAnsweredAt: current.lastAnsweredAt,
         due,
         dueText,
+        reviewSubjectEligible,
         lastAnsweredTs,
         totalsText: `${current.totals.correct}/${current.totals.partial}/${current.totals.wrong}`,
         history,
@@ -4480,6 +4525,111 @@ async function openProgressCheckDialog() {
   closeProgressCheckHeaderMenu();
   await renderProgressCheckTable();
   showDialog(dialog);
+}
+
+/**
+ * @function buildReviewSelectionDebugLines
+ * @description Builds a text dump of the currently selected Daily Review cards.
+ */
+
+async function buildReviewSelectionDebugLines() {
+  if (!dailyReviewState.ready) return ['Daily Review state is not ready yet.'];
+  const selectedCardIds = getDailyReviewSelectedCardIds();
+  if (!selectedCardIds.length) return ['No cards are currently selected for review.'];
+  const topicMetaById = new Map(
+    (Array.isArray(dailyReviewState.topics) ? dailyReviewState.topics : [])
+      .map(topic => [String(topic?.topicId || '').trim(), topic])
+  );
+  const topicIdByCardId = new Map();
+  (dailyReviewState.cardsByTopicId instanceof Map ? dailyReviewState.cardsByTopicId : new Map())
+    .forEach((cardIds, topicId) => {
+      const safeTopicId = String(topicId || '').trim();
+      (Array.isArray(cardIds) ? cardIds : []).forEach(cardId => {
+        const safeCardId = String(cardId || '').trim();
+        if (!safeCardId) return;
+        topicIdByCardId.set(safeCardId, safeTopicId);
+      });
+    });
+  const selectedTopicIds = Array.from(new Set(
+    selectedCardIds.map(cardId => topicIdByCardId.get(cardId)).filter(Boolean)
+  ));
+  const refs = selectedTopicIds.length
+    ? await getCardPromptRefsByTopicIds(selectedTopicIds, {
+      uiBlocking: false,
+      payloadLabel: 'daily-review-selection-debug'
+    })
+    : [];
+  const promptByCardId = new Map();
+  (Array.isArray(refs) ? refs : []).forEach(ref => {
+    const cardId = String(ref?.id || '').trim();
+    if (!cardId || promptByCardId.has(cardId)) return;
+    promptByCardId.set(cardId, ref);
+  });
+
+  const lines = [];
+  const dueOnly = isDailyReviewFsrsDueOnlyEnabled() ? 'ON' : 'OFF';
+  const statusFilter = normalizeDailyReviewStatusFilter(dailyReviewState.statusFilter);
+  const statusParts = [];
+  if (statusFilter.green) statusParts.push('green');
+  if (statusFilter.yellow) statusParts.push('yellow');
+  if (statusFilter.red) statusParts.push('red');
+  lines.push(`Review Debug Snapshot (${new Date().toLocaleString()})`);
+  lines.push(`Cards: ${selectedCardIds.length} | Topics: ${selectedTopicIds.length} | dueOnly: ${dueOnly} | status: ${statusParts.join('/') || 'none'}`);
+  lines.push('');
+  selectedCardIds.forEach((cardId, idx) => {
+    const topicId = String(topicIdByCardId.get(cardId) || '').trim();
+    const topicMeta = topicMetaById.get(topicId) || {};
+    const subjectName = String(topicMeta.subjectName || 'Unknown subject');
+    const topicName = String(topicMeta.topicName || 'Unknown topic');
+    const record = progressByCardId.get(cardId) || null;
+    const dueTs = getProgressFsrsDueTimestamp(record);
+    const dueText = Number.isFinite(dueTs)
+      ? `${new Date(dueTs).toISOString()} (${formatDateAsDdMmYy(new Date(dueTs))})`
+      : '—';
+    const current = getCurrentProgressState(record, cardId);
+    const reviewStatus = getDailyReviewCardStatus(cardId) || '—';
+    const promptRef = promptByCardId.get(cardId) || { prompt: '' };
+    const question = getQuestionPreviewText(promptRef).replace(/\s+/g, ' ').trim();
+    lines.push(
+      `${idx + 1}. ${subjectName} > ${topicName} | ${cardId} | due=${dueText} | current=${current.key} | status=${reviewStatus} | q=${question}`
+    );
+  });
+  return lines;
+}
+
+/**
+ * @function openReviewSelectionDebugDialog
+ * @description Opens a debug dialog containing the exact cards currently selected for Daily Review.
+ */
+
+async function openReviewSelectionDebugDialog() {
+  const dialog = el('reviewSelectionDebugDialog');
+  const metaEl = el('reviewSelectionDebugMeta');
+  const outputEl = el('reviewSelectionDebugOutput');
+  if (!dialog || !metaEl || !outputEl) return;
+  metaEl.textContent = 'Preparing review selection snapshot...';
+  outputEl.textContent = 'Loading...';
+  showDialog(dialog);
+  const lines = await buildReviewSelectionDebugLines();
+  const count = Math.max(0, lines.length - 3);
+  metaEl.textContent = `${count} card(s) in current review selection`;
+  outputEl.textContent = lines.join('\n');
+}
+
+/**
+ * @function copyReviewSelectionDebugOutput
+ * @description Copies the review-selection debug dump to clipboard.
+ */
+
+async function copyReviewSelectionDebugOutput() {
+  const outputEl = el('reviewSelectionDebugOutput');
+  const text = String(outputEl?.textContent || '').trim();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (err) {
+    console.warn('Copy review debug output failed:', err);
+  }
 }
 
 /**
@@ -4535,7 +4685,7 @@ function wireProgressCheckHeaderMenus() {
   });
 
   valueSearch.addEventListener('input', () => {
-    progressCheckHeaderMenuState.search = String(valueSearch.value || '').trim();
+    progressCheckHeaderMenuState.search = String(valueSearch.value || '');
     renderProgressCheckHeaderMenu();
   });
 
@@ -4792,9 +4942,15 @@ async function openSessionCompleteDialog() {
   const candidateCardIds = scopedCardIds.filter(cardId => !masteredIds.has(cardId));
   let remainingCardIds = [];
   if (candidateCardIds.length) {
-    // Fast path: for already scoped cards, remaining-session eligibility depends on progress state only.
-    await ensureProgressForCardIds(candidateCardIds, { payloadLabel: 'session-repeat-progress' });
-    remainingCardIds = candidateCardIds.filter(cardId => cardMatchesSessionFilter(cardId, sessionRunState.filters));
+    const hasActiveSessionFilter = requiresProgressForSessionFilter(sessionRunState.filters);
+    // In daily review with no active filter, keep the scoped candidate IDs as-is.
+    if (sessionRunState.mode === 'daily-review' && !hasActiveSessionFilter) {
+      remainingCardIds = [...candidateCardIds];
+    } else {
+      // Fast path: for already scoped cards, remaining-session eligibility depends on progress state only.
+      await ensureProgressForCardIds(candidateCardIds, { payloadLabel: 'session-repeat-progress' });
+      remainingCardIds = candidateCardIds.filter(cardId => cardMatchesSessionFilter(cardId, sessionRunState.filters));
+    }
   } else if (scopedCardIds.length) {
     remainingCardIds = [];
   } else {

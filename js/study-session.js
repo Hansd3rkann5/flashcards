@@ -396,16 +396,25 @@ async function startSession(options = {}) {
 
     const reviewMode = opts.reviewMode === true;
     const filterConfig = normalizeSessionFilters(opts.filters || sessionFilterState);
+    const hasActiveSessionFilter = (typeof requiresProgressForSessionFilter === 'function')
+      ? requiresProgressForSessionFilter(filterConfig)
+      : !!(filterConfig.correct || filterConfig.wrong || filterConfig.partial || filterConfig.notAnswered || filterConfig.notAnsweredYet);
     let eligibleCardIds = [];
     let cardRefs = [];
     if (explicitCardIds.length) {
-      eligibleCardIds = await getEligibleSessionCardIdsByCardIds(explicitCardIds, filterConfig, {
-        payloadLabel: reviewMode ? 'daily-review-session-refs' : 'session-card-refs'
-      });
-      if (eligibleCardIds.length) {
-        cardRefs = await getCardRefsByCardIds(eligibleCardIds, {
+      // Daily review already computes the exact due-card set. With no active session filter,
+      // reuse the explicit IDs directly and avoid a second filtering pass.
+      if (reviewMode && !hasActiveSessionFilter) {
+        eligibleCardIds = [...explicitCardIds];
+      } else {
+        eligibleCardIds = await getEligibleSessionCardIdsByCardIds(explicitCardIds, filterConfig, {
           payloadLabel: reviewMode ? 'daily-review-session-refs' : 'session-card-refs'
         });
+        if (eligibleCardIds.length) {
+          cardRefs = await getCardRefsByCardIds(eligibleCardIds, {
+            payloadLabel: reviewMode ? 'daily-review-session-refs' : 'session-card-refs'
+          });
+        }
       }
     } else {
       eligibleCardIds = await getEligibleSessionCardIdsByTopicIds(topicIds, filterConfig);

@@ -9,3 +9,28 @@
 - On phone and tablet: Number for corresponding number key is appearing for mcq options but that is not needed
 - Global: I integrated a function in app-globals.js that saves the platform of the client -> implement design choices based on the platform
 - Welcome/Introduction Panels should only appear, if the user signs in for the first time overall, not everytime he signs in again
+
+Review Debug Snapshot (3/13/2026, 4:14:12 PM)
+Cards: 21 | Topics: 3 | dueOnly: ON | status: green
+
+1. Polymer Engineering > Foam Extrusion | f0db4bd8-539e-4bd1-9b80-de10fdb5638d | due=2026-03-09T08:25:35.003Z (09.03.26) | current=mastered | status=green | q=How areFoam densityCell size/densityconnected withflexible and rigid properties?
+2. Polymer Engineering > Foam Extrusion | 709bf1b3-85f7-45f8-8ac2-f62b03bc4011 | due=2026-03-09T17:27:03.183Z (09.03.26) | current=mastered | status=green | q=What happens if cell stabilization occurs too early/late?
+3. Polymer Engineering > Foam Extrusion | 6556d696-152e-44d1-be29-c72fb023b3c6 | due=2026-03-09T17:27:16.898Z (09.03.26) | current=mastered | status=green | q=What is hierarchical structuring in polymer foams?
+4. Polymer Engineering > Foam Extrusion | 2fa6bce4-2bc7-4d2e-8113-0ecff3020c66 | due=2026-03-09T17:28:00.234Z (09.03.26) | current=mastered | status=green | q=Why do small cells form at lower temperatures?
+5. Polymer Engineering > Foam Extrusion | 513ed584-d785-4f7e-888e-df92d1832822 | due=2026-03-09T17:28:34.569Z (09.03.26) | current=mastered | status=green | q=What drives cell growth in polymer foaming?
+6. Polymer Engineering > Foam Extrusion | 199efc47-0f14-4d87-b061-0ae346021e27 | due=2026-03-09T17:29:22.002Z (09.03.26) | current=mastered | status=green | q=How does diffusion/solubility depend on temperature?
+7. Polymer Engineering > Foam Extrusion | cd00aacc-9374-4a0f-8456-d6221b8a27b9 | due=2026-03-09T17:29:24.161Z (09.03.26) | current=mastered | status=green | q=What are advantages of supercritical fluids as blowing agents?
+8. Polymer Engineering > Foam Extrusion | 76e4a21b-de7d-42cf-8661-001ffe0cb802 | due=2026-03-09T17:29:25.323Z (09.03.26) | current=mastered | status=green | q=What is the chain of actions/cause with higher Temperatures in foaming regarding the resulting cells?
+9. Polymer Engineering > Foam Extrusion | f4483547-1e44-475b-b2e7-55a66e27bf0f | due=2026-03-10T13:28:48.755Z (10.03.26) | current=mastered | status=green | q=Why is the mixing of polymer and blowing agent crucial for the foaming process?
+10. Polymer Engineering > Additives 1 | 922fdb50-a491-47e6-9618-60ca24d46721 | due=2026-03-10T14:06:18.055Z (10.03.26) | current=mastered | status=green | q=What are Radicals?
+11. Polymer Engineering > Additives 1 | b92cb50d-6ab7-48c3-b097-d1625b4854c8 | due=2026-03-10T14:06:53.723Z (10.03.26) | current=mastered | status=green | q=Which statements are correct for Cycle 2 in degradation?
+12. Polymer Engineering > Additives 1 | 437b71cc-45f2-43d0-9410-e6b114b558d3 | due=2026-03-10T14:07:09.230Z (10.03.26) | current=mastered | status=green | q=What molecule forms during oxidation propagation in polymers?
+13. Polymer Engineering > Additives 1 | 1679b15b-042d-4105-9b25-40358ae1ef56 | due=2026-03-10T14:07:28.397Z (10.03.26) | current=mastered | status=green | q=What do secondary antioxidants do?
+14. Polymer Engineering > Additives 1 | 6d4e0444-7bd5-40b4-a9a0-7ef23f903271 | due=2026-03-10T14:07:40.283Z (10.03.26) | current=mastered | status=green | q=What do secondary antioxidants do?
+15. Polymer Engineering > Additives 1 | bd62c751-b22e-4767-9b83-b55df6b7b6bb | due=2026-03-10T14:07:49.630Z (10.03.26) | current=mastered | status=green | q=What does a internal lubcricant do?
+16. Polymer Engineering > Additives 1 | 862b7bb6-79e1-4500-b75c-333974001d7c | due=2026-03-10T14:08:00.723Z (10.03.26) | current=mastered | status=green | q=What are basic requirements for additives regarding Compatibility with the polymer?
+17. Polymer Engineering > Additives 1 | 9105923b-e2f8-41c8-bccc-3ccc6b142e6c | due=2026-03-10T14:09:30.277Z (10.03.26) | current=mastered | status=green | q=Why are acid scavengers added to polymers?
+18. Polymer Engineering > Additives 1 | a60d78b1-426c-46b8-af0c-fa04d8eb391d | due=2026-03-10T14:09:41.306Z (10.03.26) | current=mastered | status=green | q=Why are metal activators needed as an additive?
+19. Polymer Engineering > Additives 1 | 8473ef05-4b53-4d17-b6d4-2a654aec6b64 | due=2026-03-11T14:09:54.808Z (11.03.26) | current=mastered | status=green | q=What is the role of hindered phenols as an additive?
+20. Connected Knowledge > Thermoplastics | 3b49af4b-2557-4c0d-a111-ec5f364354de | due=2026-03-12T17:49:13.783Z (12.03.26) | current=mastered | status=green | q=Where can you find secondary bonding in polymers?How could you describe them?
+21. Connected Knowledge > Thermoplastics | 6ad5874c-60d3-4596-b944-8293e5ac050e | due=2026-03-12T17:49:19.883Z (12.03.26) | current=mastered | status=green | q=Name the 4 different copolymer structures.

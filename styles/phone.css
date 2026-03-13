@@ -336,6 +336,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  #reviewSelectionDebugDialog {
+    width: min(96vw, 96vw);
+  }
+
+  .review-selection-debug-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   #settingsDialog .settings-actions-grid {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -565,7 +565,7 @@ async function listStoreRecordsSupabase(store = '', ownerId = '') {
     .from(SUPABASE_TABLE)
     .select('record_key,payload,updated_at'), safeOwnerId)
     .eq('store', safeStore)
-    .order('updated_at', { ascending: true });
+    .order('updated_at', { ascending: true }).range(0, 9999);
   assertSupabaseSuccess(error, `Failed to list records for store "${safeStore}".`);
   const rows = Array.isArray(data) ? data : [];
   return rows.map(row => {
@@ -854,7 +854,7 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
   let query = withTenantScope(supabaseClient
     .from(SUPABASE_TABLE)
     .select(selectClause), safeOwnerId)
-    .eq('store', 'cards');
+    .eq('store', 'cards').range(0, 9999);
 
   if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
   else if (cardIds.length > 1) query = query.in('record_key', cardIds);

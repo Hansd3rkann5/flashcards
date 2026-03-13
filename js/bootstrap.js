@@ -1300,6 +1300,20 @@ async function boot() {
 
   const startDailyReviewBtn = el('startDailyReviewBtn');
   if (startDailyReviewBtn) startDailyReviewBtn.onclick = startDailyReviewFromHomePanel;
+  const openReviewSelectionDebugBtn = el('openReviewSelectionDebugBtn');
+  if (openReviewSelectionDebugBtn) openReviewSelectionDebugBtn.onclick = openReviewSelectionDebugDialog;
+  const reviewSelectionDebugDialog = el('reviewSelectionDebugDialog');
+  if (reviewSelectionDebugDialog) {
+    reviewSelectionDebugDialog.addEventListener('click', e => {
+      if (e.target === reviewSelectionDebugDialog) closeDialog(reviewSelectionDebugDialog);
+    });
+  }
+  const closeReviewSelectionDebugBtn = el('closeReviewSelectionDebugBtn');
+  if (closeReviewSelectionDebugBtn) closeReviewSelectionDebugBtn.onclick = () => closeDialog(el('reviewSelectionDebugDialog'));
+  const closeReviewSelectionDebugBtnFooter = el('closeReviewSelectionDebugBtnFooter');
+  if (closeReviewSelectionDebugBtnFooter) closeReviewSelectionDebugBtnFooter.onclick = () => closeDialog(el('reviewSelectionDebugDialog'));
+  const copyReviewSelectionDebugBtn = el('copyReviewSelectionDebugBtn');
+  if (copyReviewSelectionDebugBtn) copyReviewSelectionDebugBtn.onclick = () => void copyReviewSelectionDebugOutput();
   const toggleDailyReviewAnalyticsBtn = el('toggleDailyReviewAnalyticsBtn');
   if (toggleDailyReviewAnalyticsBtn) {
     toggleDailyReviewAnalyticsBtn.onclick = toggleDailyReviewAnalytics;

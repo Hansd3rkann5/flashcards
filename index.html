@@ -225,6 +225,7 @@
           </div> -->
           <div class="controls" style="margin-top:14px; margin-inline: 0">
             <button class="btn start-daily-review-btn" id="startDailyReviewBtn" type="button">Start Review</button>
+            <button class="btn" id="openReviewSelectionDebugBtn" type="button">Review Debug</button>
             <!-- <button class="btn debug-loader-btn" id="debugLoaderBtn" type="button">Debug Loader</button> -->
           </div>
         </div>
@@ -691,7 +692,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.13.41';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.13.45';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -1003,6 +1004,22 @@
       </label>
       <input id="progressCheckValueSearch" type="search" placeholder="Search values..." />
       <div class="progress-check-header-menu-values" id="progressCheckHeaderMenuValues"></div>
+    </div>
+  </dialog>
+
+  <dialog id="reviewSelectionDebugDialog" class="modal modal-wide review-selection-debug-dialog">
+    <div class="editor-header">
+      <h3>Review Selection Debug</h3>
+      <button class="btn close-icon-btn" id="closeReviewSelectionDebugBtn" type="button"
+        aria-label="Close review debug dialog" title="Close">
+        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
+      </button>
+    </div>
+    <div class="tiny review-selection-debug-meta" id="reviewSelectionDebugMeta">0 card(s)</div>
+    <pre class="review-selection-debug-output" id="reviewSelectionDebugOutput"></pre>
+    <div class="controls review-selection-debug-actions" style="margin-top:12px; margin-inline:0;">
+      <button class="btn" id="copyReviewSelectionDebugBtn" type="button">Copy</button>
+      <button class="btn" id="closeReviewSelectionDebugBtnFooter" type="button">Close</button>
     </div>
   </dialog>
 
