@@ -111,7 +111,7 @@
     display: none;
   }
 
-  .session-card-image {
+  .flashcard.mcq-mode .session-card-image {
     width: 55%;
   }
 

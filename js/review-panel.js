@@ -80,8 +80,10 @@ function normalizeSubjectExamDateForReview(value = '') {
 
 function isSubjectExcludedFromDailyReview(subject = null, todayKey = getTodayKey()) {
   const src = (subject && typeof subject === 'object') ? subject : {};
-  if (src.isArchived === true) return true;
-  if (src.excludeFromReview !== true) return false;
+  const archived = src.isArchived === true
+    || String(src.isArchived || '').trim().toLowerCase() === 'true'
+    || Number(src.isArchived) === 1;
+  if (archived) return true;
   const examDate = normalizeSubjectExamDateForReview(src.examDate);
   if (!examDate) return false;
   return examDate < todayKey;

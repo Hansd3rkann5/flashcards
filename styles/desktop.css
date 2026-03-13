@@ -2265,7 +2265,7 @@ textarea:focus-visible {
   border-radius: var(--radius);
   background: linear-gradient(180deg, var(--face-accent, #101a32) 0%, #101a32 70%);
   border: 1px solid #31466f;
-  padding-top: var(--space-5);
+  padding-top: calc(2*var(--space-5));
   overflow: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -2273,7 +2273,10 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 14px 5px var(--accent-glow-strong);
+}
+
+.face.innerGlow:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 16px rgba(255, 255, 255, 0.12);
 }
 
 .face::after {
@@ -2577,8 +2580,8 @@ textarea:focus-visible {
 }
 
 .flashcard.mcq-mode .face-content {
-  width: calc(100% - (2 * var(--space-3)));
-  height: calc(100% - (2 * var(--space-4)));
+  width: calc(100% - (2 * var(--space-1)));
+  /* height: calc(100% - (2 * var(--space-4))); */
   box-sizing: border-box;
   display: grid;
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -4822,7 +4825,7 @@ dialog.modal.subject-edit-modal {
   box-shadow: inset 0px 0px 10px 2px #fafafa76;
 }
 
-.innerGlow:active {
+.innerGlow:not(.face):active {
   box-shadow: inset 0px 0px 3px 1px #fcfcfb3f;
   scale: 0.95;
 }
