@@ -320,6 +320,10 @@
     width: min(96vw, 96vw);
   }
 
+  #sessionQuitConfirmDialog {
+    width: min(96vw, 96vw);
+  }
+
   #settingsDialog .settings-actions-grid {
     grid-template-columns: minmax(0, 1fr);
   }

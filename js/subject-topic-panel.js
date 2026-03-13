@@ -5,7 +5,7 @@ let subjectProgressRefreshRunId = 0;
 
 /**
  * @function refreshSubjectProgressPanel
- * @description Renders the subject-level stacked progress bar (Mastered/Partially/Wrong/Not answered yet).
+ * @description Renders the subject-level stacked progress bar (Mastered/Correct/Partially/Wrong/Not answered yet).
  */
 
 async function refreshSubjectProgressPanel(options = {}) {
@@ -46,6 +46,7 @@ async function refreshSubjectProgressPanel(options = {}) {
     meta.textContent = '0 cards';
     renderOverviewSegmentBar(bar, legend, [
       { key: 'mastered', label: 'Mastered', value: 0, color: '#14b8a6' },
+      { key: 'correct', label: 'Correct', value: 0, color: '#22c55e' },
       { key: 'partial', label: 'Partially', value: 0, color: '#f59e0b' },
       { key: 'wrong', label: 'Wrong', value: 0, color: '#ef4444' },
       { key: 'not-answered', label: 'Not answered yet', value: 0, color: '#64748b' }
@@ -72,6 +73,7 @@ async function refreshSubjectProgressPanel(options = {}) {
     meta.textContent = '0 cards';
     renderOverviewSegmentBar(bar, legend, [
       { key: 'mastered', label: 'Mastered', value: 0, color: '#14b8a6' },
+      { key: 'correct', label: 'Correct', value: 0, color: '#22c55e' },
       { key: 'partial', label: 'Partially', value: 0, color: '#f59e0b' },
       { key: 'wrong', label: 'Wrong', value: 0, color: '#ef4444' },
       { key: 'not-answered', label: 'Not answered yet', value: 0, color: '#64748b' }
@@ -90,6 +92,7 @@ async function refreshSubjectProgressPanel(options = {}) {
   if (!selectedSubject || String(selectedSubject.id || '').trim() !== subjectId) return;
 
   let mastered = 0;
+  let correct = 0;
   let partial = 0;
   let wrong = 0;
   let notAnsweredYet = 0;
@@ -98,6 +101,7 @@ async function refreshSubjectProgressPanel(options = {}) {
     const state = getCurrentProgressState(record, cardId);
     const key = normalizeDailyReviewLatestStateKey(state.key);
     if (key === 'mastered') mastered += 1;
+    else if (key === 'correct') correct += 1;
     else if (key === 'wrong') wrong += 1;
     else if (key === 'notAnswered') notAnsweredYet += 1;
     else partial += 1;
@@ -107,6 +111,7 @@ async function refreshSubjectProgressPanel(options = {}) {
   meta.textContent = `${cardIds.length} ${cardWord}`;
   renderOverviewSegmentBar(bar, legend, [
     { key: 'mastered', label: 'Mastered', value: mastered, color: '#22c55e' },
+    { key: 'correct', label: 'Correct', value: correct, color: '#16a34a' },
     { key: 'partial', label: 'Partially', value: partial, color: '#f59e0b' },
     { key: 'wrong', label: 'Wrong', value: wrong, color: '#ef4444' },
     { key: 'not-answered', label: 'Not answered yet', value: notAnsweredYet, color: '#64748b' }

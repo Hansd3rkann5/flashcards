@@ -188,9 +188,9 @@
             <div class="session-repeat-controls">
               <!-- <div class="tiny">Session Size</div> -->
               <div class="counter">
-                <button class="btn counter-btn innerGlow" id="dailyReviewMinus" style="font-size: 1.5rem;" type="button">-</button>
+                <button class="btn counter-btn innerGlow" id="dailyReviewMinus" type="button">-</button>
                 <div class="counter-value" id="dailyReviewSizeValue">0 / 0</div>
-                <button class="btn counter-btn innerGlow" id="dailyReviewPlus" style="font-size: 1.5rem;" type="button">+</button>
+                <button class="btn counter-btn innerGlow" id="dailyReviewPlus" type="button">+</button>
               </div>
             </div>
             <div class="session-complete-stat">
@@ -470,7 +470,6 @@
                   <span class="session-label-short">Q</span>
                 </div>
                 <div class="study-topic-pill face-topic-pill hidden" id="frontTopicPill"></div>
-                <!-- <div class="face-score-pill hidden" id="frontCardScorePill"></div> -->
                 <button class="btn card-edit-btn innerGlow" id="editSessionCardBtn" type="button" aria-label="Edit card"
                   title="Edit card">
                   <img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" />
@@ -692,7 +691,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.12.26';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.12.38';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -1016,7 +1015,7 @@
       </label>
       <label class="session-filter-option">
         <input id="sessionFilterCorrect" type="checkbox" style="background-color: var(--success)" />
-        <span>Correctly answered (mastered)</span>
+        <span>Correct (Not mastered today)</span>
       </label>
       <label class="session-filter-option">
         <input id="sessionFilterPartial" type="checkbox" style="background-color: var(--warn)" />
@@ -1072,6 +1071,19 @@
     </div>
     <div class="controls" style="margin-top:14px; margin-inline: 0">
       <button class="btn" id="startAnotherSessionBtn" type="button" style="width:100%;">Start Another Session</button>
+    </div>
+  </dialog>
+
+  <dialog id="sessionQuitConfirmDialog" class="modal session-quit-confirm-dialog">
+    <div class="editor-header">
+      <h3>Quit Session?</h3>
+    </div>
+    <div class="session-quit-confirm-message" id="sessionQuitConfirmMessage">
+      Do you really want to quit?
+    </div>
+    <div class="controls session-quit-confirm-actions" style="margin-top:14px; margin-inline: 0">
+      <button class="btn" id="sessionQuitCancelBtn" type="button">Continue Session</button>
+      <button class="btn delete" id="sessionQuitConfirmBtn" type="button">Quit Session</button>
     </div>
   </dialog>
 

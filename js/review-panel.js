@@ -1752,41 +1752,32 @@ function cardMatchesSessionFilter(cardId, filters = sessionFilterState, dayKey =
   const config = normalizeSessionFilters(filters);
   const day = getCardDayProgress(cardId, dayKey);
   const record = normalizeProgressRecord(progressByCardId.get(cardId), cardId);
+  const currentState = getCurrentProgressState(record, cardId);
+  const currentStateKey = normalizeDailyReviewLatestStateKey(currentState?.key);
   let attemptsEver = toCounterInt(record?.totals?.correct) + toCounterInt(record?.totals?.wrong) + toCounterInt(record?.totals?.partial);
   if (attemptsEver <= 0) {
     const hasLegacyAttempt = String(record?.lastGrade || '').trim().length > 0
       || String(record?.lastAnsweredAt || '').trim().length > 0;
     if (hasLegacyAttempt) attemptsEver = 1;
   }
-  const notAnsweredYet = attemptsEver <= 0;
+  const notAnsweredYet = attemptsEver <= 0 || currentStateKey === 'notAnswered';
+  const isMastered = currentStateKey === 'mastered';
+  const isCorrect = currentStateKey === 'correct';
+  const isWrong = currentStateKey === 'wrong';
+  const isPartial = currentStateKey === 'partial' || currentStateKey === 'inProgress';
   const answeredToday = (day.correct + day.wrong + day.partial) > 0;
-  let lastGradeToday = typeof day.lastGrade === 'string' ? day.lastGrade : '';
-  if (!lastGradeToday && answeredToday) {
-    const recordLastGrade = typeof record?.lastGrade === 'string' ? record.lastGrade : '';
-    const recordDayKey = typeof record?.lastAnsweredAt === 'string' ? record.lastAnsweredAt.slice(0, 10) : '';
-    if (recordLastGrade && recordDayKey === dayKey) lastGradeToday = recordLastGrade;
-  }
-  const masteredToday = day.mastered === true
-    || day.correctStreak >= 3
-    || (day.correct >= 3 && lastGradeToday === 'correct');
-  const state = !answeredToday
-    ? 'notAnsweredToday'
-    : masteredToday
-      ? 'correct'
-      : lastGradeToday === 'wrong'
-        ? 'wrong'
-        : 'partial';
+  const notAnsweredToday = !answeredToday;
   if (config.all) {
-    return state !== 'correct';
+    return false;
   }
   const hasSpecificFilter = config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet;
   if (!hasSpecificFilter) {
-    return true;
+    return false;
   }
-  const matchCorrect = config.correct && state === 'correct';
-  const matchWrong = config.wrong && state === 'wrong';
-  const matchPartial = config.partial && state === 'partial';
-  const matchNotAnswered = config.notAnswered && state === 'notAnsweredToday';
+  const matchCorrect = config.correct && isCorrect;
+  const matchWrong = config.wrong && isWrong;
+  const matchPartial = config.partial && isPartial;
+  const matchNotAnswered = config.notAnswered && notAnsweredToday;
   const matchNotAnsweredYet = config.notAnsweredYet && notAnsweredYet;
   return matchCorrect || matchWrong || matchPartial || matchNotAnswered || matchNotAnsweredYet;
 }
@@ -1815,7 +1806,7 @@ async function ensureSessionProgressForCards(cards = [], payloadLabel = 'session
 
 function requiresProgressForSessionFilter(filters = sessionFilterState) {
   const config = normalizeSessionFilters(filters);
-  return !!(config.all || config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet);
+  return !!(config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet);
 }
 
 /**
@@ -1836,7 +1827,7 @@ async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFi
   ));
   if (!ids.length) return [];
   if (!requiresProgressForSessionFilter(filters)) {
-    return ids;
+    return [];
   }
   await ensureProgressForCardIds(ids, {
     ...opts,
@@ -1863,7 +1854,7 @@ async function getEligibleSessionCardIdsByCardIds(cardIds, filters = sessionFilt
   ));
   if (!refIds.length) return [];
   if (!requiresProgressForSessionFilter(filters)) {
-    return refIds;
+    return [];
   }
   await ensureProgressForCardIds(refIds, { payloadLabel: 'session-progress' });
   return refIds.filter(cardId => cardMatchesSessionFilter(cardId, filters));
@@ -1907,16 +1898,16 @@ async function getEligibleSessionCardsByCardIds(cardIds, filters = sessionFilter
 function getSessionFilterSummaryText(filters = sessionFilterState) {
   const config = normalizeSessionFilters(filters);
   if (config.all) {
-    return 'Filter: All remaining cards (excluding cards mastered today: 3x correct in a row).';
+    return 'Filter: All (0 cards selected).';
   }
   const hasSpecificFilter = config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet;
   if (!hasSpecificFilter) {
-    return 'Filter: None (all cards in selected topics).';
+    return 'Filter: None (0 cards selected).';
   }
   const labels = [];
-  if (config.correct) labels.push('Correctly answered (mastered)');
+  if (config.correct) labels.push('Correct (not mastered)');
   if (config.wrong) labels.push('Wrong');
-  if (config.partial) labels.push('Not quite / In progress');
+  if (config.partial) labels.push('Partially');
   if (config.notAnswered) labels.push('Not answered today');
   if (config.notAnsweredYet) labels.push('Not answered yet');
   return `Filter: ${labels.join(', ')}`;

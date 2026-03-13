@@ -479,6 +479,7 @@ async function startSession(options = {}) {
       topicName: resolveCardTopicName(card),
       sessionCorrectCount: 0,
       sessionHadFailure: false,
+      sessionStartedUnanswered: false,
       // In daily review, only cards whose latest persisted status is green
       // should start as one-step carry-over candidates.
       reviewCarryOver: reviewMode
@@ -487,6 +488,7 @@ async function startSession(options = {}) {
       reviewDowngraded: false
     }));
     const initialGradeMap = {};
+    const initialStateKeyMap = {};
     if (reviewMode) {
       sessionCards.forEach(card => {
         const status = getDailyReviewCardStatus(card.id);
@@ -501,6 +503,7 @@ async function startSession(options = {}) {
       sessionCards.forEach(card => {
         const state = getCurrentProgressState(progressByCardId.get(card.id), card.id);
         const stateKey = String(state?.key || '').trim();
+        initialStateKeyMap[card.id] = stateKey;
         if (stateKey === 'wrong') initialGradeMap[card.id] = 'wrong';
         else if (stateKey === 'partial' || stateKey === 'in-progress') initialGradeMap[card.id] = 'partial';
         else if (stateKey === 'correct' || stateKey === 'mastered') initialGradeMap[card.id] = 'correct';
@@ -509,6 +512,8 @@ async function startSession(options = {}) {
     sessionCards.forEach(card => {
       const initialGrade = String(initialGradeMap?.[card.id] || '').trim().toLowerCase();
       card.sessionHadFailure = initialGrade === 'wrong' || initialGrade === 'partial';
+      const initialStateKey = String(initialStateKeyMap?.[card.id] || '').trim().toLowerCase();
+      card.sessionStartedUnanswered = initialStateKey === 'not-answered';
     });
     session = {
       active: true,
@@ -610,7 +615,7 @@ function applySessionTextSize(container, content = '', options = {}) {
   if (!container) return;
   const sizeRem = computeSessionTextSizeRem(content, options);
   container.classList.add('session-dynamic-text');
-  container.style.setProperty('--session-text-size', `${sizeRem.toFixed(3)}rem`);
+  container.style.setProperty('--session-text-size', `${sizeRem.toFixed(4)}rem`);
 }
 
 /**
@@ -1827,6 +1832,7 @@ async function gradeCard(result) {
   if (!card) return;
   // Remaining cards that can still appear in this session (mastered cards are excluded).
   const remainingActiveCount = Math.max(0, session.activeQueue.length);
+  const startedUnanswered = card.sessionStartedUnanswered === true;
   let count = session.counts[card.id] ?? 0;
 
   if (result === 'correct') count += 1;
@@ -1851,7 +1857,9 @@ async function gradeCard(result) {
     result,
     remainingActiveCount
   );
+  const allowFsrsEarlyMastery = !(session.mode === 'default' && startedUnanswered);
   const markMasteredByFsrs = result === 'correct'
+    && allowFsrsEarlyMastery
     && card?.sessionHadFailure !== true
     && !shouldRepeatFromFsrs;
 

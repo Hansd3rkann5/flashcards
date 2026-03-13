@@ -1377,7 +1377,61 @@ async function boot() {
     };
   }
   renderSessionFilterSummary();
+  const sessionQuitConfirmDialog = el('sessionQuitConfirmDialog');
+  const sessionQuitConfirmMessage = el('sessionQuitConfirmMessage');
+  const sessionQuitCancelBtn = el('sessionQuitCancelBtn');
+  const sessionQuitConfirmBtn = el('sessionQuitConfirmBtn');
+  let sessionQuitConfirmResolver = null;
 
+  const settleSessionQuitConfirm = value => {
+    if (typeof sessionQuitConfirmResolver !== 'function') return;
+    const resolve = sessionQuitConfirmResolver;
+    sessionQuitConfirmResolver = null;
+    resolve(!!value);
+  };
+
+  const openSessionQuitConfirmDialog = remainingCards => {
+    const remaining = Math.max(0, Math.trunc(Number(remainingCards) || 0));
+    const cardWord = remaining === 1 ? 'card' : 'cards';
+    const message = `Do you really want to quit?\nYou got ${remaining} more ${cardWord} to go until you finish.`;
+    if (!sessionQuitConfirmDialog || !sessionQuitConfirmMessage) {
+      return Promise.resolve(confirm(message));
+    }
+    if (typeof sessionQuitConfirmResolver === 'function') settleSessionQuitConfirm(false);
+    sessionQuitConfirmMessage.textContent = message;
+    showDialog(sessionQuitConfirmDialog);
+    return new Promise(resolve => {
+      sessionQuitConfirmResolver = resolve;
+    });
+  };
+
+  if (sessionQuitConfirmDialog) {
+    sessionQuitConfirmDialog.addEventListener('click', e => {
+      if (e.target !== sessionQuitConfirmDialog) return;
+      closeDialog(sessionQuitConfirmDialog);
+      settleSessionQuitConfirm(false);
+    });
+    sessionQuitConfirmDialog.addEventListener('cancel', e => {
+      e.preventDefault();
+      closeDialog(sessionQuitConfirmDialog);
+      settleSessionQuitConfirm(false);
+    });
+    sessionQuitConfirmDialog.addEventListener('close', () => {
+      settleSessionQuitConfirm(false);
+    });
+  }
+  if (sessionQuitCancelBtn && sessionQuitConfirmDialog) {
+    sessionQuitCancelBtn.onclick = () => {
+      closeDialog(sessionQuitConfirmDialog);
+      settleSessionQuitConfirm(false);
+    };
+  }
+  if (sessionQuitConfirmBtn && sessionQuitConfirmDialog) {
+    sessionQuitConfirmBtn.onclick = () => {
+      closeDialog(sessionQuitConfirmDialog);
+      settleSessionQuitConfirm(true);
+    };
+  }
   el('backToTopicsBtn').onclick = () => {
     setDeckSelectionMode(false);
     setView(1);
@@ -1385,7 +1439,12 @@ async function boot() {
     void loadTopics({ preferCached: true, uiBlocking: false });
     if (selectedSubject) void refreshTopicSessionMeta(currentSubjectTopics);
   };
-  el('backToTopicsBtnSession').onclick = () => {
+  el('backToTopicsBtnSession').onclick = async () => {
+    const remainingCards = Array.isArray(session?.activeQueue) ? session.activeQueue.length : 0;
+    if (session.active && remainingCards > 0) {
+      const shouldQuit = await openSessionQuitConfirmDialog(remainingCards);
+      if (!shouldQuit) return;
+    }
     closeStudyImageLightbox();
     setDeckSelectionMode(false);
     session.active = false;
