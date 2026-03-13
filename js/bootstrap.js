@@ -1704,6 +1704,8 @@ async function boot() {
   if (confirmMoveCardsBtn) confirmMoveCardsBtn.onclick = moveSelectedDeckCards;
   const cancelMoveCardsBtn = el('cancelMoveCardsBtn');
   if (cancelMoveCardsBtn) cancelMoveCardsBtn.onclick = () => closeDialog(el('moveCardsDialog'));
+  const closeMoveCardsBtn = el('closeMoveCardsBtn');
+  if (closeMoveCardsBtn) closeMoveCardsBtn.onclick = () => closeDialog(el('moveCardsDialog'));
   updateDeckSelectionUi();
 
   const moveTopicsDialog = el('moveTopicsDialog');

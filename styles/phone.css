@@ -324,6 +324,18 @@
     width: min(96vw, 96vw);
   }
 
+  #moveCardsDialog {
+    width: min(96vw, 96vw);
+  }
+
+  #moveCardsDialog .grid.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #moveCardsDialog .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   #settingsDialog .settings-actions-grid {
     grid-template-columns: minmax(0, 1fr);
   }

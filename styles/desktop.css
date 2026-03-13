@@ -4812,6 +4812,54 @@ dialog.modal.subject-edit-modal {
   width: 100%;
 }
 
+#moveCardsDialog {
+  width: min(620px, calc(100vw - (2 * var(--space-6))));
+}
+
+#moveCardsDialog .editor-header {
+  margin-bottom: var(--space-2);
+}
+
+#moveCardsDialog .editor-header h3 {
+  margin: 0;
+}
+
+#moveCardsSelectionInfo {
+  margin: 0 0 var(--space-3);
+  text-align: center;
+  color: #c5d6f5;
+}
+
+#moveCardsDialog .grid.two {
+  gap: var(--space-2);
+}
+
+#moveCardsDialog .grid.two > div {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #2a3f66;
+  border-radius: 12px;
+  background: rgba(12, 18, 34, 0.5);
+}
+
+#moveCardsDialog .grid.two > div label {
+  font-weight: 700;
+  color: #deebff;
+}
+
+#moveCardsDialog .controls {
+  margin-top: var(--space-3);
+  margin-inline: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+#moveCardsDialog .controls .btn {
+  width: 100%;
+}
+
 .innerGlow {
   box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
   transition: all 0.3s ease;
@@ -5823,7 +5871,7 @@ button.formula-insert.save-primary {
 .daily-review-subject-option {
   flex: 1 1 auto;
   min-width: 0;
-  align-items: flex-start;
+  align-items: center;
   margin: 0;
 }
 
