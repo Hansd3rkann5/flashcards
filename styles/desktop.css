@@ -3644,7 +3644,7 @@ body.session-image-open {
 
 .toolbar-btn.active {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent-glow);
+  box-shadow: inset 0 0 7px 1px var(--accent-glow);
 }
 
 .inline-color-control {
