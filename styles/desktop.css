@@ -55,6 +55,7 @@
   --card-grid-min: 300px;
   --track-panel-count: 5;
   --mobile-sidebar-overlay-progress: 0;
+  --card-width: 1400px;
 }
 
 html {
@@ -2141,7 +2142,7 @@ textarea:focus-visible {
 }
 
 .flashcard {
-  width: min(1310px, 95%);
+  width: min(var(--card-width), 95%);
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
@@ -2156,7 +2157,7 @@ textarea:focus-visible {
 }
 
 .session-next-card {
-  width: min(1200px, 95%);
+  width: min(var(--card-width), 95%);
   height: 100%;
   position: absolute;
   inset: 0;
