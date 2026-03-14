@@ -118,7 +118,32 @@ const SESSION_DESKTOP_AUTO_SWIPE_TRANSITION_MS = 420;
 const SESSION_DESKTOP_AUTO_SWIPE_EASING = 'cubic-bezier(0.42, 0, 1, 1)';
 const SESSION_DESKTOP_AUTO_SWIPE_COMMIT_DELAY_MS = 420;
 const SESSION_COARSE_POINTER_BUTTON_SWIPE_MIN_WIDTH = 768;
+
 let sessionProgrammaticSwipeInFlight = false;
+
+/**
+ * Block global Space key behavior while answering MCQs.
+ * Without this, pressing Space can trigger other global handlers
+ * (e.g. session restart or page actions).
+ */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== ' ') return;
+
+  const sessionSection = document.getElementById('studySessionSection');
+  if (!sessionSection) return;
+
+  // Only block when an MCQ is currently displayed
+  if (!sessionSection.classList.contains('mcq-mode')) return;
+
+  const target = e.target;
+
+  // Allow normal typing inside inputs/textareas/contenteditable
+  if (target?.closest?.('input, textarea, [contenteditable="true"]')) return;
+
+  // Prevent global space handling (restart, scroll, etc.)
+  e.preventDefault();
+  e.stopPropagation();
+});
 
 function clampSessionScaleNumber(value, min, max, fallback = 0) {
   const numeric = Number(value);
