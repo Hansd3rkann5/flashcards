@@ -1022,6 +1022,10 @@ body.app-loading {
     box-shadow: inset 0px 0px 10px 2px #fafafa76;
   }
 
+  #addCardBtn:hover {
+    box-shadow: inset 0px 0px 10px 2px #f477ede0;
+  }
+
   .select-cards-btn:hover,
   .create-card-icon-btn:hover,
   .topic-more-btn:hover,
