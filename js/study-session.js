@@ -809,7 +809,7 @@ function readSessionCardScore(card = null) {
  */
 
 function renderSessionFrontScorePill(card = null) {
-  const scorePillEl = ensureFrontFaceScorePill();
+  //const scorePillEl = ensureFrontFaceScorePill();
   if (!scorePillEl) return;
   const score = readSessionCardScore(card);
   if (!Number.isFinite(score)) {
@@ -1336,7 +1336,7 @@ function renderCardContent(card) {
   const aImages = getCardImageList(card, 'A');
   applySessionCardTheme(card);
   renderSessionTopicPills(card);
-  renderSessionFrontScorePill(card);
+  //renderSessionFrontScorePill(card);
   const flashcardEl = el('flashcard');
   if (flashcardEl) {
     flashcardEl.dataset.type = isMcq ? 'mcq' : 'qa';
@@ -1684,7 +1684,7 @@ async function renderSessionCard() {
   const swipeBadge = el('swipeBadge');
   if (swipeBadge) swipeBadge.textContent = '';
   if (!session.activeQueue.length) {
-    renderSessionFrontScorePill(null);
+    //renderSessionFrontScorePill(null);
     renderNextSessionCardPreview(null);
     session.active = false;
     resetSessionImagePreloadCache();
