@@ -26,7 +26,7 @@
   --button: linear-gradient(90deg, #f45f82 0%, #e255a9 50%, #17b0f7 100%);
 
   /* Layout sizing (edit these to scale the UI) */
-  --sidebar-width: 260px;
+  --sidebar-width: 400px;
   --radius: 16px;
   --shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 
