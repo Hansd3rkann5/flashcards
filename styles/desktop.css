@@ -4210,7 +4210,11 @@ body.session-image-open {
 
 .pill-row.mastered {
   justify-content: flex-start;
-  margin-right: 6px;
+  margin-right: 8px;
+}
+
+.pill-row.mastered:not(:has(.pill-dot)) {
+  margin-right: 0;
 }
 
 .pill-row.active {
