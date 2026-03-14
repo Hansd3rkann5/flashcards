@@ -1909,10 +1909,22 @@ async function gradeCard(result) {
     const queue = session.activeQueue;
     const halfIndex = Math.floor(queue.length * 0.5);
 
-    // pick a card from the back half of the queue
-    const promoteIndex = Math.floor(
-      halfIndex + Math.random() * (queue.length - halfIndex)
-    );
+    // Prefer cards that have not been graded yet in this session
+    const unseenIndices = [];
+    for (let i = halfIndex; i < queue.length; i += 1) {
+      const c = queue[i];
+      const count = session.counts?.[c?.id] ?? 0;
+      const hasGrade = session.gradeMap?.[c?.id];
+      if (count === 0 && !hasGrade) unseenIndices.push(i);
+    }
+
+    // If there are unseen cards in the back half, pick one of them.
+    // Otherwise fall back to any card in the back half.
+    const candidatePool = unseenIndices.length
+      ? unseenIndices
+      : Array.from({ length: queue.length - halfIndex }, (_, k) => k + halfIndex);
+
+    const promoteIndex = candidatePool[Math.floor(Math.random() * candidatePool.length)];
 
     if (promoteIndex >= halfIndex && promoteIndex < queue.length) {
       const [promoted] = queue.splice(promoteIndex, 1);
