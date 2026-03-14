@@ -715,6 +715,7 @@ body.app-loading {
 
 .btn {
   user-select: none;
+  box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
 }
 
 .sidebar-archive-btn {
@@ -1543,7 +1544,8 @@ body.session-complete-dialog-open #studySessionSection::before {
   gap: var(--space-3);
 }
 
-.subject-progress-panel {
+.subject-progress-panel,
+.review-progress-panel {
   margin-bottom: var(--space-3);
   border: 1px solid #30476f;
   border-radius: 14px;
@@ -1553,23 +1555,27 @@ body.session-complete-dialog-open #studySessionSection::before {
   gap: var(--space-2);
 }
 
-.subject-progress-header {
+.subject-progress-header,
+.review-progress-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
 }
 
-.subject-progress-title {
+.subject-progress-title,
+.review-progress-title {
   margin: 0;
   font-size: 1rem;
 }
 
-.subject-progress-meta {
+.subject-progress-meta,
+.review-progress-meta {
   color: #bfd7ff;
 }
 
-.subject-progress-bar-wrap {
+.subject-progress-bar-wrap,
+.review-progress-bar-wrap {
   width: 100%;
 }
 
@@ -2135,7 +2141,7 @@ textarea:focus-visible {
 }
 
 .flashcard {
-  width: min(1200px, 95%);
+  width: min(1310px, 95%);
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
@@ -6720,7 +6726,7 @@ button.formula-insert.save-primary {
   /* padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom)); */
 }
 
-#dailyReviewHomePanel .controls::before {
+/* #dailyReviewHomePanel .controls::before {
   content: "";
   position: absolute;
   left: 0;
@@ -6729,7 +6735,7 @@ button.formula-insert.save-primary {
   height: 26px;
   background: linear-gradient(180deg, rgba(10, 16, 30, 0) 0%, rgba(10, 16, 30, 0.78) 100%);
   pointer-events: none;
-}
+} */
 
 .start-daily-review-btn {
   width: 100%;

@@ -1876,7 +1876,14 @@ async function gradeCard(result) {
     session.mastered.push(card);
     delete session.gradeMap[card.id];
   } else {
-    const target = computeSessionFsrsReinsertIndex(fsrsAfterReview, result, remainingActiveCount);
+    // If the user answered correctly twice in a row, push the card to the end
+    let target;
+    if (result === 'correct' && count >= 2) {
+      target = remainingActiveCount; // end of queue
+    } else {
+      target = computeSessionFsrsReinsertIndex(fsrsAfterReview, result, remainingActiveCount);
+    }
+
     session.activeQueue.splice(target, 0, card);
     session.gradeMap[card.id] = result;
   }
