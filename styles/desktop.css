@@ -4185,7 +4185,7 @@ body.session-image-open {
 .pill-dot.mastered {
   background: rgb(15, 246, 100);
   border-color: rgb(109, 109, 109);
-  border-width: 2px;
+  border: 2px solid;
 }
 
 .session-top {

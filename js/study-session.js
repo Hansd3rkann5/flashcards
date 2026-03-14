@@ -1895,6 +1895,40 @@ async function gradeCard(result) {
     ? !cardsOverviewSection.classList.contains('hidden')
     : false;
   if (overviewVisible) void loadDeck();
+
+  // ---- queue anti-starvation logic (improved) ----
+  // Prevents front-of-queue cycles where the same few cards keep rotating
+  // while cards further back never get shown.
+
+  const QUEUE_STARVATION_INTERVAL = 5;
+
+  if (session.turns === undefined) session.turns = 0;
+  session.turns += 1;
+
+  if (session.turns % QUEUE_STARVATION_INTERVAL === 0 && session.activeQueue.length > 6) {
+    const queue = session.activeQueue;
+    const halfIndex = Math.floor(queue.length * 0.5);
+
+    // pick a card from the back half of the queue
+    const promoteIndex = Math.floor(
+      halfIndex + Math.random() * (queue.length - halfIndex)
+    );
+
+    if (promoteIndex >= halfIndex && promoteIndex < queue.length) {
+      const [promoted] = queue.splice(promoteIndex, 1);
+
+      // bring it near the front but not at position 0
+      const insertPos = Math.min(2, queue.length);
+      queue.splice(insertPos, 0, promoted);
+
+      console.log('[Session Queue Rebalance]', {
+        promotedCard: promoted?.id,
+        from: promoteIndex,
+        to: insertPos,
+        queueLength: queue.length
+      });
+    }
+  }
 }
 
 function getProgrammaticSessionSwipeTransform(cardEl, result) {
