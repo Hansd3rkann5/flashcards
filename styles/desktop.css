@@ -1018,7 +1018,8 @@ body.app-loading {
 
   .sidebar button:hover,
   .btn:hover {
-    transform: scale(1.02);
+    /* transform: scale(1.02); */
+    box-shadow: inset 0px 0px 10px 2px #fafafa76;
   }
 
   .select-cards-btn:hover,
