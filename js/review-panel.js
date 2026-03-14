@@ -2972,7 +2972,8 @@ function renderDailyReviewTopicList() {
 
     const headerBtn = document.createElement('button');
     headerBtn.type = 'button';
-    headerBtn.className = 'daily-review-subject-expand-btn innerGlow';
+    headerBtn.className = 'daily-review-subject-expand-btn';
+    headerBtn.style.setProperty('--daily-review-subject-accent', subjectAccent);
     headerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
     headerBtn.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} subject ${group.subjectName}`);
     headerBtn.addEventListener('click', () => {

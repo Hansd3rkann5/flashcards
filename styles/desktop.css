@@ -5891,6 +5891,7 @@ button.formula-insert.save-primary {
 }
 
 .session-filter-option {
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -5952,11 +5953,6 @@ button.formula-insert.save-primary {
   cursor: pointer;
 }
 
-.daily-review-subject-toggle:hover {
-  transform: none;
-  background: rgba(27, 40, 72, 0.42);
-}
-
 .daily-review-subject-expand-btn {
   font: inherit;
   display: inline-flex;
@@ -5973,11 +5969,13 @@ button.formula-insert.save-primary {
   background: rgba(15, 25, 44, 0.62);
   color: var(--text);
   cursor: pointer;
+  box-shadow: inset 0 0 5px 0px var(--daily-review-subject-accent);
+  transition: all 0.3s ease;
 }
 
 .daily-review-subject-expand-btn:hover {
   transform: none;
-  background: rgba(27, 40, 72, 0.46);
+  box-shadow: inset 0 0 10px 2px var(--daily-review-subject-accent);
 }
 
 .daily-review-subject-expand-icon {
