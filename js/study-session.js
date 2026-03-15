@@ -689,7 +689,7 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
     optionsWrap.style.removeProperty('--mcq-grid-cols');
     return;
   }
-  const cols = total === 2 ? 2 : Math.max(2, Math.ceil(total / 2));
+  const cols = total >= 2 ? 2 : 1;
   optionsWrap.style.setProperty('--mcq-grid-cols', String(cols));
   applyEqualMcqOptionTileSize(optionsWrap);
 }
