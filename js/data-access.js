@@ -400,14 +400,6 @@ async function getTopicsBySubject(subjectId, options = {}) {
   // const subjectId = '516f44c8-6952-4e82-9ab9-9abe8dd6fcc8';
 
   // const topics = topicDirectoryBySubject?.get(subjectId) || [];
-
-  console.table(
-    scoped.map(t => ({
-      name: t.name,
-      updated_at: t.updated_at
-    }))
-  );
-  return cloneData(scoped);
 }
 
 
