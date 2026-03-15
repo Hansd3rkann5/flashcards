@@ -1261,8 +1261,24 @@ async function boot() {
   }
   const closeSessionCompleteBtn = el('closeSessionCompleteBtn');
   if (closeSessionCompleteBtn) {
-    closeSessionCompleteBtn.onclick = () => dismissSessionCompleteDialog();
-  }
+  closeSessionCompleteBtn.onclick = async () => {
+    dismissSessionCompleteDialog();
+
+    // Subject / Topic UI neu laden
+    try {
+      if (typeof loadTopics === 'function') {
+        await loadTopics({ force: true, uiBlocking: false });
+      }
+    } catch (err) {
+      console.warn('[SessionComplete] Topic refresh failed:', err);
+    }
+
+    // optional: auch Review/Home Panels aktualisieren
+    if (typeof refreshDailyReviewHomePanel === 'function') {
+      void refreshDailyReviewHomePanel({ useExisting: false });
+    }
+  };
+}
   const sessionRepeatMinus = el('sessionRepeatMinus');
   if (sessionRepeatMinus) {
     sessionRepeatMinus.onclick = () => {
@@ -1468,9 +1484,16 @@ async function boot() {
     if (selectedSubject) refreshTopicSessionMeta();
     const returnToHome = session.mode === 'daily-review';
     setView(returnToHome ? 0 : 1);
-    if (returnToHome) void refreshDailyReviewHomePanel({ useExisting: false });
-    else if (selectedSubject && typeof refreshSubjectProgressPanel === 'function') {
-      void refreshSubjectProgressPanel({ topicsForSubject: currentSubjectTopics });
+    if (returnToHome) {
+      void refreshDailyReviewHomePanel({ useExisting: false });
+    }
+    else if (selectedSubject) {
+      // Reload topics so topic progress bars and subject progress reflect the latest session results
+      if (typeof loadTopics === 'function') {
+        void loadTopics({ force: true, uiBlocking: false });
+      } else if (typeof refreshSubjectProgressPanel === 'function') {
+        void refreshSubjectProgressPanel({ topicsForSubject: currentSubjectTopics });
+      }
     }
   };
   el('backToDeckBtn').onclick = () => {
