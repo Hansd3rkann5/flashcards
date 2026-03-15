@@ -46,9 +46,6 @@
 }
 
 @media (max-width: 1100px) {
-  .editor-grid {
-    grid-template-columns: minmax(200px, 35%) 1px 1fr;
-  }
 
   .editor-separator {
     display: block;

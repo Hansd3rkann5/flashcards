@@ -763,6 +763,8 @@ body.app-loading {
 }
 
 .close-icon-btn {
+  position: absolute;
+  right: var(--space-4);
   width: 42px;
   min-width: 42px;
   height: 42px;
@@ -3535,7 +3537,9 @@ body.session-image-open {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  justify-content: space-between;
+  justify-content: center;
+  border-bottom: 1px solid #30456f;
+  margin-bottom: 10px;
 }
 
 .editor-grid {
