@@ -4807,8 +4807,26 @@ function updateSessionRepeatCounter() {
   if (minusBtn) minusBtn.disabled = !hasRemaining || sessionRepeatState.size <= 1;
   if (plusBtn) plusBtn.disabled = !hasRemaining || sessionRepeatState.size >= sessionRepeatState.remaining;
   if (startBtn) {
-    startBtn.textContent = hasRemaining ? 'Start Another Session' : 'Go Back';
+    const goBack = !hasRemaining;
+    startBtn.textContent = goBack ? 'Go Back' : 'Start Another Session';
     startBtn.disabled = false;
+
+    // Mark behavior so the click handler knows what to do
+    startBtn.dataset.sessionAction = goBack ? 'goback' : 'repeat';
+
+    if (goBack) {
+      startBtn.onclick = () => {
+        dismissSessionCompleteDialog();
+
+        // Ensure subject/topic info refreshes when returning
+        if (selectedSubject && typeof loadTopics === 'function') {
+          void loadTopics({ force: true, uiBlocking: false });
+        }
+        if (typeof refreshSubjectProgressPanel === 'function') {
+          void refreshSubjectProgressPanel();
+        }
+      };
+    }
   }
 }
 
