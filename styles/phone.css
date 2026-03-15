@@ -121,7 +121,7 @@
   }
 
   .topic-tile {
-    padding-block: calc(var(--tile-padding) / 6) !important;
+    padding-block: calc(var(--tile-padding) / 2) !important;
   }
 
   .tile.subject-tile {
