@@ -1587,6 +1587,83 @@ body.session-complete-dialog-open #studySessionSection::before {
   width: 100%;
 }
 
+/* ================================
+   Topic Progress Bar
+   ================================ */
+
+.topic-progress {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.topic-progress-bar {
+  display: flex;
+  height: 6px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.05);
+}
+
+.topic-progress-seg {
+  height: 100%;
+  display: block;
+}
+
+/* Segment colors (same palette as subject progress) */
+
+.topic-progress-mastered {
+  background: #22c55e;
+}
+
+.topic-progress-correct {
+  background: #16a34a;
+}
+
+.topic-progress-partial {
+  background: #f59e0b;
+}
+
+.topic-progress-wrong {
+  background: #ef4444;
+}
+
+.topic-progress-notanswered {
+  background: #64748b;
+}
+
+
+/* ================================
+   Topic Progress Legend
+   ================================ */
+
+.topic-progress-legend {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.topic-progress-legend-mastered {
+  color: #22c55e;
+}
+
+.topic-progress-legend-correct {
+  color: #16a34a;
+}
+
+.topic-progress-legend-partial {
+  color: #f59e0b;
+}
+
+.topic-progress-legend-wrong {
+  color: #ef4444;
+}
+
+.topic-progress-legend-notanswered {
+  color: #64748b;
+}
+
 .study-selection h3 {
   margin: 0;
 }

@@ -280,6 +280,7 @@ function getTopicLastUpdatedTimestamp(topic = null) {
  */
 
 async function loadTopics(options = {}) {
+  console.log('[TopicProgress] loadTopics called', { selectedSubject, options });
   if (!selectedSubject) return;
   const opts = (options && typeof options === 'object') ? options : {};
   const subjectId = String(selectedSubject.id || '').trim();
@@ -309,8 +310,10 @@ async function loadTopics(options = {}) {
     .filter(Boolean);
   let latestCardTimestampByTopic = new Map();
   let cardCountByTopic = new Map();
+  // --- fetch refs and build cardCountByTopic ---
+  let refs = [];
   if (topicIdsForSort.length) {
-    const refs = await getCardRefsByTopicIds(topicIdsForSort, {
+    refs = await getCardRefsByTopicIds(topicIdsForSort, {
       force,
       uiBlocking: false,
       payloadLabel: `topic-sort-refs-${topicIdsForSort.length}`
@@ -322,6 +325,50 @@ async function loadTopics(options = {}) {
       const topicId = String(ref?.topicId || '').trim();
       if (!topicId) return;
       cardCountByTopic.set(topicId, (cardCountByTopic.get(topicId) || 0) + 1);
+    });
+  }
+  // ------------------------------------------------------------
+  // Build progress summary per topic
+  // ------------------------------------------------------------
+  const progressSummaryByTopic = new Map();
+
+  const cardIdsForProgress = Array.from(new Set(
+    (Array.isArray(refs) ? refs : [])
+      .map(r => String(r?.id || '').trim())
+      .filter(Boolean)
+  ));
+
+  if (cardIdsForProgress.length) {
+    await ensureProgressForCardIds(cardIdsForProgress, {
+      uiBlocking: false,
+      payloadLabel: `topic-progress-state-${cardIdsForProgress.length}`
+    });
+
+    (Array.isArray(refs) ? refs : []).forEach(ref => {
+      const topicId = String(ref?.topicId || '').trim();
+      const cardId = String(ref?.id || '').trim();
+      if (!topicId || !cardId) return;
+
+      if (!progressSummaryByTopic.has(topicId)) {
+        progressSummaryByTopic.set(topicId, {
+          mastered: 0,
+          correct: 0,
+          partial: 0,
+          wrong: 0,
+          notAnswered: 0
+        });
+      }
+
+      const bucket = progressSummaryByTopic.get(topicId);
+      const record = progressByCardId.get(cardId) || null;
+      const state = getCurrentProgressState(record, cardId);
+      const key = normalizeDailyReviewLatestStateKey(state.key);
+
+      if (key === 'mastered') bucket.mastered += 1;
+      else if (key === 'correct') bucket.correct += 1;
+      else if (key === 'wrong') bucket.wrong += 1;
+      else if (key === 'notAnswered') bucket.notAnswered += 1;
+      else bucket.partial += 1;
     });
   }
   if (topicIdsForSort.length) {
@@ -389,6 +436,10 @@ async function loadTopics(options = {}) {
               <div class="topic-tile-main">
                 <div class="topic-tile-name">${escapeHTML(t.name)}</div>
                 <div class="tiny topic-card-count">${cardCountLabel}</div>
+                <div class="tiny topic-progress">
+                  <div class="topic-progress-bar overview-segment-bar overview-progress-bar" id="topicProgressBar-${t.id}" style="height:6px; min-height:6px;"></div>
+                  <div class="topic-progress-legend" id="topicProgressLegend-${t.id}"></div>
+                </div>
               </div>
             </div>
           `;
@@ -418,6 +469,10 @@ async function loadTopics(options = {}) {
               <div class="topic-tile-main">
                 <div class="topic-tile-name">${escapeHTML(t.name)}</div>
                 <div class="tiny topic-card-count">${cardCountLabel}</div>
+                <div class="tiny topic-progress">
+                  <div class="topic-progress-bar overview-segment-bar overview-progress-bar" id="topicProgressBar-${t.id}" style="height:6px; min-height:6px;"></div>
+                  <div class="topic-progress-legend" id="topicProgressLegend-${t.id}"></div>
+                </div>
               </div>
             </div>
           `;
@@ -452,6 +507,79 @@ async function loadTopics(options = {}) {
       row.appendChild(selectWrap);
     }
     list.appendChild(row);
+    // Render the segment bar for the topic progress using the shared renderer
+    // --- DEBUG LOG: topic row created ---
+    console.log('[TopicProgress] topic row created', {
+      topicId: t.id,
+      topicName: t.name,
+      progressSummaryAvailable: progressSummaryByTopic.has(String(t.id || '').trim())
+    });
+    const p = progressSummaryByTopic.get(String(t.id || '').trim());
+    // --- DEBUG LOG: progress summary ---
+    console.log('[TopicProgress] progress summary', {
+      topicId: t.id,
+      summary: p
+    });
+    if (p) {
+      const barEl = document.getElementById(`topicProgressBar-${t.id}`);
+      const legendEl = document.getElementById(`topicProgressLegend-${t.id}`);
+      // --- DEBUG LOG: DOM lookup ---
+      console.log('[TopicProgress] DOM lookup', {
+        topicId: t.id,
+        barEl,
+        legendEl
+      });
+      const m = Number(p.mastered || 0);
+      const c = Number(p.correct || 0);
+      const pa = Number(p.partial || 0);
+      const w = Number(p.wrong || 0);
+      const n = Number(p.notAnswered || 0);
+      // --- DEBUG LOG: counts ---
+      console.log('[TopicProgress] counts', {
+        topicId: t.id,
+        mastered: m,
+        correct: c,
+        partial: pa,
+        wrong: w,
+        notAnswered: n
+      });
+      if (barEl && legendEl) {
+        const total = m + c + pa + w + n;
+
+        console.log('[TopicProgress] building topic progress bar', {
+          topicId: t.id,
+          total
+        });
+
+        if (total > 0) {
+          const pm = (m / total) * 100;
+          const pc = (c / total) * 100;
+          const pp = (pa / total) * 100;
+          const pw = (w / total) * 100;
+          const pn = (n / total) * 100;
+
+          barEl.innerHTML = `
+            <span class="topic-progress-seg topic-progress-mastered innerGlowMastered" style="width:${pm}%"></span>
+            <span class="topic-progress-seg topic-progress-correct" style="width:${pc}%"></span>
+            <span class="topic-progress-seg topic-progress-partial" style="width:${pp}%"></span>
+            <span class="topic-progress-seg topic-progress-wrong" style="width:${pw}%"></span>
+            <span class="topic-progress-seg topic-progress-notanswered" style="width:${pn}%"></span>
+          `;
+        } else {
+          barEl.innerHTML = '';
+        }
+
+        legendEl.innerHTML = `
+          <span class="topic-progress-legend-mastered">M:${m}</span>
+          <span class="topic-progress-legend-correct">C:${c}</span>
+          <span class="topic-progress-legend-partial">P:${pa}</span>
+          <span class="topic-progress-legend-wrong">W:${w}</span>
+          <span class="topic-progress-legend-notanswered">N:${n}</span>
+        `;
+
+        console.log('[TopicProgress] topic bar HTML', barEl.innerHTML);
+      }
+    }
   });
   if (!topics.length) list.innerHTML = '<div class="tiny">No topics yet.</div>';
   updateTopicSelectionUi();

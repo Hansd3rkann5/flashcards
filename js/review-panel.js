@@ -3158,7 +3158,6 @@ function computeCurrentActivityStreakDays(activityDayKeys = new Set(), reference
 
 function renderOverviewSegmentBar(barEl, legendEl, segments = [], options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
-  console.log('Rendering overview segment bar with segments:', segments, 'and options:', opts);
   const rows = Array.isArray(segments)
     ? segments
       .map(seg => ({
