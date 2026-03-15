@@ -527,7 +527,7 @@
 
       <section class="panel" id="editorPanel">
         <div class="section editor-shell">
-          <div class="controls editor" style="margin-bottom:10px; align-items:center; margin-inline: 0">
+          <div class="controls editor" style="align-items:center; margin-inline: 0">
             <button class="btn" id="backToDeckBtn" aria-label="Back to deck">
               <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
@@ -541,6 +541,7 @@
             </div>
           </div>
           <div id="editorOverlay" class="editor-overlay"></div>
+            <div class="editor-separator" aria-hidden="true"></div>
           <div class="editor-grid">
             <div class="editor-list editor-sidebar" style="overflow: auto;">
               <div class="editor-list-header">
@@ -703,7 +704,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.15.1';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.15.2';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -1367,7 +1368,6 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
-    <div class="tiny" id="tableTargetLabel">Target: Question</div>
     <div class="table-builder-controls">
       <div class="table-builder-size">
         <label for="tableRowsInput">Rows</label>
