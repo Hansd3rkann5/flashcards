@@ -3941,7 +3941,7 @@ body.session-image-open {
 }
 
 .session-dynamic-text {
-  font-size: 2rem;
+  /* font-size: 2rem; */
   line-height: 1.34;
 }
 
