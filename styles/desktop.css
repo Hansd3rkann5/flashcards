@@ -1097,7 +1097,8 @@ body.app-loading {
   width: calc(100% / var(--track-panel-count));
   min-width: calc(100% / var(--track-panel-count));
   max-width: calc(100% / var(--track-panel-count));
-  padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom));
+  padding: var(--space-6);
+  /* padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom)); */
   min-height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
