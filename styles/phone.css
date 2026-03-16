@@ -417,7 +417,7 @@
   }
 
   .panel {
-    padding: calc(env(safe-area-inset-top)) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
+    padding: calc(env(safe-area-inset-top) - 6px) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
     min-height: 100dvh;
     height: 100dvh;
   }
