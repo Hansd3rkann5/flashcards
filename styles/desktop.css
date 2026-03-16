@@ -2464,6 +2464,12 @@ textarea:focus-visible {
   border-color: #9a2b1c;
 }
 
+.btn.quit {
+  background: #9a2b1c;
+  border-color: #9a2b1c;
+  flex: 1;
+}
+
 .card-corner-label {
   position: absolute;
   top: 12px;
@@ -4680,7 +4686,7 @@ dialog.modal.subject-edit-modal {
 }
 
 .session-quit-confirm-actions {
-  display: grid;
+  display: flex;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
@@ -6835,7 +6841,8 @@ button.formula-insert.save-primary {
 }
 
 #startAnotherSessionBtn {
-  background: var(--button)
+  background: var(--button);
+  flex: 1;
 }
 
 .archive-tree-action-label+.app-icon {
