@@ -66,6 +66,7 @@
 }
 
 @media (max-width: 768px) {
+
   .app-loading-overlay,
   .app-loading-overlay[open],
   .app-loading-overlay.is-visible {
@@ -321,7 +322,7 @@
   }
 
   #sessionQuitConfirmDialog {
-    max-height:200px;
+    max-height: 200px;
     width: min(96vw, 96vw);
   }
 
@@ -579,6 +580,8 @@
 
   .pill-dot {
     height: var(--dynamic-pill-width, 12px);
+    max-height: 15px;
+    max-width: 40px;
   }
 
   .session-pill-bar {
