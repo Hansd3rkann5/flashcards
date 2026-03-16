@@ -73,7 +73,7 @@ body {
   width: 100%;
   font-family: Inter, Segoe UI, Roboto, system-ui, sans-serif;
   font-size: var(--font-size-base);
-  color: var(--bg);
+  color: var(--text);
   background: var(--bg);
   display: flex;
   overflow: hidden;
@@ -131,7 +131,7 @@ body::before {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-inline: var(--space-1);
+  padding-inline: 2px;
 }
 
 #subjectList.tile-grid {
