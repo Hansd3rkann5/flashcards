@@ -1410,10 +1410,12 @@ async function boot() {
   const sessionQuitConfirmDialog = el('sessionQuitConfirmDialog');
   const sessionQuitConfirmMessage = el('sessionQuitConfirmMessage');
   const sessionQuitCancelBtn = el('sessionQuitCancelBtn');
+  const sessionQuitConfirmBtnBack = el('sessionQuitConfirmBtnBack');
   const sessionQuitConfirmBtn = el('sessionQuitConfirmBtn');
   let sessionQuitConfirmResolver = null;
 
   const settleSessionQuitConfirm = value => {
+    console.log('[SessionQuit DEBUG] settleSessionQuitConfirm called with value:', value);
     if (typeof sessionQuitConfirmResolver !== 'function') return;
     const resolve = sessionQuitConfirmResolver;
     sessionQuitConfirmResolver = null;
@@ -1421,6 +1423,7 @@ async function boot() {
   };
 
   const openSessionQuitConfirmDialog = remainingCards => {
+    console.log('[SessionQuit DEBUG] openSessionQuitConfirmDialog called with remainingCards:', remainingCards);
     const remaining = Math.max(0, Math.trunc(Number(remainingCards) || 0));
     const cardWord = remaining === 1 ? 'card' : 'cards';
     const message = `Do you really want to quit?\nYou got ${remaining} more ${cardWord} to go until you finish.`;
@@ -1429,6 +1432,7 @@ async function boot() {
     }
     if (typeof sessionQuitConfirmResolver === 'function') settleSessionQuitConfirm(false);
     sessionQuitConfirmMessage.textContent = message;
+    console.log('[SessionQuit DEBUG] Showing quit confirm dialog');
     showDialog(sessionQuitConfirmDialog);
     return new Promise(resolve => {
       sessionQuitConfirmResolver = resolve;
@@ -1452,16 +1456,44 @@ async function boot() {
   }
   if (sessionQuitCancelBtn && sessionQuitConfirmDialog) {
     sessionQuitCancelBtn.onclick = () => {
+      console.log('[SessionQuit DEBUG] Cancel button clicked');
       closeDialog(sessionQuitConfirmDialog);
       settleSessionQuitConfirm(false);
     };
   }
-  if (sessionQuitConfirmBtn && sessionQuitConfirmDialog) {
-    sessionQuitConfirmBtn.onclick = () => {
+  const quitConfirmButtons = [sessionQuitConfirmBtnBack, sessionQuitConfirmBtn].filter(Boolean);
+
+  quitConfirmButtons.forEach(btn => {
+    if (!sessionQuitConfirmDialog) return;
+
+    const handleSessionQuitConfirm = (e) => {
+      console.log('[SessionQuit DEBUG] Confirm button event fired', {
+        type: e?.type,
+        target: e?.target,
+        currentTarget: e?.currentTarget,
+        dialogOpen: !!sessionQuitConfirmDialog?.open
+      });
+
+      if (e) {
+        try { e.preventDefault(); } catch (_) {}
+        try { e.stopPropagation(); } catch (_) {}
+      }
+
+      console.log('[SessionQuit DEBUG] Closing dialog and resolving TRUE');
       closeDialog(sessionQuitConfirmDialog);
       settleSessionQuitConfirm(true);
     };
-  }
+
+    btn.onclick = handleSessionQuitConfirm;
+
+    btn.addEventListener('touchstart', () => {
+      console.log('[SessionQuit DEBUG] touchstart on confirm button');
+    });
+
+    btn.addEventListener('touchend', handleSessionQuitConfirm, { passive: false });
+    btn.addEventListener('pointerup', handleSessionQuitConfirm);
+    btn.addEventListener('click', handleSessionQuitConfirm);
+  });
   el('backToTopicsBtn').onclick = () => {
     setDeckSelectionMode(false);
     setView(1);

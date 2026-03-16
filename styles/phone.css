@@ -321,6 +321,7 @@
   }
 
   #sessionQuitConfirmDialog {
+    max-height:200px;
     width: min(96vw, 96vw);
   }
 
@@ -814,6 +815,5 @@
     margin-bottom: 0;
     border-bottom-left-radius: 44px;
     border-bottom-right-radius: 44px;
-    padding-bottom: var(--space-2);
   }
 }

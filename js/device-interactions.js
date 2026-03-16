@@ -321,6 +321,12 @@ function wireHomePullToRefresh() {
   }, { passive: false });
 
   const handleTouchEnd = async () => {
+
+    // Guard: Pull‑to‑refresh should only react on the Home view and when no modal/session UI is active
+    if (currentView !== 0) return;
+    if (document.querySelector('dialog[open]')) return;
+    if (document.body.classList.contains('session-image-open')) return;
+
     debug({ event: 'touchend', armed, refreshing });
     if (!tracking && !pulling) return;
     tracking = false;
