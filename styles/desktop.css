@@ -26,7 +26,7 @@
   --button: linear-gradient(90deg, #f45f82 0%, #e255a9 50%, #17b0f7 100%);
 
   /* Layout sizing (edit these to scale the UI) */
-  --sidebar-width: 400px;
+  --sidebar-width: 350px;
   --radius: 16px;
   --shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 
@@ -73,8 +73,8 @@ body {
   width: 100%;
   font-family: Inter, Segoe UI, Roboto, system-ui, sans-serif;
   font-size: var(--font-size-base);
-  color: var(--text);
-  background: var(--button);
+  color: var(--bg);
+  background: var(--bg);
   display: flex;
   overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
@@ -131,8 +131,7 @@ body::before {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 2px;
-  padding-left: 4px;
+  padding-inline: var(--space-1);
 }
 
 #subjectList.tile-grid {
