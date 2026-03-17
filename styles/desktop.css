@@ -131,7 +131,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-6);
 }
 
 .sidebar-subjects {
@@ -679,6 +678,7 @@ body.app-loading {
   font-size: var(--font-size-title);
   font-weight: 800;
   margin-bottom: var(--space-2);
+  text-align: center;
 }
 
 .sidebar-meta {
@@ -2474,6 +2474,7 @@ textarea:focus-visible {
 .btn.quit {
   background: #9a2b1c;
   border-color: #9a2b1c;
+  box-shadow: inset 0px 0px 7px 1px #f00;
   flex: 1;
 }
 
@@ -2697,7 +2698,7 @@ textarea:focus-visible {
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   align-items: stretch;
-  justify-items: stretch;
+  justify-items: stretch !important;
   overflow: hidden;
 }
 
@@ -4661,6 +4662,7 @@ dialog.modal.subject-edit-modal {
 
 #sessionQuitConfirmDialog {
   width: min(520px, calc(100vw - (2 * var(--space-6))));
+  height: 230px;
 }
 
 .session-quit-confirm-dialog {

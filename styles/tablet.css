@@ -11,10 +11,10 @@
     --sidebar-width: 240px;
   }
 
-  #sessionQuitConfirmDialog {
+  /* #sessionQuitConfirmDialog {
     max-height: 200px;
     width: min(96vw, 96vw);
-  }
+  } */
 
   .editor-input-media-row {
     grid-template-columns: minmax(0, 1fr);
@@ -72,7 +72,7 @@
   }
 }
 
-@media (orientation: landscape) and (max-width: 1024px) {
+@media (orientation: landscape) and (max-width: 1200px) {
   .session-card-image {
     max-height: 200px;
   }
