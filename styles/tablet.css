@@ -70,8 +70,10 @@
   :root {
     --sidebar-width: 240px;
   }
+}
 
-  .panel {
-    padding: 16px;
+@media (orientation: landscape) and (max-width: 1024px) {
+  .session-card-image {
+    max-height: 200px;
   }
 }

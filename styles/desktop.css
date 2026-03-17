@@ -1097,13 +1097,14 @@ body.app-loading {
   width: calc(100% / var(--track-panel-count));
   min-width: calc(100% / var(--track-panel-count));
   max-width: calc(100% / var(--track-panel-count));
-  padding: var(--space-6);
+  padding: var(--space-4);
   /* padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom)); */
   min-height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: pan-y;
+  padding-top: var(--space-6);
 }
 
 body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
@@ -1181,7 +1182,7 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   min-height: 0;
   position: relative;
   margin: 0;
-  padding: var(--space-5);
+  padding: var(--space-4);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -2228,7 +2229,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .flashcard {
@@ -2831,7 +2832,7 @@ textarea:focus-visible {
 }
 
 .mcq-answer-zone .card-tile-separator {
-  width: 100%;
+  width: 90%;
   margin: 0;
   flex: 0 0 auto;
 }
@@ -4294,7 +4295,7 @@ body.session-image-open {
   gap: var(--space-3);
   justify-content: space-between;
   flex-wrap: wrap;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .session-pill-bar {
@@ -6919,15 +6920,6 @@ button.formula-insert.save-primary {
 }
 
 @media (orientation: portrait) {
-  /* .track,
-  .panel {
-    min-height: 100dvh;
-  } */
-
-  .panel {
-    height: 100dvh;
-    padding: calc(var(--space-2) + env(safe-area-inset-top)) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
-  }
 
   .section {
     margin-top: 0;
@@ -7029,9 +7021,9 @@ button.formula-insert.save-primary {
     gap: var(--space-2);
     flex-wrap: nowrap;
     position: sticky;
-    bottom: calc(env(safe-area-inset-bottom) + 6px);
+    /* bottom: calc(env(safe-area-inset-bottom) + 6px); */
     z-index: 2;
-    margin-top: var(--space-5);
+    margin-top: var(--space-4);
   }
 
   #studySessionSection .traffic {
