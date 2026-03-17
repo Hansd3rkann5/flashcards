@@ -856,8 +856,18 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
     .select(selectClause), safeOwnerId)
     .eq('store', 'cards').range(0, 9999);
 
-  if (cardIds.length === 1) query = query.eq('record_key', cardIds[0]);
-  else if (cardIds.length > 1) query = query.in('record_key', cardIds);
+  let batchedCardIdMode = false;
+  let cardIdBatches = [];
+
+  if (cardIds.length === 1) {
+    query = query.eq('record_key', cardIds[0]);
+  } else if (cardIds.length > 1) {
+    batchedCardIdMode = true;
+    const batchSize = 200;
+    for (let i = 0; i < cardIds.length; i += batchSize) {
+      cardIdBatches.push(cardIds.slice(i, i + batchSize));
+    }
+  }
 
   // For plain topic/card lookups we use indexed `topic_id`.
   // For search lookups we filter by topic on mapped payload to stay robust if topic_id is not backfilled yet.
@@ -902,7 +912,30 @@ async function queryCardsSupabase(searchParams, ownerId = '') {
       rows = fallbackRows.filter(row => cardPayloadMatchesSearch(row?.payload, searchRaw));
     }
   } else {
-    rows = await runOrderedQuery(query);
+    if (batchedCardIdMode) {
+      const results = [];
+      for (const batch of cardIdBatches) {
+        let batchQuery = withTenantScope(
+          supabaseClient
+            .from(SUPABASE_TABLE)
+            .select(selectClause),
+          safeOwnerId
+        )
+          .eq('store', 'cards')
+          .in('record_key', batch);
+
+        if (!hasSearch) {
+          if (topicIds.length === 1) batchQuery = batchQuery.eq('topic_id', topicIds[0]);
+          else if (topicIds.length > 1) batchQuery = batchQuery.in('topic_id', topicIds);
+        }
+
+        const batchRows = await runOrderedQuery(batchQuery);
+        results.push(...batchRows);
+      }
+      rows = results;
+    } else {
+      rows = await runOrderedQuery(query);
+    }
   }
 
   const scopedRows = (hasSearch && topicIds.length)
