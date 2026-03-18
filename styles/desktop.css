@@ -84,6 +84,10 @@ body {
   isolation: isolate;
 }
 
+textarea {
+  resize: none;
+}
+
 body::before {
   content: "";
   position: fixed;
