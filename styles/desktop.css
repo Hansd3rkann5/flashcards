@@ -4123,15 +4123,16 @@ body.session-image-open {
 }
 
 .editor-separator {
-  width: 1px;
+  width: 0;
   background: #2a3f66;
   border-radius: 1px;
   opacity: 0.8;
   margin-block: var(--radius);
+  box-shadow: 0 0 1px 1px var(--accent-glow-strong);
 }
 
 .editor-separator.hor {
-  height: 1px;
+  height: 0px;
   width: calc(100% - 2 * var(--radius));
   margin-inline: var(--radius);
 }
