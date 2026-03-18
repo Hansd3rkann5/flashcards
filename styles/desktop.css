@@ -2556,10 +2556,8 @@ textarea:focus-visible {
 }
 
 .controls.editor {
-  padding-bottom: 10px;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #30456f;
 }
 
 .traffic {
@@ -3646,7 +3644,6 @@ body.session-image-open {
   display: grid;
   gap: var(--space-3);
   grid-template-columns: minmax(240px, 30%) 1px 1fr;
-  margin-top: var(--space-3);
   align-items: stretch;
 }
 
@@ -4127,6 +4124,12 @@ body.session-image-open {
   border-radius: 1px;
   opacity: 0.8;
   margin-block: var(--radius);
+}
+
+.editor-separator.hor {
+  height: 1px;
+  width: calc(100% - 2 * var(--radius));
+  margin-inline: var(--radius);
 }
 
 .editor-shell {
