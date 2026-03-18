@@ -71,9 +71,3 @@
     --sidebar-width: 240px;
   }
 }
-
-@media (orientation: landscape) and (max-width: 1200px) {
-  .session-card-image {
-    max-height: 200px;
-  }
-}
