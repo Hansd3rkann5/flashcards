@@ -6937,7 +6937,7 @@ button.formula-insert.save-primary {
     grid-template-columns: 1fr;
   }
 
-  #editorPanel .editor-separator {
+  #editorPanel .editor-separator.ver {
     display: none;
   }
 
@@ -6958,6 +6958,7 @@ button.formula-insert.save-primary {
     overflow-y: auto;
     margin-left: var(--space-3);
     height: 90%;
+    box-shadow: 0 0 10px 5px var(--accent-glow-soft);
   }
 
   #editorPanel .editor-shell.sidebar-open .editor-sidebar {
