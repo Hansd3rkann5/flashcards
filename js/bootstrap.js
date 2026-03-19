@@ -60,9 +60,12 @@ function updateRuntimeHostHint() {
 function updateSidebarMetaInfo() {
   const versionLabel = el('appVersionLabel');
   if (!versionLabel) return;
-  const safeVersion = String(window.__APP_VERSION__ || '').trim() || 'dev';
+  const localVersion = String(window.__APP_VERSION_LOCAL__ || window.__APP_VERSION__ || '').trim() || 'dev-local';
+  const publicVersion = String(window.__APP_VERSION_PUBLIC__ || '').trim() || localVersion;
   const runtimeChannel = isLocalRuntimeHost() ? 'local' : 'public';
-  versionLabel.textContent = `${safeVersion} (${runtimeChannel})`;
+  const activeVersion = runtimeChannel === 'local' ? localVersion : publicVersion;
+  window.__APP_VERSION__ = activeVersion;
+  versionLabel.textContent = `${activeVersion} (${runtimeChannel})`;
 }
 
 /**
