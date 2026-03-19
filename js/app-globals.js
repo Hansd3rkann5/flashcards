@@ -139,8 +139,8 @@ let sessionCompleteConfettiEmitter = null;
 const DAILY_REVIEW_DEFAULT_SIZE = 15;
 const DAILY_REVIEW_STATUS_FILTER_DEFAULT = Object.freeze({
   green: true,
-  yellow: false,
-  red: false
+  yellow: true,
+  red: true
 });
 let dailyReviewState = {
   ready: false,
@@ -161,6 +161,15 @@ let dailyReviewState = {
     inProgress: 0,
     notAnswered: 0
   },
+  completeProgressCounts: {
+    mastered: 0,
+    correct: 0,
+    partial: 0,
+    wrong: 0,
+    inProgress: 0,
+    notAnswered: 0
+  },
+  completeProgressTotalCards: 0,
   dateByCardId: new Map(),
   dateKeys: [],
   selectedDateStart: 0,

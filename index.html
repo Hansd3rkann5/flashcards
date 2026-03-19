@@ -142,7 +142,7 @@
         </div>
         <div id="dailyReviewHomePanel" class="section daily-review-home hidden">
           <div class="topic-sticky-stack">
-            <div class="review-header-tile">
+            <div class="header-tile">
               <button class="btn subject-sidebar-toggle review-sidebar-toggle" id="sidebarToggleHome" type="button"
                 aria-label="Open sidebar" title="Open sidebar">
                 <img src="icons/burger.svg" alt="" aria-hidden="true" class="app-icon" />
@@ -155,7 +155,7 @@
           </div>
           <div class="tiny daily-review-today-stats" id="dailyReviewTodayStats"></div>
           <div class="daily-overview-stats-grid" id="dailyOverviewStatsGrid">
-            <div class="review-progress-panel" id="reviewProgressPanel">
+            <div class="review-progress-panel daily-overview-progress-card" id="reviewProgressPanel">
               <div class="review-progress-header">
                 <h3 class="review-progress-title">Complete Progress</h3>
                 <span class="tiny review-progress-meta" id="reviewProgressMeta">0 cards</span>
@@ -166,8 +166,8 @@
               </div>
               <div class="tiny daily-overview-segment-legend" id="reviewProgressLegend"></div>
             </div>
-            <article class="daily-overview-stat-card">
-              <div class="tiny daily-overview-stat-title">Learning State</div>
+            <article class="daily-overview-stat-card daily-overview-progress-card" id="dailyOverviewLearningStateCard">
+              <div class="tiny daily-overview-stat-title">Current Review State</div>
               <div class="daily-overview-segment-bar" id="dailyOverviewStateBar" role="img"
                 aria-label="Mastered, partially answered, and wrong ratio"></div>
               <div class="tiny daily-overview-segment-legend" id="dailyOverviewStateLegend"></div>
@@ -216,17 +216,16 @@
               <span>Correct</span>
             </label>
             <label class="session-filter-option daily-review-status-option" style="background-color: var(--warn)">
-              <input id="dailyReviewFilterYellow" type="checkbox" />
+              <input id="dailyReviewFilterYellow" type="checkbox" checked />
               <span>Partialy</span>
             </label>
             <label class="session-filter-option daily-review-status-option" style="background-color: var(--danger)">
-              <input id="dailyReviewFilterRed" type="checkbox" />
+              <input id="dailyReviewFilterRed" type="checkbox" checked />
               <span>Wrong</span>
             </label>
           </div>
-          <div class="tiny" id="dailyReviewSelectionMeta" style="margin-bottom:8px;">0 topics selected • 0 cards</div>
           <div id="dailyReviewTopicList" class="session-filter-list daily-review-topic-list"></div>
-          <div class="controls" style="margin-top:14px; margin-inline: 0; border-radius: 14px;">
+          <div class="controls daily-review-start-controls">
             <button class="btn start-daily-review-btn" id="startDailyReviewBtn" type="button">Start Review</button>
           </div>
         </div>
@@ -235,7 +234,7 @@
       <section class="panel" id="topicPanel">
         <div class="section">
           <div class="topic-sticky-stack">
-            <div class="controls topic-header" style="align-items:center;margin-inline: 0; ">
+            <div class="header-tile">
               <button class="btn subject-sidebar-toggle" id="sidebarToggle" type="button" aria-label="Open sidebar"
                 title="Open sidebar">
                 <img src="icons/burger.svg" alt="" aria-hidden="true" class="app-icon" />
@@ -328,7 +327,7 @@
       <section class="panel" id="deckPanel">
         <div class="section" id="cardsOverviewSection">
           <!-- <div class="deck-sticky-stack"> -->
-          <div class="controls deck-controls deck-header-tile">
+          <div class="controls deck-controls header-tile">
             <button class="btn" id="backToTopicsBtn" aria-label="Back to topics">
               <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
@@ -520,7 +519,7 @@
 
       <section class="panel" id="editorPanel">
         <div class="section editor-shell">
-          <div class="controls editor" style="align-items:center; margin-inline: 0">
+          <div class="controls editor header-tile" style="align-items:center; margin-inline: 0">
             <button class="btn" id="backToDeckBtn" aria-label="Back to deck">
               <img src="icons/back.png" alt="" class="app-icon" aria-hidden="true" />
             </button>
@@ -677,6 +676,7 @@
               </button>
             </div>
           </div>
+          <div class="editor-separator hor" aria-hidden="true"></div>
           <div class="content-exchange-scroll">
             <div class="tiny" id="contentExchangeStatus">Load user datasets and import selected content.</div>
             <div class="tiny content-exchange-policy-hint" id="contentExchangePolicyHint"></div>
@@ -697,7 +697,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.18.5';
+    window.__APP_VERSION__ = window.__APP_VERSION__ || 'v2026.03.19.13';
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app-globals.js" defer></script>
@@ -843,6 +843,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="tiny" id="moveCardsSelectionInfo">0 cards selected</div>
     <div class="grid two">
       <div>
@@ -881,6 +882,7 @@
           <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
         </button>
       </div>
+      <div class="editor-separator hor" aria-hidden="true"></div>
       <div class="topic-search-controls">
         <input id="topicSearchInput" type="text" placeholder="Search in question and answer text..." />
         <button class="btn" id="runTopicSearchBtn" type="button">Search</button>
@@ -905,6 +907,7 @@
           </button>
         </div>
       </div>
+      <div class="editor-separator hor" aria-hidden="true"></div>
       <div class="controls" style="margin:0; margin-top:8px; width: 100%; align-items: center;">
         <div class="tiny" id="progressCheckMeta">Loading...</div>
       </div>
@@ -1019,6 +1022,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="tiny review-selection-debug-meta" id="reviewSelectionDebugMeta">0 card(s)</div>
     <pre class="review-selection-debug-output" id="reviewSelectionDebugOutput"></pre>
     <div class="controls review-selection-debug-actions" style="margin-top:12px; margin-inline:0;">
@@ -1035,6 +1039,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="session-filter-list">
       <label class="session-filter-option">
         <input id="sessionFilterAll" type="checkbox" />
@@ -1073,6 +1078,7 @@
     <div class="editor-header">
       <h3>Session Complete</h3>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="session-complete-message" id="sessionCompleteMessage">Great work!</div>
     <div class="session-complete-stats">
       <div class="session-complete-stat">
@@ -1102,6 +1108,7 @@
     <div class="editor-header">
       <h3>Quit Session?</h3>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="session-quit-confirm-message" id="sessionQuitConfirmMessage">
       Do you really want to quit?
     </div>
@@ -1119,6 +1126,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <p class="tiny settings-intro">Manage backups, diagnostics, and account actions.</p>
     <div class="settings-layout">
       <section class="settings-card">
@@ -1172,6 +1180,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="migration-log-meta tiny" id="imageMigrationStatus">Waiting to start...</div>
     <pre id="imageMigrationLogOutput" class="migration-log-output" aria-live="polite"></pre>
     <div class="controls migration-log-actions">
@@ -1187,6 +1196,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="editor-grid editor-grid-single">
       <div class="editor-panel editor-main">
         <div class="editor-main-scroll">
@@ -1309,6 +1319,7 @@
           <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
         </button>
       </div>
+      <div class="editor-separator hor" aria-hidden="true"></div>
       <div id="recentStorageImagePickerStatus" class="tiny">Loading images...</div>
       <div id="recentStorageImagePickerGrid" class="recent-storage-image-picker-grid" aria-live="polite"></div>
       <div class="recent-storage-image-picker-actions">
@@ -1325,7 +1336,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
-    <div class="tiny">Tap the card to flip. Space also flips.</div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="card-preview-shell">
       <div class="flash-area card-preview-area">
         <div id="previewFlashcard" class="flashcard">
@@ -1357,6 +1368,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="table-builder-controls">
       <div class="table-builder-size">
         <label for="tableRowsInput">Rows</label>
@@ -1418,6 +1430,7 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
+    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="editor-grid editor-grid-single">
       <div class="editor-panel editor-main">
         <div class="editor-field">
@@ -1447,6 +1460,12 @@
       </div>
     </div>
   </dialog>
+
+  <div id="mobileEditorQuickFormatBar" class="mobile-editor-format-bar hidden" aria-hidden="true">
+    <button class="btn mobile-editor-format-btn" type="button" data-format="bold" aria-label="Bold">B</button>
+    <button class="btn mobile-editor-format-btn" type="button" data-format="italic" aria-label="Italic">I</button>
+    <button class="btn mobile-editor-format-btn" type="button" data-format="underline" aria-label="Underline">U</button>
+  </div>
 
   <div id="sessionImageLightbox" class="session-image-lightbox hidden" aria-hidden="true">
     <img id="sessionImageLightboxImg" src="" alt="Expanded flashcard image" />

@@ -74,16 +74,25 @@ function normalizeSubjectExamDateForReview(value = '') {
 }
 
 /**
+ * @function isSubjectArchivedForDailyReview
+ * @description Returns true when a subject is archived.
+ */
+
+function isSubjectArchivedForDailyReview(subject = null) {
+  const src = (subject && typeof subject === 'object') ? subject : {};
+  return src.isArchived === true
+    || String(src.isArchived || '').trim().toLowerCase() === 'true'
+    || Number(src.isArchived) === 1;
+}
+
+/**
  * @function isSubjectExcludedFromDailyReview
  * @description Returns true when a subject is configured to be skipped in Daily Review.
  */
 
 function isSubjectExcludedFromDailyReview(subject = null, todayKey = getTodayKey()) {
   const src = (subject && typeof subject === 'object') ? subject : {};
-  const archived = src.isArchived === true
-    || String(src.isArchived || '').trim().toLowerCase() === 'true'
-    || Number(src.isArchived) === 1;
-  if (archived) return true;
+  if (isSubjectArchivedForDailyReview(src)) return true;
   const examDate = normalizeSubjectExamDateForReview(src.examDate);
   if (!examDate) return false;
   return examDate < todayKey;
@@ -1192,6 +1201,19 @@ function isProgressRecordDueForFsrsReview(record = null, now = Date.now()) {
 }
 
 /**
+ * @function isProgressRecordDueForDailyReview
+ * @description Returns true when the due day is today or earlier (dueAt day <= today).
+ */
+
+function isProgressRecordDueForDailyReview(record = null, referenceDayKey = getTodayKey()) {
+  const dueTs = getProgressFsrsDueTimestamp(record);
+  if (!Number.isFinite(dueTs)) return false;
+  const dueDayKey = getTodayKey(new Date(dueTs));
+  const refDayKey = normalizeDailyReviewDayKey(referenceDayKey) || getTodayKey();
+  return String(dueDayKey || '').localeCompare(refDayKey) <= 0;
+}
+
+/**
  * @function computeFsrsDueUrgencyWeight
  * @description Returns extra urgency weight (0..1) based on FSRS due/overdue timing.
  */
@@ -1466,6 +1488,8 @@ function resetDailyReviewState() {
     reviewPriorityByCardId: new Map(),
     latestStateByCardId: new Map(),
     latestStateCounts: createEmptyDailyReviewLatestStateCounts(),
+    completeProgressCounts: createEmptyDailyReviewLatestStateCounts(),
+    completeProgressTotalCards: 0,
     dateByCardId: new Map(),
     dateKeys: [],
     selectedDateStart: 0,
@@ -1476,6 +1500,71 @@ function resetDailyReviewState() {
     size: 0,
     activityStreakDays: 0,
     activityDaysTotal: 0
+  };
+}
+
+/**
+ * @function buildDailyReviewCompleteProgressState
+ * @description Builds "Complete Progress" counters for all cards in non-archived subjects.
+ */
+
+async function buildDailyReviewCompleteProgressState(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const uiBlocking = opts.uiBlocking === true;
+  const empty = {
+    counts: createEmptyDailyReviewLatestStateCounts(),
+    totalCards: 0
+  };
+
+  const subjects = await getAll('subjects', {
+    uiBlocking,
+    loadingLabel: 'Loading subjects...'
+  });
+  const activeSubjectIds = new Set(
+    (Array.isArray(subjects) ? subjects : [])
+      .filter(subject => !isSubjectArchivedForDailyReview(subject))
+      .map(subject => String(subject?.id || '').trim())
+      .filter(Boolean)
+  );
+  if (!activeSubjectIds.size) return empty;
+
+  const topics = await getAll('topics', {
+    uiBlocking,
+    loadingLabel: 'Loading topics...'
+  });
+  const topicIds = (Array.isArray(topics) ? topics : [])
+    .filter(topic => activeSubjectIds.has(String(topic?.subjectId || '').trim()))
+    .map(topic => String(topic?.id || '').trim())
+    .filter(Boolean);
+  if (!topicIds.length) return empty;
+
+  const refs = await getCardRefsByTopicIds(topicIds, {
+    uiBlocking,
+    payloadLabel: `daily-review-complete-progress-refs-${topicIds.length}`
+  });
+  const cardIds = Array.from(new Set(
+    (Array.isArray(refs) ? refs : [])
+      .map(card => String(card?.id || '').trim())
+      .filter(Boolean)
+  ));
+  if (!cardIds.length) return empty;
+
+  await ensureProgressForCardIds(cardIds, {
+    uiBlocking,
+    payloadLabel: `daily-review-complete-progress-state-${cardIds.length}`
+  });
+
+  const counts = createEmptyDailyReviewLatestStateCounts();
+  cardIds.forEach(cardId => {
+    const record = progressByCardId.get(cardId) || null;
+    const state = getCurrentProgressState(record, cardId);
+    const key = normalizeDailyReviewLatestStateKey(state.key);
+    if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
+  });
+
+  return {
+    counts,
+    totalCards: cardIds.length
   };
 }
 
@@ -2450,15 +2539,16 @@ function getDailyReviewFilteredCardIdsByTopic(topicId) {
   if (!key) return [];
   const cardIds = dailyReviewState.cardsByTopicId.get(key) || [];
   const dueOnly = isDailyReviewFsrsDueOnlyEnabled();
+  const todayKey = getTodayKey();
 
   return cardIds.filter(cardId => {
     if (!cardMatchesDailyReviewStatus(cardId)) return false;
 
     const record = progressByCardId.get(cardId);
 
-    // When FSRS "due‑only" mode is enabled, only show cards whose due date has arrived
+    // In FSRS due-only mode, include cards due today or overdue.
     if (dueOnly) {
-      if (!isProgressRecordDueForFsrsReview(record)) return false;
+      if (!isProgressRecordDueForDailyReview(record, todayKey)) return false;
     }
 
     // Optional: still avoid cards already mastered today if not using strict FSRS mode
@@ -3215,20 +3305,41 @@ function renderDailyOverviewStatsCards() {
   const grid = el('dailyOverviewStatsGrid');
   const bar = el('dailyOverviewStateBar');
   const legend = el('dailyOverviewStateLegend');
+  const completeBar = el('reviewProgressBar');
+  const completeLegend = el('reviewProgressLegend');
+  const completeMeta = el('reviewProgressMeta');
   const streakDaysEl = el('dailyOverviewStreakDays');
   const streakMetaEl = el('dailyOverviewStreakMeta');
   const currentStreak = el('currentStreak');
   const dayText = el('dayText');
   if (!grid || !bar || !legend || !streakDaysEl || !streakMetaEl) return;
+
+  const completeCounts = dailyReviewState.completeProgressCounts || createEmptyDailyReviewLatestStateCounts();
+  const completeTotalCards = toCounterInt(dailyReviewState.completeProgressTotalCards);
+  if (completeMeta) {
+    const cardWord = completeTotalCards === 1 ? 'card' : 'cards';
+    completeMeta.textContent = `${completeTotalCards} ${cardWord}`;
+  }
+  renderOverviewSegmentBar(completeBar, completeLegend, [
+    { key: 'mastered', label: 'Mastered', value: toCounterInt(completeCounts.mastered), color: '#22c55e' },
+    { key: 'correct', label: 'Correct', value: toCounterInt(completeCounts.correct), color: '#16a34a' },
+    { key: 'partial', label: 'Partially', value: toCounterInt(completeCounts.partial), color: '#f59e0b' },
+    { key: 'wrong', label: 'Wrong', value: toCounterInt(completeCounts.wrong), color: '#ef4444' },
+    { key: 'not-answered', label: 'Not answered yet', value: toCounterInt(completeCounts.notAnswered), color: '#64748b' }
+  ], {
+    emptyLabel: 'No cards in non-archived subjects yet.',
+    emptyLegendText: 'No cards in non-archived subjects yet.'
+  });
+
   const latest = dailyReviewState.latestStateCounts || createEmptyDailyReviewLatestStateCounts();
   const mastered = toCounterInt(latest.mastered);
   const correct = toCounterInt(latest.correct);
   const partially = toCounterInt(latest.partial)
   const wrong = toCounterInt(latest.wrong);
-  const answeredTotal = mastered + partially + wrong;
+  const answeredTotal = mastered + correct + partially + wrong;
   renderOverviewSegmentBar(bar, legend, [
-    { key: 'mastered', label: 'Mastered', value: mastered, color: '#2ffe06' },
-    { key: 'correct', label: 'Correct', value: correct, color: '#22c55e' },
+    { key: 'mastered', label: 'Mastered', value: mastered, color: '#22c55e' },
+    { key: 'correct', label: 'Correct', value: correct, color: '#16a34a' },
     { key: 'partial', label: 'Partially', value: partially, color: '#f59e0b' },
     { key: 'wrong', label: 'Wrong', value: wrong, color: '#ef4444' }
   ], {
@@ -3309,9 +3420,11 @@ async function prepareDailyReviewState(options = {}) {
   await ensureFsrsSettingsLoadedFromServer({ uiBlocking: false });
   const fsrsDueOnly = isDailyReviewFsrsDueOnlyEnabled();
   resetDailyReviewState();
+  const completeProgressState = await buildDailyReviewCompleteProgressState({ uiBlocking: false });
   if (traceEnabled) logReviewTrace(traceRunId, 'reset-state', traceStartedAt);
-  const yesterdayKey = getDayKeyByOffset(-1);
-  const todayKey = getTodayKey();
+  const nowDate = new Date();
+  const yesterdayKey = getDayKeyByOffset(-1, nowDate);
+  const todayKey = getTodayKey(nowDate);
   const progressRecords = await getAll('progress', {
     uiBlocking,
     loadingLabel: 'Loading review progress...'
@@ -3322,8 +3435,6 @@ async function prepareDailyReviewState(options = {}) {
     });
   }
   const rows = Array.isArray(progressRecords) ? progressRecords : [];
-  const nowDate = new Date();
-  const nowTs = nowDate.getTime();
   const computedReviewPriorityByCardId = new Map();
   let queuedScoreBackfills = 0;
   let queuedFsrsSeedBackfills = 0;
@@ -3414,7 +3525,7 @@ async function prepareDailyReviewState(options = {}) {
       skippedSameDayCount += 1;
       return;
     }
-    if (!isProgressRecordDueForFsrsReview(normalizedRecord, nowTs)) {
+    if (!isProgressRecordDueForDailyReview(normalizedRecord, todayKey)) {
       skippedNotDueCount += 1;
       return;
     }
@@ -3589,6 +3700,8 @@ async function prepareDailyReviewState(options = {}) {
     reviewPriorityByCardId,
     latestStateByCardId,
     latestStateCounts,
+    completeProgressCounts: completeProgressState.counts,
+    completeProgressTotalCards: toCounterInt(completeProgressState.totalCards),
     dateByCardId,
     dateKeys,
     selectedDateStart: 0,

@@ -298,12 +298,13 @@ function markOnboardingTutorialCompleted(ownerId = '') {
 /**
  * @function shouldShowOnboardingTutorial
  * @description Returns true when onboarding should be shown for the authenticated user.
+ * Auto-onboarding is now limited to profile-name completion.
  */
 
 function shouldShowOnboardingTutorial(ownerId = '') {
   const safeOwnerId = String(ownerId || '').trim();
   if (!safeOwnerId) return false;
-  return !hasCompletedOnboardingTutorial(safeOwnerId);
+  return !!onboardingNameRequired;
 }
 
 /**
@@ -899,11 +900,10 @@ async function boot() {
     alert(err?.message || 'Authentication failed.');
     return;
   }
-  let showOnboardingTutorial = shouldShowOnboardingTutorial(supabaseOwnerId);
   await refreshAuthenticatedProfileName();
+  const showOnboardingTutorial = shouldShowOnboardingTutorial(supabaseOwnerId);
   void syncAuthenticatedProfileNameRecord();
-  onboardingNameOnlyMode = onboardingNameRequired && !showOnboardingTutorial;
-  showOnboardingTutorial = showOnboardingTutorial || onboardingNameRequired;
+  onboardingNameOnlyMode = onboardingNameRequired;
   wireOnboardingTutorial();
   wireEditorIntro();
 

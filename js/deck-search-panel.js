@@ -904,6 +904,17 @@ function buildCardTile(card, idx, compact = false) {
   tile.className = 'card-tile card-tile-overview';
   tile.dataset.cardId = String(card?.id || '');
   if (compact) tile.classList.add('card-tile-compact');
+  if (!compact && typeof getCurrentProgressState === 'function') {
+    const cardId = String(card?.id || '').trim();
+    if (cardId) {
+      const progressRecord = progressByCardId.get(cardId);
+      const progressState = getCurrentProgressState(progressRecord, cardId);
+      const stateKey = String(progressState?.key || '').trim();
+      if (stateKey && stateKey !== 'not-answered') {
+        tile.classList.add(`card-progress-glow-${stateKey}`);
+      }
+    }
+  }
   const selectionEnabled = deckSelectionMode && !compact;
   if (selectionEnabled) {
     tile.classList.add('selection-mode');
@@ -1626,6 +1637,17 @@ async function loadDeck(options = {}) {
   const uiBlocking = opts.uiBlocking !== false;
   setDeckTitle(selectedTopic.name);
   const cards = await getCardsByTopicIds([selectedTopic.id], { force, uiBlocking });
+  if (cards.length && typeof ensureProgressForCardIds === 'function') {
+    try {
+      await ensureProgressForCardIds(cards.map(card => card.id), {
+        force,
+        payloadLabel: 'deck-progress-state',
+        uiBlocking: false
+      });
+    } catch (err) {
+      console.warn('Unable to preload deck progress states:', err);
+    }
+  }
   setDeckTopicCardCount(cards.length);
   syncSelectedTopicCardCount(cards.length);
   cards.sort((a, b) => getCardCreatedAt(b) - getCardCreatedAt(a));

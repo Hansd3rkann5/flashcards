@@ -103,6 +103,43 @@
     --mobile-sidebar-reveal: min(70vw, 300px);
   }
 
+  .mobile-editor-format-bar {
+    position: fixed;
+    left: max(var(--space-3), env(safe-area-inset-left));
+    right: max(var(--space-3), env(safe-area-inset-right));
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+    z-index: 1400;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #385486;
+    border-radius: 12px;
+    background: rgba(11, 18, 34, 0.94);
+    box-shadow: 0 10px 24px rgba(4, 8, 18, 0.42);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .mobile-editor-format-bar.hidden {
+    display: none !important;
+  }
+
+  .mobile-editor-format-btn {
+    flex: 1 1 0;
+    min-height: 38px;
+    padding: 8px 10px;
+    font-weight: 700;
+    border-radius: 10px;
+  }
+
+  .mobile-editor-format-btn[data-format="italic"] {
+    font-style: italic;
+  }
+
+  .mobile-editor-format-btn[data-format="underline"] {
+    text-decoration: underline;
+  }
+
   .runtime-host-hint {
     font-size: 0.68rem;
     padding: calc(env(safe-area-inset-top)/4);
@@ -477,12 +514,12 @@
   }
 
   .mcq-option {
-    width: min(100%, 92%);
+    width: 100%;
   }
 
   .mcq-options.two-row-grid {
     width: 100%;
-    grid-template-columns: repeat(var(--mcq-grid-cols, 1), minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     box-sizing: border-box;
   }
 

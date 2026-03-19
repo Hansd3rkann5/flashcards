@@ -1,5 +1,9 @@
 // EditorPanel (MCQ, Formatting, Table Builder, Formula)
 // ============================================================================
+const MOBILE_EDITOR_FORMAT_TARGET_IDS = new Set(['cardPrompt', 'cardAnswer', 'editCardPrompt', 'editCardAnswer']);
+let mobileEditorFormatBarWired = false;
+let mobileEditorFormatActiveInput = null;
+
 /**
 * @function syncPrimaryMcqUi
  * @description Synchronizes primary MCQ UI.
@@ -454,6 +458,76 @@ function toggleInlineFormat(textarea, format = 'bold') {
 
   textarea.focus();
   emitTextareaInput(textarea);
+}
+
+function isMobileEditorFormatViewport() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 768px)').matches;
+}
+
+function isMobileEditorFormatTarget(inputEl) {
+  if (!(inputEl instanceof HTMLTextAreaElement)) return false;
+  const id = String(inputEl.id || '').trim();
+  if (MOBILE_EDITOR_FORMAT_TARGET_IDS.has(id)) return true;
+  return inputEl.classList.contains('mcq-option-input');
+}
+
+function resolveMobileEditorFormatActiveInput() {
+  const active = document.activeElement;
+  return isMobileEditorFormatTarget(active) ? active : null;
+}
+
+function renderMobileEditorFormatBar() {
+  const bar = el('mobileEditorQuickFormatBar');
+  if (!bar) return;
+  const activeInput = resolveMobileEditorFormatActiveInput()
+    || (isMobileEditorFormatTarget(mobileEditorFormatActiveInput) ? mobileEditorFormatActiveInput : null);
+  const shouldShow = !!activeInput && isMobileEditorFormatViewport();
+  mobileEditorFormatActiveInput = shouldShow ? activeInput : null;
+  bar.classList.toggle('hidden', !shouldShow);
+  bar.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+}
+
+function wireMobileEditorFormatBar() {
+  if (mobileEditorFormatBarWired) return;
+  const bar = el('mobileEditorQuickFormatBar');
+  if (!bar) return;
+  mobileEditorFormatBarWired = true;
+
+  bar.querySelectorAll('.mobile-editor-format-btn').forEach(btn => {
+    btn.addEventListener('pointerdown', e => {
+      // Keep textarea focus so selection/caret stays intact while tapping the quick-format buttons.
+      e.preventDefault();
+    });
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const target = resolveMobileEditorFormatActiveInput() || mobileEditorFormatActiveInput;
+      if (!isMobileEditorFormatTarget(target)) return;
+      const format = String(btn.dataset.format || '').trim().toLowerCase() || 'bold';
+      toggleInlineFormat(target, format);
+      renderMobileEditorFormatBar();
+    });
+  });
+
+  document.addEventListener('focusin', () => {
+    mobileEditorFormatActiveInput = resolveMobileEditorFormatActiveInput();
+    renderMobileEditorFormatBar();
+  });
+
+  document.addEventListener('focusout', () => {
+    window.setTimeout(() => {
+      mobileEditorFormatActiveInput = resolveMobileEditorFormatActiveInput();
+      renderMobileEditorFormatBar();
+    }, 0);
+  });
+
+  window.addEventListener('resize', renderMobileEditorFormatBar);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', renderMobileEditorFormatBar);
+  }
+  document.addEventListener('visibilitychange', renderMobileEditorFormatBar);
+  renderMobileEditorFormatBar();
 }
 
 /**
@@ -1928,6 +2002,7 @@ function handleTextAlignShortcut(e) {
 
 function wireTextFormattingToolbar() {
   ensureInlineColorToolbarControls();
+  wireMobileEditorFormatBar();
   document.querySelectorAll('.text-toolbar .toolbar-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
