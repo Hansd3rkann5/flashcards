@@ -120,6 +120,8 @@ const SESSION_DESKTOP_AUTO_SWIPE_COMMIT_DELAY_MS = 420;
 const SESSION_COARSE_POINTER_BUTTON_SWIPE_MIN_WIDTH = 768;
 
 let sessionProgrammaticSwipeInFlight = false;
+let faceTopicPillResizeWired = false;
+let faceTopicPillResizeRafId = 0;
 
 /**
  * Block global Space key behavior while answering MCQs.
@@ -582,74 +584,16 @@ async function startSession(options = {}) {
 }
 
 /**
- * @function getSessionTextMetrics
- * @description Returns the session text metrics.
- */
-
-function getSessionTextMetrics(content = '') {
-  const parser = document.createElement('div');
-  parser.innerHTML = markdownToHtml(content || '');
-  const plainText = (parser.textContent || '').replace(/\s+/g, ' ').trim();
-  const lines = String(content || '').split('\n').filter(line => line.trim().length > 0).length;
-  const words = plainText ? plainText.split(' ').filter(Boolean).length : 0;
-  return {
-    chars: plainText.length,
-    words,
-    lines
-  };
-}
-
-/**
- * @function computeSessionTextSizeRem
- * @description Handles compute session text size rem logic.
- */
-
-function computeSessionTextSizeRem(content = '', options = {}) {
-  const opts = options && typeof options === 'object' ? options : {};
-  const metrics = getSessionTextMetrics(content);
-  const chars = metrics.chars;
-  const lines = metrics.lines;
-  const words = metrics.words;
-  let sizeRem = 1.18;
-
-  if (chars <= 20 && lines <= 1) sizeRem = 2.05;
-  else if (chars <= 45 && lines <= 2) sizeRem = 1.82;
-  else if (chars <= 80 && lines <= 3) sizeRem = 1.58;
-  else if (chars <= 130 && lines <= 4) sizeRem = 1.36;
-  else if (chars <= 210) sizeRem = 1.2;
-  else sizeRem = 1.08;
-
-  if (words >= 35) sizeRem -= 0.08;
-  if (lines >= 6) sizeRem -= 0.1;
-  if (opts.hasImage) sizeRem -= 0.2;
-  if (opts.isMcq) sizeRem -= 0.08;
-
-  const optionCount = Math.max(0, Math.trunc(Number(opts.optionCount) || 0));
-  if (opts.forMcqOption && optionCount > 0) {
-    if (optionCount >= 4) sizeRem -= 0.12;
-    if (optionCount >= 6) sizeRem -= 0.08;
-    if (chars <= 42 && lines <= 2) sizeRem += 0.08;
-  }
-
-  if (opts.preferLargerBack && !opts.hasImage && !opts.isMcq) {
-    if (chars <= 170 && lines <= 5) sizeRem += 0.12;
-    if (chars <= 90 && lines <= 3) sizeRem += 0.08;
-  }
-
-  const maxRem = opts.preferLargerBack ? 2.24 : 2.1;
-  return Math.max(0.98, Math.min(maxRem, sizeRem));
-}
-
-/**
  * @function applySessionTextSize
- * @description Applies session text size.
+ * @description Applies fixed session text size class.
  */
 
 function applySessionTextSize(container, content = '', options = {}) {
   if (!container) return;
-  const sizeRem = computeSessionTextSizeRem(content, options);
+  void content;
+  void options;
   container.classList.add('session-dynamic-text');
-  container.style.setProperty('--session-text-size', `${sizeRem.toFixed(4)}rem`);
+  container.style.removeProperty('--session-text-size');
 }
 
 /**
@@ -756,6 +700,92 @@ function ensureSessionTopicPills() {
   };
 }
 
+function convertCssLengthToPx(value = '', contextEl = null) {
+  const raw = String(value || '').trim();
+  if (!raw) return NaN;
+  const numeric = Number.parseFloat(raw);
+  if (!Number.isFinite(numeric)) return NaN;
+  if (raw.endsWith('px') || /^[-+]?\d*\.?\d+$/.test(raw)) return numeric;
+  if (raw.endsWith('rem')) {
+    const rootFontPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    return numeric * rootFontPx;
+  }
+  if (raw.endsWith('em')) {
+    const baseEl = contextEl instanceof Element ? contextEl : document.documentElement;
+    const localFontPx = Number.parseFloat(getComputedStyle(baseEl).fontSize) || 16;
+    return numeric * localFontPx;
+  }
+  return numeric;
+}
+
+function fitFaceTopicPillText(pillEl) {
+  if (!(pillEl instanceof HTMLElement)) return;
+  if (!pillEl.isConnected || pillEl.classList.contains('hidden')) return;
+  const faceEl = pillEl.closest('.face');
+  if (!(faceEl instanceof HTMLElement)) return;
+  const faceRect = faceEl.getBoundingClientRect();
+  if (!(faceRect.width > 0)) return;
+
+  const leftAnchorEl = faceEl.querySelector('.card-corner-label');
+  const rightAnchorEl = faceEl.querySelector('.card-edit-btn');
+  let leftBoundPx = faceRect.left + 12;
+  let rightBoundPx = faceRect.right - 12;
+
+  if (leftAnchorEl instanceof HTMLElement) {
+    const rect = leftAnchorEl.getBoundingClientRect();
+    if (rect.width > 0) leftBoundPx = Math.max(leftBoundPx, rect.right + 8);
+  }
+  if (rightAnchorEl instanceof HTMLElement) {
+    const rect = rightAnchorEl.getBoundingClientRect();
+    if (rect.width > 0) rightBoundPx = Math.min(rightBoundPx, rect.left - 8);
+  }
+
+  const maxWidthPx = Math.max(72, Math.floor(rightBoundPx - leftBoundPx));
+  pillEl.style.setProperty('--face-topic-pill-max-width', `${maxWidthPx}px`);
+  pillEl.style.removeProperty('--face-topic-pill-font-size');
+
+  const computed = getComputedStyle(pillEl);
+  const baseFontPx = Number.parseFloat(computed.fontSize);
+  if (!Number.isFinite(baseFontPx) || baseFontPx <= 0) return;
+  const minFontRaw = computed.getPropertyValue('--face-topic-pill-min-font-size');
+  const minFromCssPx = convertCssLengthToPx(minFontRaw, pillEl);
+  const minFontPx = Number.isFinite(minFromCssPx)
+    ? Math.min(baseFontPx, Math.max(8, minFromCssPx))
+    : Math.max(8, baseFontPx * 0.68);
+
+  let currentFontPx = baseFontPx;
+  let guard = 0;
+  while (pillEl.scrollWidth > (pillEl.clientWidth + 1) && currentFontPx > minFontPx && guard < 32) {
+    currentFontPx = Math.max(minFontPx, currentFontPx - 0.5);
+    pillEl.style.setProperty('--face-topic-pill-font-size', `${currentFontPx.toFixed(2)}px`);
+    guard += 1;
+  }
+}
+
+function queueFitFaceTopicPillText(pillEl) {
+  if (!(pillEl instanceof HTMLElement)) return;
+  requestAnimationFrame(() => {
+    fitFaceTopicPillText(pillEl);
+    requestAnimationFrame(() => fitFaceTopicPillText(pillEl));
+  });
+}
+
+function queueFitAllVisibleFaceTopicPills() {
+  if (faceTopicPillResizeRafId) return;
+  faceTopicPillResizeRafId = requestAnimationFrame(() => {
+    faceTopicPillResizeRafId = 0;
+    document.querySelectorAll('.face-topic-pill:not(.hidden)').forEach(node => {
+      fitFaceTopicPillText(node);
+    });
+  });
+}
+
+function ensureFaceTopicPillResizeSync() {
+  if (faceTopicPillResizeWired) return;
+  faceTopicPillResizeWired = true;
+  window.addEventListener('resize', queueFitAllVisibleFaceTopicPills, { passive: true });
+}
+
 /**
  * @function setCardTopicPill
  * @description Sets the card topic pill.
@@ -767,12 +797,16 @@ function setCardTopicPill(pillEl, topicName = '') {
   if (!name) {
     pillEl.textContent = '';
     pillEl.removeAttribute('title');
+    pillEl.style.removeProperty('--face-topic-pill-font-size');
+    pillEl.style.removeProperty('--face-topic-pill-max-width');
     pillEl.classList.add('hidden');
     return;
   }
   pillEl.textContent = name;
   pillEl.title = name;
   pillEl.classList.remove('hidden');
+  ensureFaceTopicPillResizeSync();
+  queueFitFaceTopicPillText(pillEl);
 }
 
 /**
@@ -1382,15 +1416,9 @@ function renderCardContent(card) {
     const opts = card.options || [];
     const optionCount = opts.length;
     const requireOrder = card.optionsRequireOrder === true;
-    const orderVal = (option, idx) => {
-      const raw = Number(option?.order || 0);
-      return raw > 0 ? raw : idx + 1;
-    };
-    const optionList = requireOrder
-      ? opts.map((option, originalIndex) => ({ option, originalIndex }))
-        .sort((a, b) => orderVal(a.option, a.originalIndex) - orderVal(b.option, b.originalIndex))
-      : opts.map((option, originalIndex) => ({ option, originalIndex, sortKey: Math.random() }))
-        .sort((a, b) => a.sortKey - b.sortKey);
+    const optionList = opts
+      .map((option, originalIndex) => ({ option, originalIndex, sortKey: Math.random() }))
+      .sort((a, b) => a.sortKey - b.sortKey);
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'mcq-options';
     optionsWrap.classList.toggle('require-order', requireOrder);

@@ -34,6 +34,28 @@
   --font-size-base: clamp(15px, 0.9vw + 12px, 18px);
   --font-size-title: clamp(1.1rem, 1.2vw + 0.8rem, 1.5rem);
   --font-size-small: clamp(0.82rem, 0.3vw + 0.75rem, 0.95rem);
+  --session-font-size: 1.8rem;
+  --mcq-option-font-size: clamp(1rem, 0.7rem + 1.02vw, 1.24rem);
+  --mcq-option-line-height: 1.34;
+  --mcq-option-min-height: clamp(50px, 4.9vw, 58px);
+  --mcq-option-pad-y: clamp(9px, 1.3vw, 15px);
+  --mcq-option-pad-x: clamp(10px, 1.7vw, 18px);
+  --mcq-option-radius: clamp(14px, 1.3vw, 20px);
+  --mcq-option-gap: clamp(6px, 1.2vw, 12px);
+  --mcq-options-padding: clamp(6px, 1.7vw, 14px);
+  --mcq-check-min-width: clamp(112px, 26vw, 160px);
+  --mcq-key-size: clamp(16px, 2vw, 20px);
+  --mcq-key-font-size: clamp(0.56rem, 0.35rem + 0.35vw, 0.68rem);
+  --mcq-order-badge-size: clamp(20px, 2.6vw, 26px);
+  --mcq-order-badge-font-size: clamp(0.66rem, 0.44rem + 0.4vw, 0.82rem);
+  --mcq-order-badge-offset: clamp(6px, 1.3vw, 10px);
+  --card-tile-mcq-font-size: clamp(0.74rem, 0.58rem + 0.28vw, 0.9rem);
+  --card-tile-mcq-gap: clamp(5px, 0.9vw, 8px);
+  --card-tile-mcq-pad-y: clamp(5px, 0.8vw, 7px);
+  --card-tile-mcq-pad-x: clamp(7px, 1.2vw, 10px);
+  --card-tile-mcq-radius: clamp(8px, 1vw, 10px);
+  --card-tile-mcq-badge-size: clamp(18px, 2.3vw, 24px);
+  --card-tile-mcq-badge-font-size: clamp(0.66rem, 0.48rem + 0.32vw, 0.76rem);
 
   /* Spacing scale */
   --space-1: 6px;
@@ -921,6 +943,10 @@ body.app-loading {
   white-space: nowrap;
 }
 
+.deck-bulk-actions .btn.red {
+  flex: 0
+}
+
 .deck-sticky-stack {
   position: sticky;
   top: 0;
@@ -1152,7 +1178,6 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 0px 20px var(--accent);
 }
 
 #editorPanel .editor-grid {
@@ -1160,6 +1185,7 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   min-height: 0;
   height: 100%;
   align-items: stretch;
+  padding-top: var(--space-5);
 }
 
 #editorPanel .editor-list {
@@ -1463,7 +1489,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   position: sticky;
   top: 0;
   z-index: 10;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .section {
@@ -1572,6 +1598,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .subject-progress-panel,
@@ -1781,6 +1808,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   --session-card-chip-radius: 12px;
   --session-card-chip-pad-x: 12px;
   --session-card-chip-font-size: 0.84rem;
+  --face-topic-pill-min-font-size: 0.62rem;
 }
 
 .study-selection .counter {
@@ -2430,7 +2458,7 @@ textarea:focus-visible {
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-evenly;
+  /* justify-content: space-evenly; */
 }
 
 #studySessionSection .flashcard:not(.mcq-mode) .face-content {
@@ -2517,17 +2545,20 @@ textarea:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
+  height: var(--session-card-chip-height, 34px);
   min-height: var(--session-card-chip-height, 34px);
   padding: 0 var(--session-card-chip-pad-x, 12px);
   border-radius: var(--session-card-chip-radius, 12px);
-  font-size: var(--session-card-chip-font-size, 0.84rem);
+  font-size: var(--face-topic-pill-font-size, var(--session-card-chip-font-size, 0.84rem));
   line-height: 1;
   display: inline-flex;
   align-items: center;
-  /* max-width: min(50%, 320px); */
+  min-width: 0;
+  max-width: var(--face-topic-pill-max-width, calc(100% - ((2 * var(--session-card-chip-height, 34px)) + 72px)));
   justify-content: center;
   text-align: center;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .face-score-pill {
@@ -2612,10 +2643,10 @@ textarea:focus-visible {
 }
 
 .mcq-option {
-  margin: 8px 0;
-  padding: 14px 16px;
+  margin: var(--mcq-option-gap) 0;
+  padding: var(--mcq-option-pad-y) var(--mcq-option-pad-x);
   border: 1px solid #3a4f7c;
-  border-radius: 14px;
+  border-radius: var(--mcq-option-radius);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -2635,6 +2666,8 @@ textarea:focus-visible {
 .mcq-option .mcq-text {
   flex: 1 1 auto;
   text-align: center;
+  font-size: var(--mcq-option-font-size);
+  line-height: var(--mcq-option-line-height);
 }
 
 .mcq-option.correct {
@@ -2648,24 +2681,24 @@ textarea:focus-visible {
 }
 
 .mcq-options {
-  margin-top: 12px;
+  margin-top: var(--mcq-option-gap);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--mcq-option-gap);
   width: 100%;
   flex: 0 0 auto;
   justify-content: flex-start;
   align-self: stretch;
-  padding: var(--space-3);
+  padding: var(--mcq-options-padding);
 }
 
 .mcq-options.two-row-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: clamp(8px, 1.6vw, 16px);
   align-items: start;
-  justify-items: stretch;
-  align-content: start;
+  justify-items: center;
+  align-content: center;
   width: 100%;
 }
 
@@ -2673,9 +2706,11 @@ textarea:focus-visible {
   width: 100%;
   align-self: auto;
   margin: 0;
-  min-height: var(--mcq-equal-height, 48px);
+  min-height: var(--mcq-equal-height, var(--mcq-option-min-height));
   height: var(--mcq-equal-height, auto);
   justify-content: center;
+  align-content: center;
+  max-width: 800px;
 }
 
 .mcq-check-row {
@@ -2687,7 +2722,9 @@ textarea:focus-visible {
 }
 
 .mcq-check-btn {
-  min-width: 160px;
+  min-width: var(--mcq-check-min-width);
+  padding: clamp(8px, 1.1vw, 12px) clamp(12px, 2.4vw, 18px);
+  font-size: var(--mcq-option-font-size);
   background: #6f2bd4;
   border: none;
 }
@@ -2787,10 +2824,6 @@ textarea:focus-visible {
   border-radius: 10px;
 }
 
-.mcq-options.require-order .mcq-option {
-  justify-content: center;
-}
-
 .mcq-options.require-order .mcq-option.selected {
   border-color: rgba(2, 32, 108, 0.7);
 }
@@ -2809,16 +2842,16 @@ textarea:focus-visible {
 .mcq-options.require-order .mcq-option.selected::after {
   content: attr(data-sel-order);
   position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 26px;
-  height: 26px;
+  top: var(--mcq-order-badge-offset);
+  right: var(--mcq-order-badge-offset);
+  width: var(--mcq-order-badge-size);
+  height: var(--mcq-order-badge-size);
   border-radius: 50%;
   border: 1px solid #3a4f7c;
   background: rgba(13, 22, 42, 0.9);
   color: #d8e6ff;
   font-weight: 800;
-  font-size: 0.82rem;
+  font-size: var(--mcq-order-badge-font-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2844,8 +2877,8 @@ textarea:focus-visible {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  align-items: stretch;
+  gap: var(--mcq-option-gap);
+  align-items: center;
 }
 
 .mcq-answer-zone .card-tile-separator {
@@ -2862,26 +2895,27 @@ textarea:focus-visible {
   align-self: stretch;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .mcq-option {
   position: relative;
   width: 100%;
   align-self: stretch;
-  min-height: 48px;
+  min-height: var(--mcq-option-min-height);
 }
 
 .mcq-key-hint {
   position: absolute;
-  top: 6px;
-  left: 8px;
-  min-width: 20px;
-  height: 20px;
+  top: clamp(4px, 0.8vw, 6px);
+  left: clamp(6px, 1vw, 8px);
+  min-width: var(--mcq-key-size);
+  height: var(--mcq-key-size);
   border-radius: 999px;
   border: 1px solid #446292;
   background: rgba(20, 32, 57, 0.92);
   color: #cfe0ff;
-  font-size: 0.68rem;
+  font-size: var(--mcq-key-font-size);
   font-weight: 800;
   line-height: 1;
   display: inline-flex;
@@ -2893,13 +2927,13 @@ textarea:focus-visible {
 .mcq-text {
   display: block;
   width: 100%;
-  font-size: clamp(1.05rem, 0.55vw + 0.9rem, 1.28rem);
-  line-height: 1.38;
+  font-size: var(--mcq-option-font-size);
+  line-height: var(--mcq-option-line-height);
 }
 
 .mcq-text.rich-content,
 .mcq-text .md-line {
-  font-size: larger;
+  font-size: var(--mcq-option-font-size);
   line-height: inherit;
 }
 
@@ -3188,13 +3222,13 @@ textarea:focus-visible {
   align-self: center;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--card-tile-mcq-gap);
 }
 
 .card-tile-overview .card-tile-mcq-options.two-row-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
+  gap: var(--card-tile-mcq-gap);
   align-items: start;
   justify-items: stretch;
   align-content: start;
@@ -3206,7 +3240,7 @@ textarea:focus-visible {
   width: 100%;
   min-width: 0;
   margin: 0;
-  min-height: var(--mcq-equal-height, 42px);
+  min-height: var(--mcq-equal-height, clamp(34px, 4vw, 42px));
   height: var(--mcq-equal-height, auto);
   display: flex;
   align-items: center;
@@ -3216,8 +3250,8 @@ textarea:focus-visible {
 .card-tile-mcq-option {
   width: 100%;
   border: 1px solid #30466f;
-  border-radius: 10px;
-  padding: 6px 8px;
+  border-radius: var(--card-tile-mcq-radius);
+  padding: var(--card-tile-mcq-pad-y) var(--card-tile-mcq-pad-x);
   background: rgba(17, 26, 46, 0.72);
   box-sizing: border-box;
 }
@@ -3232,13 +3266,13 @@ textarea:focus-visible {
 .card-tile-mcq-option.is-ordered {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--card-tile-mcq-gap);
 }
 
 .card-tile-mcq-order-badge {
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 var(--card-tile-mcq-badge-size);
+  width: var(--card-tile-mcq-badge-size);
+  height: var(--card-tile-mcq-badge-size);
   border-radius: 999px;
   border: 1px solid #4c6ea7;
   background: rgba(21, 35, 63, 0.88);
@@ -3246,14 +3280,18 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.76rem;
+  font-size: var(--card-tile-mcq-badge-font-size);
   font-weight: 700;
   line-height: 1;
+  position: absolute;
+  left: var(--card-tile-mcq-pad-x);
 }
 
 .card-tile-mcq-option-text {
   width: 100%;
   min-width: 0;
+  font-size: var(--card-tile-mcq-font-size);
+  line-height: 1.3;
 }
 
 .card-tile-separator {
@@ -4004,7 +4042,7 @@ body.session-image-open {
 }
 
 .session-dynamic-text {
-  /* font-size: 2rem; */
+  font-size: var(--session-font-size);
   line-height: 1.34;
 }
 
@@ -4721,7 +4759,7 @@ dialog.modal.subject-edit-modal {
 
 #sessionQuitConfirmDialog {
   width: min(520px, calc(100vw - (2 * var(--space-6))));
-  height: 230px;
+  /* height: 230px; */
 }
 
 .session-quit-confirm-dialog {
@@ -7007,9 +7045,9 @@ button.formula-insert.save-primary {
 
 @media (orientation: portrait) {
 
-  .section {
+  /* .section {
     margin-top: 0;
-  }
+  } */
 
   #editorPanel .editor-grid {
     grid-template-columns: 1fr;

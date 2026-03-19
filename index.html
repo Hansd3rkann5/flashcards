@@ -509,10 +509,16 @@
               </div>
             </div>
           </div>
-          <div class="controls">
-            <button class="btn traffic green" data-grade="correct">Correct</button>
-            <button class="btn traffic yellow" data-grade="partial">Not quite</button>
-            <button class="btn traffic red" data-grade="wrong">Wrong</button>
+          <div class="controls session-grade-controls" id="sessionGradeControls">
+            <button class="btn session-grade-drag-handle" id="sessionGradeControlsDragHandle" type="button"
+              aria-label="Move grading controls" title="Move grading controls">
+              <img src="icons/burger.svg" alt="" class="app-icon" aria-hidden="true" />
+            </button>
+            <div class="session-grade-buttons" id="sessionGradeButtons">
+              <button class="btn traffic green" data-grade="correct">Correct</button>
+              <button class="btn traffic yellow" data-grade="partial">Not quite</button>
+              <button class="btn traffic red" data-grade="wrong">Wrong</button>
+            </div>
           </div>
         </div>
       </section>
@@ -532,7 +538,7 @@
               <button class="btn editor-sidebar-toggle" id="toggleEditorSidebarBtn">Cards</button>
             </div>
           </div>
-          <div class="editor-separator hor" aria-hidden="true"></div>
+          <!-- <div class="editor-separator hor" aria-hidden="true"></div> -->
           <div id="editorOverlay" class="editor-overlay"></div>
           <div class="editor-grid">
             <div class="editor-list editor-sidebar" style="overflow: auto;">
@@ -697,7 +703,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.19.3';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.19.4';
     window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.03.19.15';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
@@ -1043,7 +1049,6 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
-    <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="session-filter-list">
       <label class="session-filter-option">
         <input id="sessionFilterAll" type="checkbox" />

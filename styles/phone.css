@@ -18,16 +18,22 @@
     --session-card-chip-radius: 11px;
     --session-card-chip-pad-x: 9px;
     --session-card-chip-font-size: 0.78rem;
+    --face-topic-pill-min-font-size: 0.56rem;
   }
 
   #studySessionSection .card-corner-label,
   #studySessionSection .card-edit-btn,
-  #studySessionSection .face-topic-pill,
   #cardPreviewDialog .card-corner-label,
-  #cardPreviewDialog .card-edit-btn,
-  #cardPreviewDialog .face-topic-pill {
+  #cardPreviewDialog .card-edit-btn {
     border-radius: var(--session-card-chip-radius, 11px);
     font-size: var(--session-card-chip-font-size, 0.78rem);
+    line-height: 1;
+  }
+
+  #studySessionSection .face-topic-pill,
+  #cardPreviewDialog .face-topic-pill {
+    border-radius: var(--session-card-chip-radius, 11px);
+    font-size: var(--face-topic-pill-font-size, var(--session-card-chip-font-size, 0.78rem));
     line-height: 1;
   }
 
