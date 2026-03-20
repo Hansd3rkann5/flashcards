@@ -138,7 +138,7 @@ body::before {
   background: rgba(12, 18, 34, 0.92);
   backdrop-filter: blur(10px);
   border-right: 1px solid #26365f;
-  padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -149,7 +149,6 @@ body::before {
   overflow: hidden;
   z-index: 6;
   box-sizing: border-box;
-  padding-bottom: var(--space-3);
 }
 
 
@@ -176,9 +175,10 @@ body::before {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-around;
   gap: calc(var(--space-2) + 2px);
   padding: 2px;
+  font-size: larger;
 }
 
 .sidebar-toggle {
@@ -1495,6 +1495,8 @@ body.session-complete-dialog-open #studySessionSection::before {
   top: 0;
   z-index: 10;
   margin-bottom: var(--space-4);
+  box-shadow: 0px -20px 20px 30px rgba(10, 16, 30, 1);
+  border-radius: 20px;
 }
 
 .section {
@@ -1517,7 +1519,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   padding: var(--space-2) var(--space-3);
   border: 1px solid #30476f;
   border-radius: 20px;
-  background: rgba(10, 16, 30, 0.899);
+  background: rgba(10, 16, 30);
   box-shadow: 0 0px 20px var(--accent);
   isolation: isolate;
   transform: translateZ(0);
@@ -1614,6 +1616,12 @@ body.session-complete-dialog-open #studySessionSection::before {
   padding: var(--space-4);
   display: grid;
   gap: var(--space-2);
+}
+
+#closeProgressCheckBtn {
+  position: relative;
+  padding: 0px;
+  right: 0;
 }
 
 .subject-progress-header,
@@ -6984,7 +6992,7 @@ button.formula-insert.save-primary {
   margin-inline: 0;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(16, 24, 45, 0) 0%, rgba(16, 24, 45, 0.94) 36%, rgba(16, 24, 45, 0.98) 100%);
-  box-shadow: 0px 11px 45px 30px rgba(10, 16, 30, 0.92);
+  box-shadow: 0px 30px 60px 20px rgba(10, 16, 30, 1);
 }
 
 /* #dailyReviewHomePanel .controls::before {

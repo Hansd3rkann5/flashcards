@@ -74,6 +74,50 @@ function normalizeSubjectExamDateForReview(value = '') {
 }
 
 /**
+ * @function getSubjectExamDateCapTimestamp
+ * @description Returns end-of-day timestamp for a normalized subject exam date.
+ */
+
+function getSubjectExamDateCapTimestamp(examDateKey = '') {
+  const normalized = normalizeSubjectExamDateForReview(examDateKey);
+  if (!normalized) return null;
+  const parts = normalized.split('-').map(part => Number(part));
+  if (parts.length !== 3) return null;
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  const capDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+  const ts = capDate.getTime();
+  return Number.isFinite(ts) ? ts : null;
+}
+
+/**
+ * @function getCappedReviewDueTimestamp
+ * @description Returns FSRS due timestamp capped to subject exam date for review-only logic.
+ */
+
+function getCappedReviewDueTimestamp(record = null, examDateKey = '') {
+  const dueTs = getProgressFsrsDueTimestamp(record);
+  if (!Number.isFinite(dueTs)) return null;
+  const examCapTs = getSubjectExamDateCapTimestamp(examDateKey);
+  if (!Number.isFinite(examCapTs)) return dueTs;
+  return Math.min(dueTs, examCapTs);
+}
+
+/**
+ * @function isCappedReviewDueOnOrBeforeDay
+ * @description Returns true when capped due timestamp is due on/before the reference day.
+ */
+
+function isCappedReviewDueOnOrBeforeDay(dueTs = null, referenceDayKey = getTodayKey()) {
+  if (!Number.isFinite(Number(dueTs))) return false;
+  const dueDayKey = getTodayKey(new Date(Number(dueTs)));
+  const refDayKey = normalizeDailyReviewDayKey(referenceDayKey) || getTodayKey();
+  return String(dueDayKey || '').localeCompare(refDayKey) <= 0;
+}
+
+/**
  * @function isSubjectArchivedForDailyReview
  * @description Returns true when a subject is archived.
  */
@@ -1486,6 +1530,8 @@ function resetDailyReviewState() {
     selectedTopicIds: new Set(),
     statusByCardId: new Map(),
     reviewPriorityByCardId: new Map(),
+    examDateByCardId: new Map(),
+    effectiveDueAtByCardId: new Map(),
     latestStateByCardId: new Map(),
     latestStateCounts: createEmptyDailyReviewLatestStateCounts(),
     completeProgressCounts: createEmptyDailyReviewLatestStateCounts(),
@@ -2544,11 +2590,10 @@ function getDailyReviewFilteredCardIdsByTopic(topicId) {
   return cardIds.filter(cardId => {
     if (!cardMatchesDailyReviewStatus(cardId)) return false;
 
-    const record = progressByCardId.get(cardId);
-
     // In FSRS due-only mode, include cards due today or overdue.
     if (dueOnly) {
-      if (!isProgressRecordDueForDailyReview(record, todayKey)) return false;
+      const dueTs = getDailyReviewCardDueTimestamp(cardId);
+      if (!isCappedReviewDueOnOrBeforeDay(dueTs, todayKey)) return false;
     }
 
     // Optional: still avoid cards already mastered today if not using strict FSRS mode
@@ -2574,46 +2619,45 @@ function getDailyReviewCardPriorityScore(cardId = '') {
 }
 
 /**
+ * @function getDailyReviewCardDueTimestamp
+ * @description Returns one card's effective review due timestamp (exam-date capped for review logic).
+ */
+
+function getDailyReviewCardDueTimestamp(cardId = '') {
+  const safeCardId = String(cardId || '').trim();
+  if (!safeCardId) return null;
+  const mapped = Number(dailyReviewState.effectiveDueAtByCardId?.get(safeCardId));
+  if (Number.isFinite(mapped)) return mapped;
+  const record = progressByCardId.get(safeCardId);
+  if (!record) return null;
+  const examDateKey = String(dailyReviewState.examDateByCardId?.get(safeCardId) || '').trim();
+  return getCappedReviewDueTimestamp(record, examDateKey);
+}
+
+/**
  * @function compareDailyReviewCardPriority
- * @description Comparator for Daily Review card ordering (high priority first).
+ * @description Comparator for Daily Review card ordering (earlier due date first).
  */
 
 function compareDailyReviewCardPriority(cardIdA = '', cardIdB = '') {
-  const recordA = progressByCardId.get(String(cardIdA || '').trim());
-  const recordB = progressByCardId.get(String(cardIdB || '').trim());
-
-  const now = Date.now();
-
-  const dueA = getProgressFsrsDueTimestamp(recordA);
-  const dueB = getProgressFsrsDueTimestamp(recordB);
-
-  const overdueA = Number.isFinite(dueA) ? (now - dueA) : -Infinity;
-  const overdueB = Number.isFinite(dueB) ? (now - dueB) : -Infinity;
-
-  const isOverdueA = overdueA > 0;
-  const isOverdueB = overdueB > 0;
-
-  // 1. Overdue cards first
-  if (isOverdueA !== isOverdueB) return isOverdueB - isOverdueA;
-
-  // 2. If both overdue, most overdue first
-  if (isOverdueA && isOverdueB) {
-    const diff = overdueB - overdueA;
-    if (Math.abs(diff) > 1) return diff;
+  const dueA = getDailyReviewCardDueTimestamp(cardIdA);
+  const dueB = getDailyReviewCardDueTimestamp(cardIdB);
+  const dueAValid = Number.isFinite(dueA);
+  const dueBValid = Number.isFinite(dueB);
+  if (dueAValid && dueBValid) {
+    const dueDiff = dueA - dueB;
+    if (Math.abs(dueDiff) > 1) return dueDiff;
+  } else if (dueAValid !== dueBValid) {
+    return dueAValid ? -1 : 1;
   }
 
-  // 3. Higher difficulty first
-  const diffA = Number(recordA?.fsrs?.card?.difficulty || 0);
-  const diffB = Number(recordB?.fsrs?.card?.difficulty || 0);
-  if (diffA !== diffB) return diffB - diffA;
-
-  // 4. Fallback: legacy priority score
+  // Fallback: legacy priority score
   const scoreA = getDailyReviewCardPriorityScore(cardIdA);
   const scoreB = getDailyReviewCardPriorityScore(cardIdB);
   const scoreDiff = scoreB - scoreA;
   if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
 
-  // 5. Fallback: deterministic ordering
+  // Fallback: deterministic ordering
   return String(cardIdA || '').localeCompare(String(cardIdB || ''));
 }
 
@@ -3504,7 +3548,7 @@ async function prepareDailyReviewState(options = {}) {
       fsrsSeedQueued: queuedFsrsSeedBackfills
     });
   }
-  const candidateCardIdSet = new Set();
+  const preliminaryCandidateCardIdSet = new Set();
   let skippedSameDayCount = 0;
   let skippedNotDueCount = 0;
   rows.forEach(row => {
@@ -3525,14 +3569,10 @@ async function prepareDailyReviewState(options = {}) {
       skippedSameDayCount += 1;
       return;
     }
-    if (!isProgressRecordDueForDailyReview(normalizedRecord, todayKey)) {
-      skippedNotDueCount += 1;
-      return;
-    }
-    candidateCardIdSet.add(cardId);
+    preliminaryCandidateCardIdSet.add(cardId);
   });
 
-  const uniqueCardIds = Array.from(candidateCardIdSet);
+  const uniqueCardIds = Array.from(preliminaryCandidateCardIdSet);
   if (traceEnabled) {
     logReviewTrace(traceRunId, 'review-candidates-derived', traceStartedAt, {
       uniqueCardIds: uniqueCardIds.length,
@@ -3545,6 +3585,8 @@ async function prepareDailyReviewState(options = {}) {
   const allowedCardIds = new Set();
   const statusByCardId = new Map();
   const reviewPriorityByCardId = new Map();
+  const examDateByCardId = new Map();
+  const effectiveDueAtByCardId = new Map();
   const latestStateByCardId = new Map();
   const latestStateCounts = createEmptyDailyReviewLatestStateCounts();
   const dateByCardId = new Map();
@@ -3585,10 +3627,11 @@ async function prepareDailyReviewState(options = {}) {
           const id = String(subject?.id || '').trim();
           const name = String(subject?.name || 'Unknown subject').trim() || 'Unknown subject';
           const accent = normalizeHexColor(subject?.accent || '#2dd4bf');
+          const examDate = normalizeSubjectExamDateForReview(subject?.examDate);
           if (id && isSubjectExcludedFromDailyReview(subject, todayKey)) {
             excludedSubjectIds.add(id);
           }
-          return [id, { name, accent }];
+          return [id, { name, accent, examDate }];
         })
       );
       if (traceEnabled) {
@@ -3600,10 +3643,22 @@ async function prepareDailyReviewState(options = {}) {
         const cardId = String(card?.id || '').trim();
         const topicId = String(card?.topicId || '').trim();
         if (!cardId || !topicId) return;
+        const normalizedRecord = progressByCardId.get(cardId) || normalizeProgressRecord(null, cardId);
         const topic = topicDirectoryById.get(topicId) || {};
         const subjectId = String(topic?.subjectId || '').trim();
         if (subjectId && excludedSubjectIds.has(subjectId)) return;
+        const subjectMeta = subjectMetaById.get(subjectId) || {};
+        const examDate = normalizeSubjectExamDateForReview(subjectMeta.examDate || '');
+        const effectiveDueTs = getCappedReviewDueTimestamp(normalizedRecord, examDate);
+        if (!isCappedReviewDueOnOrBeforeDay(effectiveDueTs, todayKey)) {
+          skippedNotDueCount += 1;
+          return;
+        }
         allowedCardIds.add(cardId);
+        examDateByCardId.set(cardId, examDate);
+        if (Number.isFinite(effectiveDueTs)) {
+          effectiveDueAtByCardId.set(cardId, Number(effectiveDueTs));
+        }
         if (!cardsByTopicId.has(topicId)) cardsByTopicId.set(topicId, []);
         cardsByTopicId.get(topicId).push(cardId);
       });
@@ -3698,6 +3753,8 @@ async function prepareDailyReviewState(options = {}) {
     selectedTopicIds,
     statusByCardId,
     reviewPriorityByCardId,
+    examDateByCardId,
+    effectiveDueAtByCardId,
     latestStateByCardId,
     latestStateCounts,
     completeProgressCounts: completeProgressState.counts,
