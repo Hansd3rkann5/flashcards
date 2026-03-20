@@ -565,15 +565,13 @@ body.app-loading {
   inset: 0;
   z-index: 120;
   margin: 0;
-  width: 100vw;
+  width: 100dvw;
   max-width: none;
-  height: 100vh;
+  height: 100dvh;
   max-height: none;
-  padding: var(--space-4);
+  padding: 0;
   border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   background: rgba(7, 12, 24, 0.56);
   backdrop-filter: blur(10px);
   opacity: 0;
@@ -612,6 +610,15 @@ body.app-loading {
   border: 1px solid rgba(70, 98, 146, 0.65);
   background: linear-gradient(180deg, rgba(19, 29, 52, 0.95) 0%, rgba(14, 22, 42, 0.95) 100%);
   box-shadow: 0 16px 34px rgba(2, 7, 18, 0.54);
+}
+
+.app-loading-overlay .app-loading-inner,
+#archiveRestoreLoadingDialog .app-loading-inner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin: 0 !important;
+  transform: translate(-50%, -50%);
 }
 
 .app-loader-stack {

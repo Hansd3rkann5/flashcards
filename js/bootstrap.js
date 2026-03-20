@@ -1899,7 +1899,9 @@ async function boot() {
   const sidebarToggleButtons = [sidebarToggle, sidebarToggleHome].filter(Boolean);
   const sidebarOverlay = el('sidebarOverlay');
   sidebarToggleButtons.forEach(toggleBtn => {
-    toggleBtn.onclick = () => document.body.classList.toggle('sidebar-open');
+    toggleBtn.onclick = () => {
+      document.body.classList.toggle('sidebar-open');
+    };
   });
   if (sidebarOverlay) {
     sidebarOverlay.onclick = () => document.body.classList.remove('sidebar-open');

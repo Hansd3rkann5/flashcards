@@ -418,9 +418,9 @@
     display: block;
     pointer-events: none;
     opacity: var(--mobile-sidebar-overlay-progress, 0);
-    background: rgba(6, 10, 20, 0.62);
-    backdrop-filter: blur(calc(12px * var(--mobile-sidebar-overlay-progress, 0)));
-    -webkit-backdrop-filter: blur(calc(12px * var(--mobile-sidebar-overlay-progress, 0)));
+    background: rgba(6, 10, 20, 0.46);
+    backdrop-filter: blur(calc(9px * var(--mobile-sidebar-overlay-progress, 0)));
+    -webkit-backdrop-filter: blur(calc(9px * var(--mobile-sidebar-overlay-progress, 0)));
     transition:
       opacity 0.25s ease,
       backdrop-filter 0.25s ease,
@@ -841,6 +841,14 @@
     min-width: 36px;
     height: 36px;
     padding: 6px;
+  }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .subject-sidebar-toggle {
+    display: inline-flex;
+    z-index: 8;
+    pointer-events: auto;
   }
 }
 

@@ -2840,6 +2840,7 @@ function wireSidebarSwipeGesture() {
   const verticalCancelThreshold = 28;
   const sidebarEl = document.querySelector('.sidebar');
   const mainEl = document.querySelector('.main');
+  const overlayEl = document.querySelector('.sidebar-overlay');
   let gestureMode = '';
   let tracking = false;
   let startX = 0;
@@ -2852,10 +2853,17 @@ function wireSidebarSwipeGesture() {
   const setOverlayProgress = progress => {
     const clamped = Math.max(0, Math.min(1, Number(progress) || 0));
     document.body.style.setProperty('--mobile-sidebar-overlay-progress', clamped.toFixed(3));
+    if (overlayEl instanceof HTMLElement) {
+      overlayEl.style.transition = 'none';
+      overlayEl.style.opacity = clamped.toFixed(3);
+    }
   };
 
   const clearOverlayProgressOverride = () => {
     document.body.style.removeProperty('--mobile-sidebar-overlay-progress');
+    if (overlayEl instanceof HTMLElement) {
+      overlayEl.style.removeProperty('opacity');
+    }
   };
 
   const clearDragStyles = () => {
@@ -2866,6 +2874,9 @@ function wireSidebarSwipeGesture() {
     if (mainEl) {
       mainEl.style.removeProperty('transition');
       mainEl.style.removeProperty('transform');
+    }
+    if (overlayEl instanceof HTMLElement) {
+      overlayEl.style.removeProperty('transition');
     }
   };
 
@@ -2902,6 +2913,8 @@ function wireSidebarSwipeGesture() {
 
   document.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
+    const targetEl = e.target instanceof Element ? e.target : null;
+    if (targetEl?.closest?.('#sidebarToggle, #sidebarToggleHome, .subject-sidebar-toggle')) return;
     const touch = e.touches[0];
     if (!touch) return;
     if (canOpenSidebarBySwipe(e.target)) {
