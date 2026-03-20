@@ -4596,6 +4596,10 @@ dialog.modal.subject-edit-modal {
   padding: var(--space-4);
 }
 
+dialog.modal .editor-separator {
+  display: none !important;
+}
+
 #settingsDialog {
   width: min(760px, calc(100vw - (2 * var(--space-6))));
 }
@@ -4758,16 +4762,20 @@ dialog.modal.subject-edit-modal {
 }
 
 #sessionQuitConfirmDialog {
-  width: min(520px, calc(100vw - (2 * var(--space-6))));
-  /* height: 230px; */
+  width: min(520px, calc(100vw - (2 * var(--space-5))));
+  max-height: min(360px, calc(100dvh - (2 * var(--space-5))));
+  padding: var(--space-4);
+  overflow: hidden;
 }
 
 .session-quit-confirm-dialog {
   gap: 14px;
+  align-content: start;
 }
 
 .session-quit-confirm-dialog[open] {
   display: grid;
+  grid-template-rows: auto auto 1fr auto;
 }
 
 .session-quit-confirm-dialog .editor-header {
@@ -4784,7 +4792,9 @@ dialog.modal.subject-edit-modal {
   font-size: 1rem;
   line-height: 1.55;
   white-space: pre-line;
-  min-height: 54px;
+  min-height: 0;
+  max-height: min(150px, 28dvh);
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4792,9 +4802,9 @@ dialog.modal.subject-edit-modal {
 }
 
 .session-quit-confirm-actions {
-  display: flex;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .archive-dialog-meta {
@@ -6906,9 +6916,9 @@ button.formula-insert.save-primary {
 }
 
 .session-complete-message {
-  margin-top: 8px;
-  margin-bottom: 10px;
+  margin-block: var(--space-2);
   color: var(--muted);
+  text-align: center;
 }
 
 .daily-review-home {
@@ -7040,7 +7050,8 @@ button.formula-insert.save-primary {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 @media (orientation: portrait) {

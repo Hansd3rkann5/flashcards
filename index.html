@@ -153,7 +153,6 @@
           <div class="session-complete-message" id="dailyReviewMessage">
             Start a short review based on your latest saved card status.
           </div>
-          <div class="tiny daily-review-today-stats" id="dailyReviewTodayStats"></div>
           <div class="daily-overview-stats-grid" id="dailyOverviewStatsGrid">
             <div class="review-progress-panel daily-overview-progress-card" id="reviewProgressPanel">
               <div class="review-progress-header">
@@ -509,16 +508,10 @@
               </div>
             </div>
           </div>
-          <div class="controls session-grade-controls" id="sessionGradeControls">
-            <button class="btn session-grade-drag-handle" id="sessionGradeControlsDragHandle" type="button"
-              aria-label="Move grading controls" title="Move grading controls">
-              <img src="icons/burger.svg" alt="" class="app-icon" aria-hidden="true" />
-            </button>
-            <div class="session-grade-buttons" id="sessionGradeButtons">
-              <button class="btn traffic green" data-grade="correct">Correct</button>
-              <button class="btn traffic yellow" data-grade="partial">Not quite</button>
-              <button class="btn traffic red" data-grade="wrong">Wrong</button>
-            </div>
+          <div class="controls">
+            <button class="btn traffic green" data-grade="correct">Correct</button>
+            <button class="btn traffic yellow" data-grade="partial">Not quite</button>
+            <button class="btn traffic red" data-grade="wrong">Wrong</button>
           </div>
         </div>
       </section>
@@ -703,7 +696,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.19.4';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.20.1';
     window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.03.19.15';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__

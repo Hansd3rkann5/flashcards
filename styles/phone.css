@@ -365,8 +365,9 @@
   }
 
   #sessionQuitConfirmDialog {
-    max-height: 200px;
     width: min(96vw, 96vw);
+    max-height: min(340px, calc(100dvh - (2 * var(--space-3))));
+    padding: var(--space-3);
   }
 
   #moveCardsDialog {

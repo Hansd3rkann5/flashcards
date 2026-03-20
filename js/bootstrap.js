@@ -1301,7 +1301,8 @@ async function boot() {
   const startAnotherSessionBtn = el('startAnotherSessionBtn');
   if (startAnotherSessionBtn) {
     startAnotherSessionBtn.onclick = async () => {
-      if (sessionRepeatState.remaining <= 0) {
+      const sessionAction = String(startAnotherSessionBtn.dataset.sessionAction || '').toLowerCase();
+      if (sessionAction === 'goback' || sessionRepeatState.remaining <= 0) {
         dismissSessionCompleteDialog();
         return;
       }
@@ -1464,7 +1465,7 @@ async function boot() {
       settleSessionQuitConfirm(false);
     };
   }
-  const quitConfirmButtons = [sessionQuitConfirmBtnBack, sessionQuitConfirmBtn].filter(Boolean);
+  const quitConfirmButtons = [sessionQuitConfirmBtnBack].filter(Boolean);
 
   quitConfirmButtons.forEach(btn => {
     if (!sessionQuitConfirmDialog) return;
@@ -1497,6 +1498,19 @@ async function boot() {
     btn.addEventListener('pointerup', handleSessionQuitConfirm);
     btn.addEventListener('click', handleSessionQuitConfirm);
   });
+
+  if (sessionQuitConfirmBtn) {
+    sessionQuitConfirmBtn.onclick = async (e) => {
+      if (e) {
+        try { e.preventDefault(); } catch (_) {}
+        try { e.stopPropagation(); } catch (_) {}
+      }
+      const remainingCards = Math.max(0, Math.trunc(Number(sessionRepeatState.remaining) || 0));
+      const shouldQuit = await openSessionQuitConfirmDialog(remainingCards);
+      if (!shouldQuit) return;
+      dismissSessionCompleteDialog();
+    };
+  }
   el('backToTopicsBtn').onclick = () => {
     setDeckSelectionMode(false);
     setView(1);

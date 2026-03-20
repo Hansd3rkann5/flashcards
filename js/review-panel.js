@@ -4926,20 +4926,6 @@ function updateSessionRepeatCounter() {
 
     // Mark behavior so the click handler knows what to do
     startBtn.dataset.sessionAction = goBack ? 'goback' : 'repeat';
-
-    if (goBack) {
-      startBtn.onclick = () => {
-        dismissSessionCompleteDialog();
-
-        // Ensure subject/topic info refreshes when returning
-        if (selectedSubject && typeof loadTopics === 'function') {
-          void loadTopics({ force: true, uiBlocking: false });
-        }
-        if (typeof refreshSubjectProgressPanel === 'function') {
-          void refreshSubjectProgressPanel();
-        }
-      };
-    }
   }
 }
 
