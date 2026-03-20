@@ -1904,9 +1904,18 @@ async function boot() {
   if (sidebarOverlay) {
     sidebarOverlay.onclick = () => document.body.classList.remove('sidebar-open');
   }
+  const isSidebarSwipeViewport = () => {
+    if (typeof isSidebarSwipeEnabledViewport === 'function') {
+      return isSidebarSwipeEnabledViewport();
+    }
+    const coarsePointer = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    return coarsePointer
+      && window.innerWidth <= 1024
+      && window.matchMedia('(orientation: portrait)').matches;
+  };
   const isMobileSidebarOpen = () => (
     document.body.classList.contains('sidebar-open')
-    && window.innerWidth <= 768
+    && isSidebarSwipeViewport()
   );
   const getSidebarScrollableContainer = target => {
     if (!(target instanceof Element) || !sidebar || !sidebar.contains(target)) return null;
@@ -1989,9 +1998,11 @@ async function boot() {
     if (sidebar && sidebar.contains(target)) return;
     document.body.classList.remove('sidebar-open');
   });
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) document.body.classList.remove('sidebar-open');
-  });
+  const syncSidebarOnViewportChange = () => {
+    if (!isSidebarSwipeViewport()) document.body.classList.remove('sidebar-open');
+  };
+  window.addEventListener('resize', syncSidebarOnViewportChange);
+  window.addEventListener('orientationchange', syncSidebarOnViewportChange);
 
   const editorShell = document.querySelector('#editorPanel .editor-shell');
   const editorOverlay = el('editorOverlay');

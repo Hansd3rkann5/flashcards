@@ -71,3 +71,55 @@
     --sidebar-width: 240px;
   }
 }
+
+@media (max-width: 1024px) and (orientation: portrait) {
+  :root {
+    --mobile-sidebar-reveal: min(64vw, 360px);
+  }
+
+  .sidebar {
+    width: var(--mobile-sidebar-reveal);
+    transform: translateX(-110%);
+    transition: transform 0.25s ease;
+    border-right: 1px solid #26365f;
+    background: var(--background);
+  }
+
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    pointer-events: none;
+    opacity: var(--mobile-sidebar-overlay-progress, 0);
+    background: rgba(6, 10, 20, 0.62);
+    backdrop-filter: blur(calc(12px * var(--mobile-sidebar-overlay-progress, 0)));
+    -webkit-backdrop-filter: blur(calc(12px * var(--mobile-sidebar-overlay-progress, 0)));
+    transition:
+      opacity 0.25s ease,
+      backdrop-filter 0.25s ease,
+      -webkit-backdrop-filter 0.25s ease;
+  }
+
+  body.sidebar-open {
+    --mobile-sidebar-overlay-progress: 1;
+  }
+
+  body.sidebar-open .sidebar-overlay {
+    pointer-events: auto;
+  }
+
+  body.sidebar-open #homePanel>.section,
+  body.sidebar-open #topicPanel>.section,
+  body.sidebar-open #cardsOverviewSection {
+    overflow: hidden !important;
+  }
+
+  .main {
+    margin-left: 0;
+    width: 100%;
+    transform: translateX(0);
+    transition: transform 0.25s ease;
+  }
+}

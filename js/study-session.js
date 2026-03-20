@@ -2786,13 +2786,23 @@ function isCoarsePointerDevice() {
 }
 
 /**
+ * @function isSidebarSwipeEnabledViewport
+ * @description Returns whether sidebar swipe mode should be active for touch portrait layouts.
+ */
+
+function isSidebarSwipeEnabledViewport() {
+  if (!isCoarsePointerDevice()) return false;
+  if (window.innerWidth > 1024) return false;
+  return window.matchMedia('(orientation: portrait)').matches;
+}
+
+/**
  * @function canOpenSidebarBySwipe
  * @description Returns whether open sidebar by swipe.
  */
 
 function canOpenSidebarBySwipe(target = null) {
-  if (!isCoarsePointerDevice()) return false;
-  if (window.innerWidth > 768) return false;
+  if (!isSidebarSwipeEnabledViewport()) return false;
   if (document.body.classList.contains('sidebar-open')) return false;
   if (document.body.classList.contains('sidebar-hidden')) return false;
   if (isStudySessionVisible()) return false;
@@ -2809,8 +2819,7 @@ function canOpenSidebarBySwipe(target = null) {
  */
 
 function canCloseSidebarBySwipe(target = null) {
-  if (!isCoarsePointerDevice()) return false;
-  if (window.innerWidth > 768) return false;
+  if (!isSidebarSwipeEnabledViewport()) return false;
   if (!document.body.classList.contains('sidebar-open')) return false;
   if (document.body.classList.contains('sidebar-hidden')) return false;
   const element = target instanceof Element ? target : target?.parentElement;
