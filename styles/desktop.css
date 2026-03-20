@@ -4347,8 +4347,8 @@ body.session-image-open {
   box-shadow:
     0 0 0 1px var(--current),
     0 0 10px 2px var(--current);
-  scale: 1.1;
-  margin-right: 12px;
+  scale: 1.15;
+  margin-right: 4px;
   margin-left: 4px;
 }
 
@@ -4392,7 +4392,7 @@ body.session-image-open {
 .pill-dot.mastered {
   background: rgb(15, 246, 100);
   border-color: rgb(109, 109, 109);
-  border: 2px solid;
+  border: 1px solid;
 }
 
 .session-top {

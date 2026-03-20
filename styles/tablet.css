@@ -64,6 +64,10 @@
   .session-dynamic-text {
     font-size: 1.6rem;
   }
+
+  .panel {
+    padding-top: var(--space-1);
+  }
 }
 
 @media (max-width: 940px) {
