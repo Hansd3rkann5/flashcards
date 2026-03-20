@@ -4349,6 +4349,9 @@ body.session-image-open {
   box-shadow:
     0 0 0 1px var(--current),
     0 0 10px 2px var(--current);
+  scale: 1.1;
+  margin-right: 12px;
+  margin-left: 4px;
 }
 
 .pill-dot.near-master {
@@ -4367,7 +4370,7 @@ body.session-image-open {
 }
 
 .pill-dot.current.review-ready {
-  border-color: rgba(134, 239, 172, 0.98);
+  border-color: var(--current) !important;
   box-shadow:
     0 0 0 1px rgba(34, 197, 94, 0.75),
     0 0 10px 2px rgba(34, 197, 94, 0.5);
@@ -4812,6 +4815,19 @@ dialog.modal .editor-separator {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
+  align-items: center;
+}
+
+.session-quit-confirm-actions.single-action {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.session-quit-confirm-actions .btn {
+  width: 100%;
+  min-height: 44px;
+  height: auto !important;
+  line-height: 1.2;
+  align-self: center;
 }
 
 .archive-dialog-meta {
@@ -6101,6 +6117,7 @@ button.formula-insert.save-primary {
 .session-filter-list {
   display: grid;
   gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .session-filter-option {

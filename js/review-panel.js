@@ -5096,6 +5096,7 @@ async function openSessionCompleteDialog() {
 
   const durationEl = el('sessionCompleteDuration');
   const quitBtn = el('sessionQuitConfirmBtn');
+  const actionsEl = quitBtn?.closest?.('.session-quit-confirm-actions') || null;
   if (durationEl) durationEl.textContent = formatDurationLabel(durationMs);
   const remainingEl = el('sessionCompleteRemaining');
   if (remainingEl) remainingEl.textContent = String(sessionRepeatState.remaining);
@@ -5104,9 +5105,11 @@ async function openSessionCompleteDialog() {
     if (sessionRepeatState.remaining > 0) {
       messageEl.textContent = 'Great work! You can continue with the remaining cards.';
       quitBtn.classList.remove('hidden');
+      actionsEl?.classList.remove('single-action');
     } else {
       messageEl.textContent = 'Great work! No remaining cards match the current filter.';
       quitBtn.classList.add('hidden');
+      actionsEl?.classList.add('single-action');
     }
   }
   updateSessionRepeatCounter();
