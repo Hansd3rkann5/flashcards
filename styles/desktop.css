@@ -3312,7 +3312,7 @@ textarea:focus-visible {
   font-weight: 700;
   line-height: 1;
   position: absolute;
-  left: var(--card-tile-mcq-pad-x);
+  left: calc( 2 * var(--card-tile-mcq-pad-x));
 }
 
 .card-tile-mcq-option-text {
