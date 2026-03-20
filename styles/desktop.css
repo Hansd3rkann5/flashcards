@@ -1943,6 +1943,7 @@ select {
   color: var(--text);
   padding: var(--input-padding-y) var(--input-padding-x);
   font-size: 1rem;
+  font-family: inherit;
   box-sizing: border-box;
 }
 
@@ -2726,7 +2727,7 @@ textarea:focus-visible {
   gap: clamp(8px, 1.6vw, 16px);
   align-items: start;
   justify-items: center;
-  align-content: center;
+  align-content: start;
   width: 100%;
 }
 
@@ -2739,6 +2740,7 @@ textarea:focus-visible {
   justify-content: center;
   align-content: center;
   max-width: 800px;
+  box-sizing: border-box;
 }
 
 .mcq-check-row {
