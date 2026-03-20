@@ -1505,7 +1505,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: var(--space-4);
-  /* margin-top: var(--space-4); */
+  margin-top: var(--space-4);
   overflow: auto;
 }
 
@@ -1873,6 +1873,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
+  margin-left: var(--radius);
 }
 
 .topic-list-actions {
@@ -2053,6 +2054,16 @@ textarea:focus-visible {
   margin-bottom: var(--space-3);
 }
 
+#addTopicTitle {
+  margin: 0;
+  text-align: center;
+  vertical-align: super;
+  align-content: center;
+  white-space: nowrap;
+  margin-right: var(--space-3);
+  /* margin-left: var(--radius); */
+}
+
 .topic-list {
   display: grid;
   width: 100%;
@@ -2070,7 +2081,7 @@ textarea:focus-visible {
 
 .tile {
   border: 1px solid #2e4068;
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: var(--tile-padding);
   background: linear-gradient(180deg, var(--tile-accent-bg, #17223b) 0%, #17223b 70%);
   cursor: pointer;

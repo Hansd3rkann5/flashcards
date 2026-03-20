@@ -285,6 +285,14 @@
             </div>
             <div class="tiny session-filter-summary" id="sessionFilterSummary"></div>
           </div>
+          <div class="section" style="display: flex;">
+            <h3 id="addTopicTitle">Add Topic</h3>
+            <div class="topic-input-wrap">
+              <input id="topicName" class="topic-input" placeholder="e.g., Thermodynamics" />
+              <button class="btn create-card-icon-btn topic-add-btn" id="addTopicBtn" type="button"
+                aria-label="Add topic" title="Add topic" style="background-color: var(--success)">+</button>
+            </div>
+          </div>
           <div class="topic-list-head">
             <div class="topic-list-title-wrap">
               <h3 id="topicListTitle" class="topic-list-title">Topics</h3>
@@ -313,13 +321,13 @@
           <!-- <div class="controls" style="margin-top:14px; margin-inline: 0; border-radius: 14px;">
             <button class="btn start-subject-session-btn" id="startSubjectSessionBtn" type="button">Start Session</button>
           </div> -->
-          <hr style="border-color:#30456f">
+          <!-- <hr style="border-color:#30456f">
           <h3>Add Topic</h3>
           <div class="topic-input-wrap">
             <input id="topicName" class="topic-input" placeholder="e.g., Thermodynamics" />
             <button class="btn create-card-icon-btn topic-add-btn" id="addTopicBtn" type="button" aria-label="Add topic"
               title="Add topic" style="background-color: var(--success)">+</button>
-          </div>
+          </div> -->
         </div>
       </section>
 
@@ -696,7 +704,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.20.8';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.20.9';
     window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.03.19.15';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
@@ -1037,8 +1045,8 @@
   <dialog id="sessionFilterDialog" class="modal">
     <div class="editor-header">
       <h3>Session Filter</h3>
-      <button class="btn close-icon-btn" id="closeSessionFilterBtn" style="right: var(--space-6);" type="button" aria-label="Close session filter"
-        title="Close">
+      <button class="btn close-icon-btn" id="closeSessionFilterBtn" style="right: var(--space-6);" type="button"
+        aria-label="Close session filter" title="Close">
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
