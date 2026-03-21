@@ -9,6 +9,7 @@ function normalizeSessionFilters(state = null) {
   const raw = (state && typeof state === 'object') ? state : SESSION_FILTER_DEFAULT;
   const normalized = {
     all: !!raw.all,
+    notMastered: !!raw.notMastered,
     correct: !!raw.correct,
     wrong: !!raw.wrong,
     partial: !!raw.partial,
@@ -16,6 +17,7 @@ function normalizeSessionFilters(state = null) {
     notAnsweredYet: !!raw.notAnsweredYet
   };
   if (normalized.all) {
+    normalized.notMastered = false;
     normalized.correct = false;
     normalized.wrong = false;
     normalized.partial = false;
@@ -957,6 +959,47 @@ async function recalculateFsrsDueForAllProgress(options = {}) {
     loadingLabel: opts.loadingLabel || 'Recalculating FSRS due dates...'
   });
   const records = Array.isArray(rows) ? rows : [];
+  const uniqueCardIds = Array.from(new Set(
+    records
+      .map(row => String(row?.cardId || '').trim())
+      .filter(Boolean)
+  ));
+  const eligibleCardIds = new Set();
+  if (uniqueCardIds.length) {
+    const subjects = await getAll('subjects', {
+      uiBlocking: false,
+      loadingLabel: ''
+    });
+    const activeSubjectIds = new Set(
+      (Array.isArray(subjects) ? subjects : [])
+        .filter(subject => !isSubjectArchivedForDailyReview(subject))
+        .map(subject => String(subject?.id || '').trim())
+        .filter(Boolean)
+    );
+    if (activeSubjectIds.size) {
+      await preloadTopicDirectory({
+        uiBlocking: false,
+        loadingLabel: ''
+      });
+      const cardRefs = await getCardRefsByCardIds(uniqueCardIds, {
+        uiBlocking: false,
+        loadingLabel: '',
+        payloadLabel: 'fsrs-recalc-card-refs'
+      });
+      (Array.isArray(cardRefs) ? cardRefs : []).forEach(ref => {
+        const cardId = String(ref?.id || '').trim();
+        if (!cardId) return;
+        const topicId = String(ref?.topicId || '').trim();
+        if (!topicId) return;
+        const topic = topicDirectoryById.get(topicId) || null;
+        const subjectId = String(topic?.subjectId || '').trim();
+        if (!subjectId) return;
+        if (activeSubjectIds.has(subjectId)) {
+          eligibleCardIds.add(cardId);
+        }
+      });
+    }
+  }
   const total = records.length;
   const nowIso = nowDate.toISOString();
   let updated = 0;
@@ -989,6 +1032,24 @@ async function recalculateFsrsDueForAllProgress(options = {}) {
           current: index + 1,
           total,
           cardId: '',
+          status,
+          updated,
+          seeded,
+          cleared,
+          skipped,
+          failed
+        });
+      }
+      continue;
+    }
+    if (!eligibleCardIds.has(cardId)) {
+      skipped += 1;
+      status = 'subject-filtered';
+      if (onProgress) {
+        onProgress({
+          current: index + 1,
+          total,
+          cardId,
           status,
           updated,
           seeded,
@@ -1905,18 +1966,19 @@ function cardMatchesSessionFilter(cardId, filters = sessionFilterState, dayKey =
   const answeredToday = (day.correct + day.wrong + day.partial) > 0;
   const notAnsweredToday = !answeredToday;
   if (config.all) {
-    return false;
+    return true;
   }
-  const hasSpecificFilter = config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet;
+  const hasSpecificFilter = config.notMastered || config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet;
   if (!hasSpecificFilter) {
     return false;
   }
+  const matchNotMastered = config.notMastered && !isMastered;
   const matchCorrect = config.correct && isCorrect;
   const matchWrong = config.wrong && isWrong;
   const matchPartial = config.partial && isPartial;
   const matchNotAnswered = config.notAnswered && notAnsweredToday;
   const matchNotAnsweredYet = config.notAnsweredYet && notAnsweredYet;
-  return matchCorrect || matchWrong || matchPartial || matchNotAnswered || matchNotAnsweredYet;
+  return matchNotMastered || matchCorrect || matchWrong || matchPartial || matchNotAnswered || matchNotAnsweredYet;
 }
 
 /**
@@ -1943,7 +2005,8 @@ async function ensureSessionProgressForCards(cards = [], payloadLabel = 'session
 
 function requiresProgressForSessionFilter(filters = sessionFilterState) {
   const config = normalizeSessionFilters(filters);
-  return !!(config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet);
+  if (config.all) return false;
+  return !!(config.notMastered || config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet);
 }
 
 /**
@@ -1964,6 +2027,8 @@ async function getEligibleSessionCardIdsByTopicIds(topicIds, filters = sessionFi
   ));
   if (!ids.length) return [];
   if (!requiresProgressForSessionFilter(filters)) {
+    const config = normalizeSessionFilters(filters);
+    if (config.all) return ids;
     return [];
   }
   await ensureProgressForCardIds(ids, {
@@ -1991,6 +2056,8 @@ async function getEligibleSessionCardIdsByCardIds(cardIds, filters = sessionFilt
   ));
   if (!refIds.length) return [];
   if (!requiresProgressForSessionFilter(filters)) {
+    const config = normalizeSessionFilters(filters);
+    if (config.all) return refIds;
     return [];
   }
   await ensureProgressForCardIds(refIds, { payloadLabel: 'session-progress' });
@@ -2035,14 +2102,15 @@ async function getEligibleSessionCardsByCardIds(cardIds, filters = sessionFilter
 function getSessionFilterSummaryText(filters = sessionFilterState) {
   const config = normalizeSessionFilters(filters);
   if (config.all) {
-    return 'Filter: All (0 cards selected).';
+    return 'Filter: All cards';
   }
-  const hasSpecificFilter = config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet;
+  const hasSpecificFilter = config.notMastered || config.correct || config.wrong || config.partial || config.notAnswered || config.notAnsweredYet;
   if (!hasSpecificFilter) {
     return 'Filter: None (0 cards selected).';
   }
   const labels = [];
-  if (config.correct) labels.push('Correct (not mastered)');
+  if (config.notMastered) labels.push('Not mastered');
+  if (config.correct) labels.push('Correct');
   if (config.wrong) labels.push('Wrong');
   if (config.partial) labels.push('Partially');
   if (config.notAnswered) labels.push('Not answered today');
@@ -2082,13 +2150,15 @@ async function setSessionFilterState(nextState, options = {}) {
 
 function syncSessionFilterDialogControls() {
   const all = el('sessionFilterAll');
+  const notMastered = el('sessionFilterNotMastered');
   const correct = el('sessionFilterCorrect');
   const wrong = el('sessionFilterWrong');
   const partial = el('sessionFilterPartial');
   const notAnswered = el('sessionFilterNotAnswered');
   const notAnsweredYet = el('sessionFilterNotAnsweredYet');
-  if (!all || !correct || !wrong || !partial || !notAnswered || !notAnsweredYet) return;
-  const locked = all.checked;
+  if (!notMastered || !correct || !wrong || !partial || !notAnswered || !notAnsweredYet) return;
+  const locked = !!all?.checked;
+  notMastered.disabled = locked;
   correct.disabled = locked;
   wrong.disabled = locked;
   partial.disabled = locked;
@@ -2104,13 +2174,15 @@ function syncSessionFilterDialogControls() {
 function fillSessionFilterDialogFromState() {
   const config = normalizeSessionFilters(sessionFilterState);
   const all = el('sessionFilterAll');
+  const notMastered = el('sessionFilterNotMastered');
   const correct = el('sessionFilterCorrect');
   const wrong = el('sessionFilterWrong');
   const partial = el('sessionFilterPartial');
   const notAnswered = el('sessionFilterNotAnswered');
   const notAnsweredYet = el('sessionFilterNotAnsweredYet');
-  if (!all || !correct || !wrong || !partial || !notAnswered || !notAnsweredYet) return;
-  all.checked = config.all;
+  if (!notMastered || !correct || !wrong || !partial || !notAnswered || !notAnsweredYet) return;
+  if (all) all.checked = config.all;
+  notMastered.checked = config.notMastered;
   correct.checked = config.correct;
   wrong.checked = config.wrong;
   partial.checked = config.partial;
@@ -2126,16 +2198,18 @@ function fillSessionFilterDialogFromState() {
 
 function pullSessionFiltersFromDialog() {
   const all = el('sessionFilterAll');
+  const notMastered = el('sessionFilterNotMastered');
   const correct = el('sessionFilterCorrect');
   const wrong = el('sessionFilterWrong');
   const partial = el('sessionFilterPartial');
   const notAnswered = el('sessionFilterNotAnswered');
   const notAnsweredYet = el('sessionFilterNotAnsweredYet');
-  if (!all || !correct || !wrong || !partial || !notAnswered || !notAnsweredYet) {
+  if (!notMastered || !correct || !wrong || !partial || !notAnswered || !notAnsweredYet) {
     return normalizeSessionFilters(sessionFilterState);
   }
   return normalizeSessionFilters({
-    all: all.checked,
+    all: !!all?.checked,
+    notMastered: notMastered.checked,
     correct: correct.checked,
     wrong: wrong.checked,
     partial: partial.checked,
@@ -5197,9 +5271,15 @@ function dismissSessionCompleteDialog() {
   renderSessionPills();
   const returnToHome = sessionRepeatState.mode === 'daily-review';
   setView(returnToHome ? 0 : 1);
+  if (typeof refreshSidebar === 'function') {
+    void refreshSidebar({ uiBlocking: false });
+  }
   if (returnToHome) {
     void refreshDailyReviewHomePanel({ useExisting: false });
   } else if (selectedSubject) {
+    if (typeof loadTopics === 'function') {
+      void loadTopics({ force: true, uiBlocking: false });
+    }
     const subjectId = String(selectedSubject.id || '').trim();
     const topicsForSubject = (subjectId && currentSubjectTopicsSubjectId === subjectId)
       ? currentSubjectTopics

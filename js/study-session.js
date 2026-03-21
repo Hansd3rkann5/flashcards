@@ -425,7 +425,7 @@ async function startSession(options = {}) {
     const filterConfig = normalizeSessionFilters(opts.filters || sessionFilterState);
     const hasActiveSessionFilter = (typeof requiresProgressForSessionFilter === 'function')
       ? requiresProgressForSessionFilter(filterConfig)
-      : !!(filterConfig.correct || filterConfig.wrong || filterConfig.partial || filterConfig.notAnswered || filterConfig.notAnsweredYet);
+      : !!(filterConfig.all || filterConfig.notMastered || filterConfig.correct || filterConfig.wrong || filterConfig.partial || filterConfig.notAnswered || filterConfig.notAnsweredYet);
     let eligibleCardIds = [];
     let cardRefs = [];
     if (explicitCardIds.length) {

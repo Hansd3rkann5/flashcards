@@ -107,6 +107,7 @@ let currentSubjectTopicsSubjectId = '';
 let topicSearchRunId = 0;
 const SESSION_FILTER_DEFAULT = Object.freeze({
   all: false,
+  notMastered: false,
   correct: false,
   wrong: false,
   partial: false,

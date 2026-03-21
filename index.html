@@ -704,7 +704,7 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.20.14';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.21.1';
     window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.03.19.15';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
@@ -1050,33 +1050,32 @@
         <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
       </button>
     </div>
-    <div class="session-filter-list">
+    <div class="session-filter-list session-filter-grid-2x3">
       <label class="session-filter-option">
-        <input id="sessionFilterAll" type="checkbox" />
-        <span>All (remaining today)</span>
+        <input id="sessionFilterNotMastered" type="checkbox" />
+        <span>Not mastered</span>
       </label>
       <label class="session-filter-option">
         <input id="sessionFilterCorrect" type="checkbox" style="background-color: var(--success)" />
-        <span>Correct (Not mastered today)</span>
-      </label>
-      <label class="session-filter-option">
-        <input id="sessionFilterPartial" type="checkbox" style="background-color: var(--warn)" />
-        <span>Partially</span>
-      </label>
-      <label class="session-filter-option">
-        <input id="sessionFilterWrong" type="checkbox" style="background-color: var(--danger)" />
-        <span>Wrong</span>
+        <span>Correct</span>
       </label>
       <label class="session-filter-option">
         <input id="sessionFilterNotAnswered" type="checkbox" />
         <span>Not answered today</span>
       </label>
       <label class="session-filter-option">
+        <input id="sessionFilterPartial" type="checkbox" style="background-color: var(--warn)" />
+        <span>Partially</span>
+      </label>
+      <label class="session-filter-option">
         <input id="sessionFilterNotAnsweredYet" type="checkbox" />
         <span>Not answered yet</span>
       </label>
+      <label class="session-filter-option">
+        <input id="sessionFilterWrong" type="checkbox" style="background-color: var(--danger)" />
+        <span>Wrong</span>
+      </label>
     </div>
-    <div class="tiny" style="margin-top:10px;">All mode excludes cards mastered today (3x correct in a row).</div>
     <div class="controls" style="margin-top:12px; margin-inline: 0">
       <button class="btn save-primary" id="saveSessionFilterBtn" type="button">Apply</button>
     </div>
@@ -1170,6 +1169,16 @@
         </div>
         <div class="tiny settings-toggle-hint">
           When enabled, only FSRS due dates decide which cards appear in Daily Review.
+        </div>
+        <div class="settings-toggle-row">
+          <span>OLED Black</span>
+          <label class="toggle" for="oledBlackToggle">
+            <input id="oledBlackToggle" type="checkbox" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="tiny settings-toggle-hint">
+          Converts blue-tinted app surfaces to pure black while keeping button colors unchanged.
         </div>
       </section>
 

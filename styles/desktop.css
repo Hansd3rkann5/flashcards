@@ -80,6 +80,118 @@
   --card-width: 1400px;
 }
 
+/* OLED Black theme: turn blue-tinted surfaces into true black while leaving button colors unchanged. */
+html.oled-black,
+html.oled-black body,
+body.oled-black {
+  --bg: #000000;
+  --panel: #000000;
+  --panel-light: #000000;
+  background: #000000 !important;
+}
+
+html.oled-black body::before,
+body.oled-black::before {
+  background: #000000 !important;
+  background-image: none !important;
+}
+
+html.oled-black .sidebar,
+body.oled-black .sidebar,
+html.oled-black .panel > .section,
+body.oled-black .panel > .section,
+html.oled-black #editorPanel .editor-list,
+body.oled-black #editorPanel .editor-list,
+html.oled-black #editorPanel .editor-panel.editor-main,
+body.oled-black #editorPanel .editor-panel.editor-main,
+html.oled-black #editorPanel .editor-sidebar,
+body.oled-black #editorPanel .editor-sidebar,
+html.oled-black .mcq-answer-zone,
+body.oled-black .mcq-answer-zone,
+html.oled-black .mcq-options,
+body.oled-black .mcq-options,
+html.oled-black .image-preview,
+body.oled-black .image-preview,
+html.oled-black .image-preview-wrap,
+body.oled-black .image-preview-wrap,
+html.oled-black .image-preview-drop-tile,
+body.oled-black .image-preview-drop-tile,
+html.oled-black input,
+body.oled-black input,
+html.oled-black textarea,
+body.oled-black textarea,
+html.oled-black select,
+body.oled-black select,
+html.oled-black dialog.modal,
+body.oled-black dialog.modal,
+html.oled-black .recent-storage-image-picker-panel,
+body.oled-black .recent-storage-image-picker-panel,
+html.oled-black .recent-storage-image-picker-grid,
+body.oled-black .recent-storage-image-picker-grid,
+html.oled-black #settingsDialog .settings-card,
+body.oled-black #settingsDialog .settings-card,
+html.oled-black .deck-bulk-actions,
+body.oled-black .deck-bulk-actions,
+html.oled-black .topic-bulk-actions,
+body.oled-black .topic-bulk-actions,
+html.oled-black .deck-header-tile,
+body.oled-black .deck-header-tile,
+html.oled-black #contentExchangePanel > .content-exchange-section,
+body.oled-black #contentExchangePanel > .content-exchange-section,
+html.oled-black .progress-check-dialog,
+body.oled-black .progress-check-dialog,
+html.oled-black .progress-check-table-wrap,
+body.oled-black .progress-check-table-wrap,
+html.oled-black .auth-card,
+body.oled-black .auth-card,
+html.oled-black .onboarding-card,
+body.oled-black .onboarding-card,
+html.oled-black .editor-intro-card,
+body.oled-black .editor-intro-card {
+  background-color: #000000 !important;
+  background-image: none !important;
+  border-color: #1a1a1a !important;
+}
+
+html.oled-black .sidebar-overlay,
+body.oled-black .sidebar-overlay,
+html.oled-black .auth-gate,
+body.oled-black .auth-gate,
+html.oled-black .onboarding-tutorial,
+body.oled-black .onboarding-tutorial,
+html.oled-black .editor-intro,
+body.oled-black .editor-intro {
+  background: rgba(0, 0, 0, 0.72) !important;
+}
+
+html.oled-black dialog::backdrop,
+body.oled-black dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72) !important;
+}
+
+/* Keep subject-specific accents visible in OLED mode while removing blue-tinted base tones. */
+html.oled-black .subject-tile,
+body.oled-black .subject-tile {
+  background: linear-gradient(180deg, var(--subject-accent-bg, var(--tile-accent-bg, rgba(45, 212, 191, 0.18))) 0%, #000000 78%) !important;
+}
+
+html.oled-black .topic-tile.selected,
+body.oled-black .topic-tile.selected,
+html.oled-black .card-tile,
+body.oled-black .card-tile {
+  background: linear-gradient(180deg, var(--tile-accent-bg, rgba(45, 212, 191, 0.18)) 0%, #000000 76%) !important;
+}
+
+html.oled-black .flashcard .face,
+body.oled-black .flashcard .face,
+html.oled-black .flashcard .back,
+body.oled-black .flashcard .back,
+html.oled-black .flashcard .face-content,
+body.oled-black .flashcard .face-content {
+  background: linear-gradient(180deg, var(--face-accent, rgba(45, 212, 191, 0.14)) 0%, #000000 76%) !important;
+  border-color: #1a1a1a !important;
+}
+
 html {
   margin: 0;
   min-height: 100%;
@@ -6141,6 +6253,11 @@ button.formula-insert.save-primary {
   display: grid;
   gap: var(--space-2);
   margin-top: var(--space-2);
+}
+
+#sessionFilterDialog .session-filter-list.session-filter-grid-2x3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
 }
 
 .session-filter-option {

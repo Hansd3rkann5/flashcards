@@ -298,6 +298,52 @@ function markOnboardingTutorialCompleted(ownerId = '') {
   }
 }
 
+const OLED_BLACK_STORAGE_KEY = 'flashcards.ui.oled-black.v1';
+
+/**
+ * @function readOledBlackPreference
+ * @description Reads OLED black preference from localStorage.
+ */
+
+function readOledBlackPreference() {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    const raw = String(window.localStorage.getItem(OLED_BLACK_STORAGE_KEY) || '').trim().toLowerCase();
+    return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * @function saveOledBlackPreference
+ * @description Persists OLED black preference in localStorage.
+ */
+
+function saveOledBlackPreference(enabled = false) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(OLED_BLACK_STORAGE_KEY, enabled ? '1' : '0');
+  } catch (_) {
+    // Ignore storage write failures.
+  }
+}
+
+/**
+ * @function applyOledBlackTheme
+ * @description Applies/removes OLED black body/html class and updates browser theme color.
+ */
+
+function applyOledBlackTheme(enabled = false) {
+  const nextEnabled = !!enabled;
+  document.documentElement.classList.toggle('oled-black', nextEnabled);
+  document.body?.classList.toggle('oled-black', nextEnabled);
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute('content', nextEnabled ? '#000000' : '#0a0f1e');
+  }
+}
+
 /**
  * @function shouldShowOnboardingTutorial
  * @description Returns true when onboarding should be shown for the authenticated user.
@@ -894,6 +940,7 @@ async function ensureAuthenticatedSession() {
  */
 
 async function boot() {
+  applyOledBlackTheme(readOledBlackPreference());
   void registerOfflineServiceWorker();
   updateRuntimeHostHint();
   updateSidebarMetaInfo();
@@ -942,6 +989,21 @@ async function boot() {
     document.body.classList.remove('sidebar-open');
     void refreshDailyReviewHomePanel({ useExisting: false });
   };
+  const oledBlackToggle = el('oledBlackToggle');
+  const syncOledBlackToggle = () => {
+    if (!oledBlackToggle) return;
+    const enabled = readOledBlackPreference();
+    oledBlackToggle.checked = enabled;
+    applyOledBlackTheme(enabled);
+  };
+  if (oledBlackToggle) {
+    oledBlackToggle.onchange = () => {
+      const enabled = !!oledBlackToggle.checked;
+      saveOledBlackPreference(enabled);
+      applyOledBlackTheme(enabled);
+    };
+    syncOledBlackToggle();
+  }
   const fsrsDueOnlyToggle = el('fsrsDueOnlyToggle');
   const syncFsrsDueOnlyToggle = async () => {
     if (!fsrsDueOnlyToggle) return;
@@ -971,6 +1033,7 @@ async function boot() {
     const settingsDialog = el('settingsDialog');
     if (!settingsDialog) return;
     void syncFsrsDueOnlyToggle();
+    syncOledBlackToggle();
     // Modal interactions should not keep the background sidebar state alive.
     document.body.classList.remove('sidebar-open');
     showDialog(settingsDialog);
@@ -1204,28 +1267,15 @@ async function boot() {
       if (e.target === sessionFilterDialog) closeDialog(sessionFilterDialog);
     });
   }
-  const sessionFilterAll = el('sessionFilterAll');
+  const sessionFilterNotMastered = el('sessionFilterNotMastered');
   const sessionFilterCorrect = el('sessionFilterCorrect');
   const sessionFilterWrong = el('sessionFilterWrong');
   const sessionFilterPartial = el('sessionFilterPartial');
   const sessionFilterNotAnswered = el('sessionFilterNotAnswered');
   const sessionFilterNotAnsweredYet = el('sessionFilterNotAnsweredYet');
-  if (sessionFilterAll) {
-    sessionFilterAll.addEventListener('change', () => {
-      if (sessionFilterAll.checked) {
-        if (sessionFilterCorrect) sessionFilterCorrect.checked = false;
-        if (sessionFilterWrong) sessionFilterWrong.checked = false;
-        if (sessionFilterPartial) sessionFilterPartial.checked = false;
-        if (sessionFilterNotAnswered) sessionFilterNotAnswered.checked = false;
-        if (sessionFilterNotAnsweredYet) sessionFilterNotAnsweredYet.checked = false;
-      }
-      syncSessionFilterDialogControls();
-    });
-  }
-  [sessionFilterCorrect, sessionFilterWrong, sessionFilterPartial, sessionFilterNotAnswered, sessionFilterNotAnsweredYet].forEach(input => {
+  [sessionFilterNotMastered, sessionFilterCorrect, sessionFilterWrong, sessionFilterPartial, sessionFilterNotAnswered, sessionFilterNotAnsweredYet].forEach(input => {
     if (!input) return;
     input.addEventListener('change', () => {
-      if (input.checked && sessionFilterAll) sessionFilterAll.checked = false;
       syncSessionFilterDialogControls();
     });
   });
@@ -1533,6 +1583,9 @@ async function boot() {
     if (selectedSubject) refreshTopicSessionMeta();
     const returnToHome = session.mode === 'daily-review';
     setView(returnToHome ? 0 : 1);
+    if (typeof refreshSidebar === 'function') {
+      void refreshSidebar({ uiBlocking: false });
+    }
     if (returnToHome) {
       void refreshDailyReviewHomePanel({ useExisting: false });
     }
