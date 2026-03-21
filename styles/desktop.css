@@ -78,6 +78,13 @@
   --track-panel-count: 5;
   --mobile-sidebar-overlay-progress: 0;
   --card-width: 1400px;
+  --app-vh: 100dvh;
+}
+
+@supports (height: 100svh) {
+  :root {
+    --app-vh: 100svh;
+  }
 }
 
 /* OLED Black theme: turn blue-tinted surfaces into true black while leaving button colors unchanged. */
@@ -203,7 +210,7 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  min-height: 100dvh;
+  min-height: var(--app-vh);
   width: 100%;
   font-family: Inter, Segoe UI, Roboto, system-ui, sans-serif;
   font-size: var(--font-size-base);
@@ -679,7 +686,7 @@ body.app-loading {
   margin: 0;
   width: 100dvw;
   max-width: none;
-  height: 100dvh;
+  height: var(--app-vh);
   max-height: none;
   padding: 0;
   border: none;
@@ -1250,7 +1257,7 @@ body.app-loading {
   min-width: calc(100% / var(--track-panel-count));
   max-width: calc(100% / var(--track-panel-count));
   padding: var(--space-4);
-  min-height: 100dvh;
+  min-height: var(--app-vh);
   box-sizing: border-box;
   overflow: hidden;
   overscroll-behavior: none;
@@ -1263,8 +1270,8 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
 }
 
 #editorPanel {
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--app-vh);
+  min-height: var(--app-vh);
   overflow: hidden;
   padding: var(--space-6);
   box-sizing: border-box;
@@ -1273,8 +1280,8 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
 }
 
 #deckPanel {
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--app-vh);
+  min-height: var(--app-vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1500,16 +1507,16 @@ body.session-complete-dialog-open #studySessionSection::before {
 }
 
 #topicPanel {
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--app-vh);
+  min-height: var(--app-vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 #homePanel {
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--app-vh);
+  min-height: var(--app-vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -2197,7 +2204,7 @@ textarea:focus-visible {
 }
 
 .tile {
-  border: 1px solid #2e4068;
+  border: 1px solid var(--subject-accent);
   border-radius: var(--radius);
   padding: var(--tile-padding);
   background: linear-gradient(180deg, var(--tile-accent-bg, #17223b) 0%, #17223b 70%);
@@ -4626,7 +4633,7 @@ body.session-image-open {
 dialog.modal.recent-storage-image-picker-dialog {
   width: min(980px, calc(100vw - (2 * var(--space-5))));
   max-width: min(980px, calc(100vw - (2 * var(--space-5))));
-  max-height: min(760px, calc(100dvh - (2 * var(--space-5))));
+  max-height: min(760px, calc(var(--app-vh) - (2 * var(--space-5))));
   padding: 0;
   background: transparent;
   border: none;
@@ -4640,7 +4647,7 @@ dialog.modal.recent-storage-image-picker-dialog::backdrop {
 
 .recent-storage-image-picker-panel {
   width: 100%;
-  max-height: min(760px, calc(100dvh - (2 * var(--space-5))));
+  max-height: min(760px, calc(var(--app-vh) - (2 * var(--space-5))));
   border-radius: 16px;
   border: 1px solid #30476f;
   background: #101a32;
@@ -4724,7 +4731,7 @@ dialog.modal {
   padding: var(--space-6);
   max-width: 1000px;
   width: min(640px, calc(100vw - (2 * var(--space-6))));
-  max-height: calc(100dvh - (2 * var(--space-4)));
+  max-height: calc(var(--app-vh) - (2 * var(--space-4)));
   box-sizing: border-box;
 }
 
@@ -4878,7 +4885,7 @@ dialog.modal .editor-separator {
   margin: 0;
   width: 100vw;
   max-width: none;
-  height: 100dvh;
+  height: var(--app-vh);
   max-height: none;
 }
 
@@ -4908,7 +4915,7 @@ dialog.modal .editor-separator {
 
 #sessionQuitConfirmDialog {
   width: min(520px, calc(100vw - (2 * var(--space-5))));
-  max-height: min(360px, calc(100dvh - (2 * var(--space-5))));
+  max-height: min(360px, calc(var(--app-vh) - (2 * var(--space-5))));
   padding: var(--space-4);
   overflow: hidden;
 }
@@ -5326,8 +5333,8 @@ dialog.modal .editor-separator {
 }
 
 #contentExchangePanel {
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--app-vh);
+  min-height: var(--app-vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;

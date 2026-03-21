@@ -84,7 +84,7 @@
     left: 0 !important;
     width: 100% !important;
     max-width: none !important;
-    height: 100dvh !important;
+    height: var(--app-vh) !important;
     max-height: none !important;
     margin: 0 !important;
     transform: none !important;
@@ -366,7 +366,7 @@
 
   #sessionQuitConfirmDialog {
     width: min(96vw, 96vw);
-    max-height: min(340px, calc(100dvh - (2 * var(--space-3))));
+    max-height: min(340px, calc(var(--app-vh) - (2 * var(--space-3))));
     padding: var(--space-3);
   }
 
@@ -462,8 +462,8 @@
 
   .panel {
     padding: calc(env(safe-area-inset-top)) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
-    min-height: 100dvh;
-    height: 100dvh;
+    min-height: var(--app-vh);
+    height: var(--app-vh);
   }
 
   .editor-grid {

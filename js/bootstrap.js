@@ -27,6 +27,21 @@ function isLocalRuntimeHost() {
   return !isGithubPagesHost;
 }
 
+/**
+ * @function configureMobileKeyboardOverlay
+ * @description Requests virtual keyboard overlay mode to avoid viewport layout shifts on mobile.
+ */
+
+function configureMobileKeyboardOverlay() {
+  const virtualKeyboard = navigator?.virtualKeyboard;
+  if (!virtualKeyboard || typeof virtualKeyboard !== 'object') return;
+  try {
+    virtualKeyboard.overlaysContent = true;
+  } catch (_) {
+    // Ignore unsupported/readonly environments.
+  }
+}
+
 
 
 /**
@@ -940,6 +955,7 @@ async function ensureAuthenticatedSession() {
  */
 
 async function boot() {
+  configureMobileKeyboardOverlay();
   applyOledBlackTheme(readOledBlackPreference());
   void registerOfflineServiceWorker();
   updateRuntimeHostHint();
@@ -1743,15 +1759,96 @@ async function boot() {
   }
   const editBtnBack = el('editSessionCardBtnBack');
   if (editBtnBack && editBtn) editBtnBack.onclick = () => editBtn.click();
+
+  const resetEditDialogStateSafe = () => {
+    editingCardId = null;
+    editingCardSnapshot = null;
+    const saveBtn = el('saveEditCardBtn');
+    if (saveBtn) {
+      saveBtn.dataset.busy = '0';
+      saveBtn.disabled = false;
+    }
+  };
+
+  const forceCloseEditDialogNow = (dialog = null) => {
+    const target = dialog || el('editCardDialog');
+    if (!target) return false;
+    try {
+      if (typeof target.close === 'function' && target.open) {
+        target.close();
+      }
+    } catch (err) {
+      console.warn('[EditDialog] Native close failed, forcing fallback:', err);
+    }
+    if (!target.open && !target.hasAttribute('open')) return true;
+    try {
+      target.removeAttribute('open');
+    } catch (_) {
+      // ignore
+    }
+    // If close event did not fire, clean up edit state manually.
+    resetEditDialogStateSafe();
+    return !target.open && !target.hasAttribute('open');
+  };
+
+  const requestSafeCloseEditDialog = (reason = 'unknown') => {
+    const dialog = el('editCardDialog');
+    if (!dialog) return;
+    try {
+      closeDialog(dialog);
+    } catch (err) {
+      console.warn('[EditDialog] closeDialog threw, forcing close:', err);
+      forceCloseEditDialogNow(dialog);
+      return;
+    }
+
+    const VERIFY_DELAY_MS = 180;
+    const MAX_ATTEMPTS = 6;
+    let attempts = 0;
+
+    const verify = () => {
+      const stillOpen = !!dialog.open || dialog.hasAttribute('open');
+      if (!stillOpen) return;
+      attempts += 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        const forced = forceCloseEditDialogNow(dialog);
+        if (!forced) {
+          console.warn(`[EditDialog] Dialog still open after forced close (reason: ${reason}).`);
+        } else {
+          console.warn(`[EditDialog] Forced close applied after timeout (reason: ${reason}).`);
+        }
+        // Keep active session stable if the modal got stuck while studying.
+        if (session.active) {
+          el('cardsOverviewSection')?.classList.add('hidden');
+          el('studySessionSection')?.classList.remove('hidden');
+          setView(2);
+          renderSessionPills();
+          void renderSessionCard();
+        }
+        return;
+      }
+      try {
+        closeDialog(dialog);
+      } catch (_) {
+        // continue retry loop
+      }
+      setTimeout(verify, VERIFY_DELAY_MS);
+    };
+
+    setTimeout(verify, VERIFY_DELAY_MS);
+  };
+
   const editDialog = el('editCardDialog');
   if (editDialog) {
     editDialog.addEventListener('click', e => {
-      if (e.target === editDialog) editDialog.close();
+      if (e.target === editDialog) requestSafeCloseEditDialog('backdrop-click');
     });
     editDialog.addEventListener('close', () => {
-      editingCardId = null;
-      editingCardSnapshot = null;
-      setEditSaveBusyState(false);
+      resetEditDialogStateSafe();
+    });
+    editDialog.addEventListener('cancel', e => {
+      e.preventDefault();
+      requestSafeCloseEditDialog('escape-cancel');
     });
   }
   const cardPreviewDialog = el('cardPreviewDialog');
@@ -2088,10 +2185,7 @@ async function boot() {
     saveBtn.disabled = !!busy;
   };
   el('closeEditCardBtn').onclick = () => {
-    editingCardId = null;
-    editingCardSnapshot = null;
-    setEditSaveBusyState(false);
-    el('editCardDialog').close();
+    requestSafeCloseEditDialog('close-button');
   };
   const handleAddMcqOption = edit => {
     setMcqModeState(edit, true);
@@ -2951,8 +3045,7 @@ async function boot() {
       applyOptimisticCardUpdate(updated);
       if (session.active) void renderSessionCard();
 
-      const editDialog = el('editCardDialog');
-      if (editDialog?.open) editDialog.close();
+      requestSafeCloseEditDialog('save-button');
       replaceFieldImages(el('editCardPrompt'), el('editQuestionImagePreview'), [], 'imageDataQ');
       replaceFieldImages(el('editCardAnswer'), el('editAnswerImagePreview'), [], 'imageDataA');
       setPreview('editQuestionPreview', '', editQuestionTextAlign);
