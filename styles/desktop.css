@@ -78,13 +78,6 @@
   --track-panel-count: 5;
   --mobile-sidebar-overlay-progress: 0;
   --card-width: 1400px;
-  --app-vh: 100dvh;
-}
-
-@supports (height: 100svh) {
-  :root {
-    --app-vh: 100svh;
-  }
 }
 
 /* OLED Black theme: turn blue-tinted surfaces into true black while leaving button colors unchanged. */
@@ -105,8 +98,8 @@ body.oled-black::before {
 
 html.oled-black .sidebar,
 body.oled-black .sidebar,
-html.oled-black .panel > .section,
-body.oled-black .panel > .section,
+html.oled-black .panel>.section,
+body.oled-black .panel>.section,
 html.oled-black #editorPanel .editor-list,
 body.oled-black #editorPanel .editor-list,
 html.oled-black #editorPanel .editor-panel.editor-main,
@@ -143,8 +136,8 @@ html.oled-black .topic-bulk-actions,
 body.oled-black .topic-bulk-actions,
 html.oled-black .deck-header-tile,
 body.oled-black .deck-header-tile,
-html.oled-black #contentExchangePanel > .content-exchange-section,
-body.oled-black #contentExchangePanel > .content-exchange-section,
+html.oled-black #contentExchangePanel>.content-exchange-section,
+body.oled-black #contentExchangePanel>.content-exchange-section,
 html.oled-black .progress-check-dialog,
 body.oled-black .progress-check-dialog,
 html.oled-black .progress-check-table-wrap,
@@ -210,7 +203,7 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  min-height: var(--app-vh);
+  min-height: 100dvh;
   width: 100%;
   font-family: Inter, Segoe UI, Roboto, system-ui, sans-serif;
   font-size: var(--font-size-base);
@@ -686,7 +679,7 @@ body.app-loading {
   margin: 0;
   width: 100dvw;
   max-width: none;
-  height: var(--app-vh);
+  height: 100dvh;
   max-height: none;
   padding: 0;
   border: none;
@@ -1257,7 +1250,7 @@ body.app-loading {
   min-width: calc(100% / var(--track-panel-count));
   max-width: calc(100% / var(--track-panel-count));
   padding: var(--space-4);
-  min-height: var(--app-vh);
+  min-height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
   overscroll-behavior: none;
@@ -1270,8 +1263,8 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
 }
 
 #editorPanel {
-  height: var(--app-vh);
-  min-height: var(--app-vh);
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   padding: var(--space-6);
   box-sizing: border-box;
@@ -1280,8 +1273,8 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
 }
 
 #deckPanel {
-  height: var(--app-vh);
-  min-height: var(--app-vh);
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1329,7 +1322,7 @@ body.exchange-only-view #track>.panel:not(#contentExchangePanel) {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: var(--space-3);
+  padding-inline: var(--space-3);
   box-sizing: border-box;
 }
 
@@ -1507,16 +1500,16 @@ body.session-complete-dialog-open #studySessionSection::before {
 }
 
 #topicPanel {
-  height: var(--app-vh);
-  min-height: var(--app-vh);
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 #homePanel {
-  height: var(--app-vh);
-  min-height: var(--app-vh);
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1628,7 +1621,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   overflow: auto;
 }
 
-.panel >.section {
+.panel>.section {
   margin-top: 0;
 }
 
@@ -3433,7 +3426,7 @@ textarea:focus-visible {
   font-weight: 700;
   line-height: 1;
   position: absolute;
-  left: calc( 2 * var(--card-tile-mcq-pad-x));
+  left: calc(2 * var(--card-tile-mcq-pad-x));
 }
 
 .card-tile-mcq-option-text {
@@ -3909,6 +3902,7 @@ body.session-image-open {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  margin-inline: var(--radius);
 }
 
 .image-recent-btn {
@@ -4425,6 +4419,14 @@ body.session-image-open {
   flex-direction: column;
   gap: var(--space-3);
   padding-bottom: var(--space-3);
+  /* flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: 130px;
+  padding-top: var(--space-3); */
 }
 
 .editor-footer {
@@ -4445,11 +4447,28 @@ body.session-image-open {
   flex-direction: column;
   gap: var(--space-2);
   justify-content: flex-end;
-  background: linear-gradient(180deg, rgba(16, 24, 45, 0) 0%, rgba(16, 24, 45, 0.92) 36%, rgba(16, 24, 45, 0.98) 100%);
+  /* position: absolute;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  background: rgba(15, 14, 26, 0);
+  width: calc(100% - 2 * var(--space-3));
+  box-sizing: border-box;
+  padding-bottom: var(--space-3);
+  border-radius: 14px 14px 0 0;
+  backdrop-filter: blur(3px); */
 }
 
 .editor-footer.editor-footer-stack .btn {
   width: 100%;
+}
+
+.subject-sidebar-toggle {
+  background-color: rgb(255, 255, 255, 0);
+  box-shadow: none;
 }
 
 .editor-shell .editor-panel.editor-main,
@@ -4633,7 +4652,7 @@ body.session-image-open {
 dialog.modal.recent-storage-image-picker-dialog {
   width: min(980px, calc(100vw - (2 * var(--space-5))));
   max-width: min(980px, calc(100vw - (2 * var(--space-5))));
-  max-height: min(760px, calc(var(--app-vh) - (2 * var(--space-5))));
+  max-height: min(760px, calc(100dvh - (2 * var(--space-5))));
   padding: 0;
   background: transparent;
   border: none;
@@ -4647,7 +4666,7 @@ dialog.modal.recent-storage-image-picker-dialog::backdrop {
 
 .recent-storage-image-picker-panel {
   width: 100%;
-  max-height: min(760px, calc(var(--app-vh) - (2 * var(--space-5))));
+  max-height: min(760px, calc(100dvh - (2 * var(--space-5))));
   border-radius: 16px;
   border: 1px solid #30476f;
   background: #101a32;
@@ -4731,7 +4750,7 @@ dialog.modal {
   padding: var(--space-6);
   max-width: 1000px;
   width: min(640px, calc(100vw - (2 * var(--space-6))));
-  max-height: calc(var(--app-vh) - (2 * var(--space-4)));
+  max-height: calc(100dvh - (2 * var(--space-4)));
   box-sizing: border-box;
 }
 
@@ -4885,7 +4904,7 @@ dialog.modal .editor-separator {
   margin: 0;
   width: 100vw;
   max-width: none;
-  height: var(--app-vh);
+  height: 100dvh;
   max-height: none;
 }
 
@@ -4915,7 +4934,7 @@ dialog.modal .editor-separator {
 
 #sessionQuitConfirmDialog {
   width: min(520px, calc(100vw - (2 * var(--space-5))));
-  max-height: min(360px, calc(var(--app-vh) - (2 * var(--space-5))));
+  max-height: min(360px, calc(100dvh - (2 * var(--space-5))));
   padding: var(--space-4);
   overflow: hidden;
 }
@@ -5333,8 +5352,8 @@ dialog.modal .editor-separator {
 }
 
 #contentExchangePanel {
-  height: var(--app-vh);
-  min-height: var(--app-vh);
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;

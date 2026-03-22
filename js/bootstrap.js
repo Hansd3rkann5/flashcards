@@ -27,21 +27,6 @@ function isLocalRuntimeHost() {
   return !isGithubPagesHost;
 }
 
-/**
- * @function configureMobileKeyboardOverlay
- * @description Requests virtual keyboard overlay mode to avoid viewport layout shifts on mobile.
- */
-
-function configureMobileKeyboardOverlay() {
-  const virtualKeyboard = navigator?.virtualKeyboard;
-  if (!virtualKeyboard || typeof virtualKeyboard !== 'object') return;
-  try {
-    virtualKeyboard.overlaysContent = true;
-  } catch (_) {
-    // Ignore unsupported/readonly environments.
-  }
-}
-
 
 
 /**
@@ -955,7 +940,6 @@ async function ensureAuthenticatedSession() {
  */
 
 async function boot() {
-  configureMobileKeyboardOverlay();
   applyOledBlackTheme(readOledBlackPreference());
   void registerOfflineServiceWorker();
   updateRuntimeHostHint();

@@ -408,6 +408,7 @@
     transition: transform 0.25s ease;
     border-right: 1px solid #26365f;
     background: var(--background);
+    padding-top: calc(env(safe-area-inset-top));
   }
 
   body.sidebar-open .sidebar {

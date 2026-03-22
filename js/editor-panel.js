@@ -215,7 +215,7 @@ function syncMcqOrderUi(edit = false) {
       opt.textContent = String(i);
       select.appendChild(opt);
     }
-    const current = Number(previousRaw || idx + 1);
+    const current = previousRaw ? Number(previousRaw) : (idx + 1);
     const clamped = Math.min(total, Math.max(1, current));
     select.value = String(clamped);
     select.dataset.value = String(clamped);
@@ -2399,6 +2399,7 @@ function addMcqRowInternal(edit = false, text = '', correct = false, options = {
   const wrap = document.createElement('div');
   wrap.className = `mcq-row ${correct ? 'correct' : 'wrong'}`;
   wrap.dataset.primary = 'false';
+  console.log(nextOptionOrderId);
   wrap.innerHTML = `
         <div class="mcq-row-header">
           <span class="mcq-badge ${correct ? 'correct' : 'wrong'}">${correct ? 'Correct Answer ✓' : 'Wrong Answer ✕'}</span>
