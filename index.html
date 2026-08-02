@@ -13,7 +13,8 @@
   <title>Engineering Flashcards | Shared Server</title>
   <link rel="icon" type="image/png" href="icons/icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link id="legacyStylesheet" rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles/globals.components.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
     integrity="sha384-CIGaNQlQjmh0mdnW7ufcsOGCO5lCw/pwP5dxgDyVJjwFzJmlsJ4ojIKGJT/PpBb5" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"
@@ -110,6 +111,7 @@
       <button id="homeBtn">Home</button>
       <button id="settingsBtn">Settings</button>
       <button id="archiveBtn">Archive</button>
+      <button id="toggleUiStructureBtn" type="button">Use New UI Structure</button>
     </div>
     <!--     
     <button id="archiveBtn" class="sidebar-archive-btn" type="button" aria-label="Open archived subjects">
@@ -142,12 +144,14 @@
         </div>
         <div id="dailyReviewHomePanel" class="section daily-review-home hidden">
           <div class="topic-sticky-stack">
-            <div class="header-tile">
-              <button class="btn subject-sidebar-toggle review-sidebar-toggle" id="sidebarToggleHome" type="button"
-                aria-label="Open sidebar" title="Open sidebar">
-                <img src="icons/burger.svg" alt="" aria-hidden="true" class="app-icon" />
-              </button>
-              <h2 class="review-header-title">Review Cards</h2>
+            <div id="dailyReviewHeaderMount">
+              <div class="header-tile review-header-tile">
+                <button class="btn subject-sidebar-toggle review-sidebar-toggle" id="sidebarToggleHome" type="button"
+                  aria-label="Open sidebar" title="Open sidebar">
+                  <img src="icons/burger.svg" alt="" aria-hidden="true" class="app-icon" />
+                </button>
+                <h2 class="review-header-title">Review Cards</h2>
+              </div>
             </div>
           </div>
           <div class="session-complete-message" id="dailyReviewMessage">
@@ -184,12 +188,6 @@
               </div>
             </article>
           </div>
-          <!-- <div class="daily-review-analytics-header">
-            <div class="tiny">Analytics</div>
-            <button class="btn daily-review-analytics-toggle" id="toggleDailyReviewAnalyticsBtn" type="button"
-              aria-expanded="true">Hide charts</button>
-          </div> -->
-          <!-- <div id="dailyReviewAnalytics" class="daily-review-analytics"></div> -->
           <div class="session-complete-stats">
             <div class="session-complete-stat">
               <div class="tiny review-stat">Cards</div>
@@ -318,16 +316,6 @@
             <button class="btn" id="cancelTopicSelectionBtn" type="button">Cancel</button>
           </div>
           <div id="topicList" class="topic-list"></div>
-          <!-- <div class="controls" style="margin-top:14px; margin-inline: 0; border-radius: 14px;">
-            <button class="btn start-subject-session-btn" id="startSubjectSessionBtn" type="button">Start Session</button>
-          </div> -->
-          <!-- <hr style="border-color:#30456f">
-          <h3>Add Topic</h3>
-          <div class="topic-input-wrap">
-            <input id="topicName" class="topic-input" placeholder="e.g., Thermodynamics" />
-            <button class="btn create-card-icon-btn topic-add-btn" id="addTopicBtn" type="button" aria-label="Add topic"
-              title="Add topic" style="background-color: var(--success)">+</button>
-          </div> -->
         </div>
       </section>
 
@@ -532,14 +520,12 @@
             </button>
             <div>
               <h2 id="editorTitle" style="margin:0;">+</h2>
-              <!-- <div class="tiny" id="editorSubtitle">Autosaved locally</div> -->
             </div>
             <div class="editor-header-actions">
               <button class="btn editor-shortcuts-btn" id="openEditorIntroBtn" type="button">Shortcuts</button>
               <button class="btn editor-sidebar-toggle" id="toggleEditorSidebarBtn">Cards</button>
             </div>
           </div>
-          <!-- <div class="editor-separator hor" aria-hidden="true"></div> -->
           <div id="editorOverlay" class="editor-overlay"></div>
           <div class="editor-grid">
             <div class="editor-list editor-sidebar" style="overflow: auto;">
@@ -557,7 +543,6 @@
                     <label>Question</label>
                     <button class="btn btn-small image-recent-btn" id="openRecentCreateQuestionImagesBtn" type="button"
                       title="Reuse a recently stored image">Recent Images</button>
-                    <!-- <button class="btn btn-small formula-btn" data-formula-target="cardPrompt" type="button">Formula</button> -->
                   </div>
                   <div class="editor-input-media-row">
                     <textarea id="cardPrompt" placeholder="Type your question..."></textarea>
@@ -587,7 +572,6 @@
                   <div class="field-error hidden" id="questionError">Please fill in the question.</div>
                 </div>
                 <hr style="border-color:#30456f; width: 97%;">
-                <!-- <div class="qa-editor-separator" aria-hidden="true"></div> -->
                 <div class="editor-field" id="answerField">
                   <div class="mcq-primary-row" id="primaryAnswerRow">
                     <div class="mcq-primary-header hidden" id="primaryAnswerHeader">
@@ -605,7 +589,6 @@
                       <label>Answer</label>
                       <button class="btn btn-small image-recent-btn" id="openRecentCreateAnswerImagesBtn" type="button"
                         title="Reuse a recently stored image">Recent Images</button>
-                      <!-- <button class="btn btn-small formula-btn" data-formula-target="cardAnswer" type="button">Formula</button> -->
                     </div>
                     <div class="editor-input-media-row">
                       <textarea id="cardAnswer" placeholder="Type the answer..."></textarea>
@@ -699,12 +682,16 @@
     // Temporary local snapshot mode (disables Supabase API queries in the app runtime).
     window.__LOCAL_SNAPSHOT_MODE__ = window.__LOCAL_SNAPSHOT_MODE__ ?? false;
     window.__LOCAL_SNAPSHOT_PATH__ = window.__LOCAL_SNAPSHOT_PATH__ || './flashcards-export.json';
+    // Frontend TS migration mode: hide legacy UI and render only component workspace.
+    window.__UI_COMPONENTS_ONLY__ = window.__UI_COMPONENTS_ONLY__ ?? false;
+    // Backend mode: 'supabase' (default) or 'http' (use /api endpoints from local Node backend).
+    window.__BACKEND_MODE__ = window.__BACKEND_MODE__ || 'supabase';
 
     // Supabase project config.
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.03.22.2';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.02.1';
     window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.03.19.15';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
@@ -717,6 +704,7 @@
   <script src="js/server-communication.js" defer></script>
   <script src="js/data-access.js" defer></script>
   <script src="js/device-interactions.js" defer></script>
+  <script src="js/panel-component.js" defer></script>
   <script src="js/navigation-layout.js" defer></script>
   <script src="js/text-rendering.js" defer></script>
   <script src="js/media-handling.js" defer></script>

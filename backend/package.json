@@ -1,0 +1,43 @@
+{
+  "name": "flashcards-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js + TypeScript backend for the flashcards app",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:backend": "tsx watch src/server.ts",
+    "dev:frontend-vite": "npm --prefix ../frontend run dev -- --host 127.0.0.1 --port 5173",
+    "dev:vite": "concurrently -k -n API,WEB -c green,cyan \"npm:dev:backend\" \"npm:dev:frontend-vite\"",
+    "dev:frontend-panels": "tsc -p ../frontend-ts/tsconfig.json --watch --preserveWatchOutput",
+    "dev:frontend-tailwind": "tailwindcss -c ../frontend-ts/tailwind.config.cjs -i ../frontend-ts/app/tailwind.css -o ../styles/tailwind.generated.css --watch",
+    "dev:browser": "browser-sync start --proxy http://127.0.0.1:8000 --port 3000 --no-open --files \"../index.html,../js/**/*.js,../styles/**/*.css,../icons/**/*\"",
+    "dev:live": "npm run build:frontend-ui && concurrently -k -n API,PANELS,TAILWIND,PREVIEW -c green,cyan,magenta,yellow \"npm:dev:backend\" \"npm:dev:frontend-panels\" \"npm:dev:frontend-tailwind\" \"npm:dev:browser\"",
+    "build": "tsc -p tsconfig.json",
+    "build:frontend-vite": "npm --prefix ../frontend run build",
+    "build:frontend-panels": "tsc -p ../frontend-ts/tsconfig.json",
+    "build:frontend-tailwind": "tailwindcss -c ../frontend-ts/tailwind.config.cjs -i ../frontend-ts/app/tailwind.css -o ../styles/tailwind.generated.css --minify",
+    "build:frontend-ui": "npm run build:frontend-panels && npm run build:frontend-tailwind",
+    "start": "node dist/server.js",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.15.31",
+    "browser-sync": "^3.0.4",
+    "concurrently": "^9.2.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

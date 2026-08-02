@@ -1953,7 +1953,7 @@ async function gradeCard(result) {
   // Prevents front-of-queue cycles where the same few cards keep rotating
   // while cards further back never get shown.
 
-  const QUEUE_STARVATION_INTERVAL = 5;
+  const QUEUE_STARVATION_INTERVAL = 3;
 
   if (session.turns === undefined) session.turns = 0;
   session.turns += 1;

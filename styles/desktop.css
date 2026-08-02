@@ -953,6 +953,7 @@ body.app-loading {
   align-items: center;
   justify-content: center;
   background-color: transparent;
+  margin-right: 42px;
 }
 
 .refresh-icon-btn .app-icon {
@@ -1175,10 +1176,8 @@ body.app-loading {
 }
 
 @media (hover: hover) and (pointer: fine) {
-
   .sidebar button:hover,
   .btn:hover {
-    /* transform: scale(1.02); */
     box-shadow: inset 0px 0px 10px 2px #fafafa76;
   }
 
@@ -1250,7 +1249,7 @@ body.app-loading {
   min-width: calc(100% / var(--track-panel-count));
   max-width: calc(100% / var(--track-panel-count));
   padding: var(--space-4);
-  min-height: 100dvh;
+  min-height: var(--app-vh, 100dvh);
   box-sizing: border-box;
   overflow: hidden;
   overscroll-behavior: none;
@@ -1635,7 +1634,7 @@ body.session-complete-dialog-open #studySessionSection::before {
   padding: var(--space-2) var(--space-3);
   border: 1px solid #30476f;
   border-radius: 20px;
-  background: rgba(10, 16, 30);
+  background: rgba(16, 24, 45, 0.82);
   box-shadow: 0 0px 20px var(--accent);
   isolation: isolate;
   transform: translateZ(0);
@@ -1674,6 +1673,54 @@ body.session-complete-dialog-open #studySessionSection::before {
   font-size: var(--font-size-title);
   line-height: 1.2;
   font-weight: 700;
+}
+
+.app-panel-header {
+  position: relative;
+}
+
+.app-panel-header__title {
+  margin: 0;
+  max-width: calc(100% - 140px);
+  text-align: center;
+  pointer-events: none;
+}
+
+.app-panel-header__side {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.app-panel-header__side--left {
+  left: var(--space-2);
+}
+
+.app-panel-header__side--right {
+  right: var(--space-2);
+}
+
+.app-panel-header-btn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-panel-header__side .subject-sidebar-toggle,
+.app-panel-header__side .app-panel-header-btn {
+  position: static;
+  left: auto;
+  right: auto;
+  top: auto;
+  transform: none;
 }
 
 .subject-sidebar-toggle {
@@ -2185,7 +2232,7 @@ textarea:focus-visible {
   display: grid;
   width: 100%;
   max-width: 100%;
-  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   gap: var(--space-3);
   margin-top: var(--space-3);
   margin-bottom: var(--space-3);

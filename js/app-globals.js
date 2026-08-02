@@ -9,6 +9,7 @@ const SUPABASE_PICTURES_BUCKET = String(window.__SUPABASE_PICTURES_BUCKET__ || '
 const SUPABASE_TABLE = 'records';
 const LOCAL_SNAPSHOT_MODE = window.__LOCAL_SNAPSHOT_MODE__ === true;
 const LOCAL_SNAPSHOT_PATH = String(window.__LOCAL_SNAPSHOT_PATH__ || '').trim();
+const BACKEND_MODE = String(window.__BACKEND_MODE__ || 'supabase').trim().toLowerCase();
 const PLATFORM = getPlatform();
 const STORE_KEYS = {
   subjects: 'id',
@@ -288,6 +289,15 @@ let supabaseTenantColumn = '';
 
 function isLocalSnapshotModeEnabled() {
   return LOCAL_SNAPSHOT_MODE;
+}
+
+function isHttpApiBackendEnabled() {
+  if (isLocalSnapshotModeEnabled()) return false;
+  return BACKEND_MODE === 'http' || BACKEND_MODE === 'node' || BACKEND_MODE === 'node-api';
+}
+
+function isSupabaseBackendEnabled() {
+  return !isLocalSnapshotModeEnabled() && !isHttpApiBackendEnabled();
 }
 const progressPersistInFlightByCardId = new Map();
 let appLoadingOverlayCount = 0;

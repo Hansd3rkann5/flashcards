@@ -2,6 +2,66 @@
 
 Flashcard web app for engineering students using Supabase.
 
+## Local Backend Options
+
+1. Legacy local server (Python): `python3 server.py`
+2. New modular backend (Node + TypeScript): see [backend/README.md](backend/README.md)
+
+When using the Node backend, set `window.__BACKEND_MODE__ = 'http'` in `index.html` so frontend API calls go to `/api/*` instead of Supabase SDK paths.
+
+## Frontend Migration Paths
+
+### Recommended: Vite + React + TypeScript (`frontend/`)
+
+New UI migration target:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Runs on `http://127.0.0.1:5173` and proxies `/api/*` to backend.
+
+To run backend + Vite together:
+
+```bash
+cd backend
+npm install
+npm run dev:vite
+```
+
+### Legacy TS Runtime Layer (`frontend-ts/`)
+
+The project now contains a frontend TS source layer under `frontend-ts/` with an app-oriented structure:
+
+- `app/`
+- `components/`
+- `features/`
+- `lib/`
+- `types/`
+
+Compile frontend TS panel components to browser runtime scripts:
+
+```bash
+cd backend
+npm run build:frontend-panels
+```
+
+Build Tailwind-generated UI styles (buttons, panel, header) from `frontend-ts/app/tailwind.css`:
+
+```bash
+cd backend
+npm run build:frontend-tailwind
+```
+
+Run both frontend build steps:
+
+```bash
+cd backend
+npm run build:frontend-ui
+```
+
 **Quick Start**
 
 1. Host the static files (`index.html`, `styles.css`, `js/`, `icons/`, `sw.js`) on HTTPS (e.g. GitHub Pages).

@@ -1,0 +1,111 @@
+/*
+ * Frontend TS app-level globals
+ * Mirrored from styles/desktop.css :root tokens.
+ */
+
+body[data-ui-structure-mode='components'] {
+  /* Core colors */
+  --bg: #0a0f1e;
+  --panel: #121a2d;
+  --panel-light: #1a2741;
+  --text: #edf2ff;
+  --muted: #91a0c0;
+  --accent: #2dd4bf;
+  --accent-glow: rgba(45, 212, 191, 0.22);
+  --accent-ring: rgba(45, 212, 191, 0.68);
+  --accent-glow-strong: rgba(45, 212, 191, 0.38);
+  --accent-glow-soft: rgba(45, 212, 191, 0.2);
+  --panel-accent: rgba(45, 212, 191, 0.12);
+  --tile-accent-bg: rgba(45, 212, 191, 0.18);
+  --face-accent: rgba(45, 212, 191, 0.14);
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --success: #22c55e;
+  --button: linear-gradient(90deg, #f45f82 0%, #e255a9 50%, #17b0f7 100%);
+
+  /* Layout sizing (edit these to scale the UI) */
+  --sidebar-width: 350px;
+  --radius: 16px;
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+
+  /* Typography sizing */
+  --font-size-base: clamp(15px, 0.9vw + 12px, 18px);
+  --font-size-title: clamp(1.1rem, 1.2vw + 0.8rem, 1.5rem);
+  --font-size-small: clamp(0.82rem, 0.3vw + 0.75rem, 0.95rem);
+  --session-font-size: 1.8rem;
+  --mcq-option-font-size: clamp(1rem, 0.7rem + 1.02vw, 1.24rem);
+  --mcq-option-line-height: 1.34;
+  --mcq-option-min-height: clamp(50px, 4.9vw, 58px);
+  --mcq-option-pad-y: clamp(9px, 1.3vw, 15px);
+  --mcq-option-pad-x: clamp(10px, 1.7vw, 18px);
+  --mcq-option-radius: clamp(14px, 1.3vw, 20px);
+  --mcq-option-gap: clamp(6px, 1.2vw, 12px);
+  --mcq-options-padding: clamp(6px, 1.7vw, 14px);
+  --mcq-check-min-width: clamp(112px, 26vw, 160px);
+  --mcq-key-size: clamp(16px, 2vw, 20px);
+  --mcq-key-font-size: clamp(0.56rem, 0.35rem + 0.35vw, 0.68rem);
+  --mcq-order-badge-size: clamp(20px, 2.6vw, 26px);
+  --mcq-order-badge-font-size: clamp(0.66rem, 0.44rem + 0.4vw, 0.82rem);
+  --mcq-order-badge-offset: clamp(6px, 1.3vw, 10px);
+  --card-tile-mcq-font-size: clamp(0.74rem, 0.58rem + 0.28vw, 0.9rem);
+  --card-tile-mcq-gap: clamp(5px, 0.9vw, 8px);
+  --card-tile-mcq-pad-y: clamp(5px, 0.8vw, 7px);
+  --card-tile-mcq-pad-x: clamp(7px, 1.2vw, 10px);
+  --card-tile-mcq-radius: clamp(8px, 1vw, 10px);
+  --card-tile-mcq-badge-size: clamp(18px, 2.3vw, 24px);
+  --card-tile-mcq-badge-font-size: clamp(0.66rem, 0.48rem + 0.32vw, 0.76rem);
+
+  /* Spacing scale */
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
+  --space-5: 24px;
+  --space-6: 28px;
+
+  /* Component sizing */
+  --btn-padding-y: 14px;
+  --btn-padding-x: 16px;
+  --input-padding-y: 12px;
+  --input-padding-x: 14px;
+  --tile-padding: 12px;
+  --card-min-height: 300px;
+  --counter-height: 60px;
+  --counter-gap: 10px;
+  --card-grid-min: 300px;
+  --track-panel-count: 5;
+  --mobile-sidebar-overlay-progress: 0;
+  --card-width: 1400px;
+}
+
+body[data-ui-components-only='1'] {
+  margin: 0;
+  min-height: 100dvh;
+  display: block;
+  overflow: auto;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, Segoe UI, Roboto, system-ui, sans-serif;
+}
+
+body[data-ui-components-only='1'] > :not(#tsxAppRoot):not(#appLoadingOverlay):not(script) {
+  display: none !important;
+}
+
+body[data-ui-components-only='1'] #tsxAppRoot {
+  min-height: 100dvh;
+}
+
+@media (max-width: 900px) {
+  body[data-ui-components-only='1'] #tsxAppRoot > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+body[data-ui-components-only='1'] #tsxAppRoot.tsx-sidebar-hidden > div {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body[data-ui-components-only='1'] #tsxAppRoot.tsx-sidebar-hidden > div > aside {
+  display: none !important;
+}

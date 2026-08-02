@@ -8,6 +8,31 @@
 async function registerOfflineServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   if (!window.isSecureContext) return;
+
+  const hostname = String(window.location.hostname || '').trim().toLowerCase();
+  const port = String(window.location.port || '').trim();
+  const isLocalHost = hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '::1'
+    || hostname.endsWith('.local');
+  const isLivePreviewPort = port === '3000' || port === '3001';
+  const shouldDisableServiceWorker = isLocalHost && isLivePreviewPort;
+
+  if (shouldDisableServiceWorker) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
+      if (window.caches && typeof window.caches.keys === 'function') {
+        const cacheNames = await window.caches.keys();
+        const appCacheNames = cacheNames.filter(name => String(name || '').startsWith('flashcards-'));
+        await Promise.all(appCacheNames.map(name => window.caches.delete(name)));
+      }
+    } catch (err) {
+      console.warn('Service worker cleanup for live preview failed:', err);
+    }
+    return;
+  }
+
   try {
     const registration = await navigator.serviceWorker.register('sw.js');
     if (registration.waiting) {
@@ -115,6 +140,62 @@ function parseApiBody(raw = null) {
   }
   if (typeof raw === 'object') return raw;
   return null;
+}
+
+/**
+ * @function parseApiErrorPayload
+ * @description Parses a backend error payload from JSON or plaintext response bodies.
+ */
+
+async function parseApiErrorPayload(response) {
+  if (!response) return '';
+  const contentType = String(response.headers?.get('content-type') || '').toLowerCase();
+  try {
+    if (contentType.includes('application/json')) {
+      const payload = await response.json();
+      return String(payload?.error || payload?.message || '').trim();
+    }
+    return String(await response.text()).trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+/**
+ * @function apiRequestHttpBackend
+ * @description Executes API requests against an HTTP backend (`/api/*`) instead of Supabase SDK calls.
+ */
+
+async function apiRequestHttpBackend(path, options = {}) {
+  const method = String(options?.method || 'GET').toUpperCase();
+  const headers = new Headers(options?.headers || {});
+  let body = options?.body;
+
+  if (body !== undefined && body !== null && typeof body === 'object' && !(body instanceof FormData)) {
+    if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    body = JSON.stringify(body);
+  } else if (typeof body === 'string') {
+    if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(path, {
+    method,
+    headers,
+    body,
+    cache: options?.cache || 'no-store'
+  });
+
+  if (!response.ok) {
+    const backendMessage = await parseApiErrorPayload(response);
+    const fallback = `Request failed (${response.status})`;
+    const error = new Error(backendMessage || fallback);
+    error.status = response.status;
+    throw error;
+  }
+  if (response.status === 204) return null;
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) return response.json();
+  return response.text();
 }
 
 /**
@@ -1079,14 +1160,16 @@ async function apiRequest(path, options = {}) {
     }, 140);
   }
   const localSnapshotMode = isLocalSnapshotModeEnabled();
+  const httpApiMode = typeof isHttpApiBackendEnabled === 'function' && isHttpApiBackendEnabled();
   try {
     if (localSnapshotMode) {
       await ensureLocalSnapshotLoaded();
-    } else {
+    } else if (!httpApiMode) {
       await initSupabaseBackend();
     }
   } catch (err) {
     if (localSnapshotMode) throw err;
+    if (httpApiMode) throw toNetworkError(err, 'Network error: backend unreachable.');
     throw toNetworkError(err, 'Network error: Supabase unavailable.');
   }
 
@@ -1102,6 +1185,16 @@ async function apiRequest(path, options = {}) {
   if (localSnapshotMode) {
     try {
       return apiRequestLocalSnapshot(parts, searchParams, method, options);
+    } finally {
+      if (loadingTimer) clearTimeout(loadingTimer);
+      if (loadingShown) setAppLoadingState(false);
+    }
+  }
+  if (httpApiMode) {
+    try {
+      return await apiRequestHttpBackend(path, options);
+    } catch (err) {
+      throw toNetworkError(err, 'Network error: backend request failed.');
     } finally {
       if (loadingTimer) clearTimeout(loadingTimer);
       if (loadingShown) setAppLoadingState(false);

@@ -27,6 +27,20 @@ function isLocalRuntimeHost() {
   return !isGithubPagesHost;
 }
 
+/**
+ * @function isSupabaseAuthRequired
+ * @description Returns true when runtime mode requires authenticated Supabase session handling.
+ */
+
+function isSupabaseAuthRequired() {
+  return !(isLocalSnapshotModeEnabled() || (typeof isHttpApiBackendEnabled === 'function' && isHttpApiBackendEnabled()));
+}
+
+function isComponentsOnlyFrontendMode() {
+  if (window.__UI_COMPONENTS_ONLY__ === true) return true;
+  return document.body?.dataset?.uiComponentsOnly === '1';
+}
+
 
 
 /**
@@ -173,7 +187,7 @@ function extractOnboardingProfileNameFromUser(user = null) {
  */
 
 async function refreshAuthenticatedProfileName() {
-  if (isLocalSnapshotModeEnabled()) {
+  if (!isSupabaseAuthRequired()) {
     onboardingProfileName = '';
     onboardingNameRequired = false;
     return;
@@ -467,6 +481,14 @@ async function persistOnboardingNameFromInput() {
   setOnboardingNameMessage('Saving name...');
   renderOnboardingTutorialStep();
   try {
+    if (!isSupabaseAuthRequired()) {
+      onboardingProfileName = normalized;
+      onboardingNameRequired = false;
+      nameInput.value = normalized;
+      setOnboardingNameMessage('Name saved.', 'success');
+      void syncAuthenticatedProfileNameRecord();
+      return true;
+    }
     await initSupabaseBackend();
     const { data, error } = await supabaseClient.auth.updateUser({
       data: {
@@ -841,9 +863,9 @@ function wireEditorIntro() {
  */
 
 async function ensureAuthenticatedSession() {
-  if (isLocalSnapshotModeEnabled()) {
+  if (!isSupabaseAuthRequired()) {
     authenticatedSupabaseUser = null;
-    supabaseOwnerId = 'offline-snapshot-user';
+    supabaseOwnerId = isLocalSnapshotModeEnabled() ? 'offline-snapshot-user' : 'local-node-user';
     setAuthMessage('');
     setAuthGateVisibility(false);
     return true;
@@ -940,6 +962,7 @@ async function ensureAuthenticatedSession() {
  */
 
 async function boot() {
+  if (isComponentsOnlyFrontendMode()) return;
   applyOledBlackTheme(readOledBlackPreference());
   void registerOfflineServiceWorker();
   updateRuntimeHostHint();
@@ -963,7 +986,7 @@ async function boot() {
     await openCardBankDB();
     await preloadTopicDirectory({ force: true });
   } catch (err) {
-    alert(err.message || 'Unable to connect to Supabase backend.');
+    alert(err.message || 'Unable to connect to backend.');
     return;
   }
   if (!backendReachable) {
@@ -1050,7 +1073,7 @@ async function boot() {
   if (closeSubjectArchiveBtn) closeSubjectArchiveBtn.onclick = () => closeDialog(el('subjectArchiveDialog'));
   const signOutBtn = el('signOutBtn');
   if (signOutBtn) {
-    if (isLocalSnapshotModeEnabled()) {
+    if (!isSupabaseAuthRequired()) {
       signOutBtn.classList.add('hidden');
     }
     signOutBtn.onclick = async () => {
@@ -1115,7 +1138,7 @@ async function boot() {
   }
   const openContentExchangeBtn = el('openContentExchangeBtn');
   if (openContentExchangeBtn) {
-    if (isLocalSnapshotModeEnabled()) {
+    if (!isSupabaseAuthRequired()) {
       openContentExchangeBtn.classList.add('hidden');
     } else {
       openContentExchangeBtn.onclick = () => { void openContentExchangeDialog(); };
@@ -1123,7 +1146,7 @@ async function boot() {
   }
   const runStorageCleanupBtn = el('runStorageCleanupBtn');
   if (runStorageCleanupBtn) {
-    if (isLocalSnapshotModeEnabled()) {
+    if (!isSupabaseAuthRequired()) {
       runStorageCleanupBtn.classList.add('hidden');
     } else {
       runStorageCleanupBtn.onclick = () => { void runStorageCleanupFromSettings(); };
@@ -1131,7 +1154,7 @@ async function boot() {
   }
   const restoreMissingImagesBtn = el('restoreMissingImagesBtn');
   if (restoreMissingImagesBtn) {
-    if (isLocalSnapshotModeEnabled()) {
+    if (!isSupabaseAuthRequired()) {
       restoreMissingImagesBtn.classList.add('hidden');
     } else {
       restoreMissingImagesBtn.onclick = () => { void restoreMissingImagesFromLocalBackup(); };
