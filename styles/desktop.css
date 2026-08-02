@@ -4503,7 +4503,7 @@ body.session-image-open {
   gap: var(--space-2);
   justify-content: flex-end;
   background: rgba(15, 14, 26, 0);
-  width: 100%;
+  width: calc(100% - 2 * var(--space-3));
   box-sizing: border-box;
   padding-bottom: var(--space-3);
   border-radius: 14px 14px 0 0;
@@ -4511,7 +4511,7 @@ body.session-image-open {
 }
 
 .modal .editor-footer.editor-footer-stack {
-  width: calc(100% - 2 * var(--space-3));
+  width: 100%;
 }
 
 .modal>.editor-footer.editor-footer-stack {
