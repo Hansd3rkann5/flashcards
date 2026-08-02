@@ -6,7 +6,6 @@ const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
-  './styles/globals.components.css',
   './js/app-globals.js',
   './js/core-utils.js',
   './js/review-panel.js',

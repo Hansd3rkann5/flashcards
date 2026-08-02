@@ -24,11 +24,3 @@ flashcards.backup_before_carbon_update_20260222_143530.sqlite3
 
 # Logs
 *.log
-
-# Node / TypeScript backend
-backend/node_modules/
-backend/dist/
-
-# Vite React frontend
-frontend/node_modules/
-frontend/dist/
