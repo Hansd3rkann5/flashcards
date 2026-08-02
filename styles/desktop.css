@@ -4510,7 +4510,7 @@ body.session-image-open {
   backdrop-filter: blur(3px);
 }
 
-.editor-panel.editor-main .editor-footer.editor-footer-stack {
+.modal .editor-footer.editor-footer-stack {
   width: calc(100% - 2 * var(--space-3));
 }
 
