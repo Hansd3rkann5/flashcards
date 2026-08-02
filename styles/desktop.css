@@ -4510,8 +4510,14 @@ body.session-image-open {
   backdrop-filter: blur(3px);
 }
 
+.editor-panel.editor-main .editor-footer.editor-footer-stack {
+  width: calc(100% - 2 * var(--space-3));
+}
+
 .modal>.editor-footer.editor-footer-stack {
-  width: 100% !important;
+  left: var(--space-6);
+  right: var(--space-6);
+  width: auto;
 }
 
 .editor-footer.editor-footer-stack .btn {
