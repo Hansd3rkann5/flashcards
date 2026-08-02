@@ -1953,45 +1953,49 @@ async function gradeCard(result) {
   // Prevents front-of-queue cycles where the same few cards keep rotating
   // while cards further back never get shown.
 
-  const QUEUE_STARVATION_INTERVAL = 3;
-
   if (session.turns === undefined) session.turns = 0;
   session.turns += 1;
 
-  if (session.turns % QUEUE_STARVATION_INTERVAL === 0 && session.activeQueue.length > 6) {
+  if (session.activeQueue.length > 2) {
     const queue = session.activeQueue;
-    const halfIndex = Math.floor(queue.length * 0.5);
 
-    // Prefer cards that have not been graded yet in this session
+    // Check for unseen cards anywhere behind position 1
     const unseenIndices = [];
-    for (let i = halfIndex; i < queue.length; i += 1) {
+    for (let i = 1; i < queue.length; i += 1) {
       const c = queue[i];
       const count = session.counts?.[c?.id] ?? 0;
       const hasGrade = session.gradeMap?.[c?.id];
       if (count === 0 && !hasGrade) unseenIndices.push(i);
     }
 
-    // If there are unseen cards in the back half, pick one of them.
-    // Otherwise fall back to any card in the back half.
-    const candidatePool = unseenIndices.length
-      ? unseenIndices
-      : Array.from({ length: queue.length - halfIndex }, (_, k) => k + halfIndex);
+    // If there are unseen cards, promote one every 2 turns.
+    // Otherwise fall back to promoting from the back half every 3 turns.
+    const halfIndex = Math.floor(queue.length * 0.5);
+    const hasUnseen = unseenIndices.length > 0;
+    const interval = hasUnseen ? 2 : 3;
 
-    const promoteIndex = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+    if (session.turns % interval === 0) {
+      const candidatePool = hasUnseen
+        ? unseenIndices
+        : Array.from({ length: queue.length - halfIndex }, (_, k) => k + halfIndex);
 
-    if (promoteIndex >= halfIndex && promoteIndex < queue.length) {
-      const [promoted] = queue.splice(promoteIndex, 1);
+      const promoteIndex = candidatePool[Math.floor(Math.random() * candidatePool.length)];
 
-      // bring it near the front but not at position 0
-      const insertPos = Math.min(2, queue.length);
-      queue.splice(insertPos, 0, promoted);
+      if (promoteIndex >= 1 && promoteIndex < queue.length) {
+        const [promoted] = queue.splice(promoteIndex, 1);
 
-      console.log('[Session Queue Rebalance]', {
-        promotedCard: promoted?.id,
-        from: promoteIndex,
-        to: insertPos,
-        queueLength: queue.length
-      });
+        // bring it near the front but not at position 0
+        const insertPos = Math.min(2, queue.length);
+        queue.splice(insertPos, 0, promoted);
+
+        console.log('[Session Queue Rebalance]', {
+          promotedCard: promoted?.id,
+          from: promoteIndex,
+          to: insertPos,
+          unseen: hasUnseen,
+          queueLength: queue.length
+        });
+      }
     }
   }
 }
