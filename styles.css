@@ -3,7 +3,7 @@
  * Order matters: desktop/base first, then tablet overrides, then phone overrides.
  */
 
-@import url('./styles/desktop.css');
 @import url('./styles/tailwind.generated.css');
+@import url('./styles/desktop.css');
 @import url('./styles/tablet.css');
 @import url('./styles/phone.css');

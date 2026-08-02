@@ -2808,19 +2808,19 @@ textarea:focus-visible {
   line-height: 1.2;
 }
 
-.red {
-  background: var(--danger);
-  box-shadow: inset 0px 0px 7px 1px #fb0101;
+.btn.red {
+  background: var(--danger) !important;
+  box-shadow: inset 0px 0px 7px 1px #fb0101 !important;
 }
 
-.yellow {
-  background: var(--warn);
-  box-shadow: inset 0px 0px 7px 1px #fad901;
+.btn.yellow {
+  background: var(--warn) !important;
+  box-shadow: inset 0px 0px 7px 1px #fad901 !important;
 }
 
-.green {
-  background: var(--success);
-  box-shadow: inset 0px 0px 7px 1px #05fe01;
+.btn.green {
+  background: var(--success) !important;
+  box-shadow: inset 0px 0px 7px 1px #05fe01 !important;
 }
 
 .pill {
