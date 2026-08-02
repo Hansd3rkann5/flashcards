@@ -4510,7 +4510,7 @@ body.session-image-open {
   backdrop-filter: blur(3px);
 }
 
-#editCardDialog>.editor-footer.editor-footer-stack {
+.modal>.editor-footer.editor-footer-stack {
   width: 100%;
 }
 
