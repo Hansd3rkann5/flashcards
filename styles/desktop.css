@@ -4511,7 +4511,7 @@ body.session-image-open {
 }
 
 .modal>.editor-footer.editor-footer-stack {
-  width: 100%;
+  width: 100% !important;
 }
 
 .editor-footer.editor-footer-stack .btn {
