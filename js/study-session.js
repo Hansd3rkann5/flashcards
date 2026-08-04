@@ -1383,6 +1383,45 @@ function getSwipeThresholds() {
 }
 
 /**
+ * @function setupSessionCardCopyHandlers
+ * @description Adds click handlers on Q/A labels to copy card Q+A to clipboard.
+ */
+
+function setupSessionCardCopyHandlers() {
+  const frontFace = el('frontFace');
+  const backFace = el('backFace');
+  const frontContent = el('frontContent');
+  const backContent = el('backContent');
+
+  if (!frontFace || !backFace || !frontContent || !backContent) return;
+
+  const copyCardToClipboard = async () => {
+    const questionText = frontContent?.textContent?.trim() || '';
+    const answerText = backContent?.textContent?.trim() || '';
+    const text = `Q: ${questionText}\n\nA: ${answerText}`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log('[Session Card Copy] Copied to clipboard');
+    } catch (err) {
+      console.error('[Session Card Copy] Failed:', err);
+    }
+  };
+
+  const frontLabel = frontFace.querySelector('.card-corner-label');
+  const backLabel = backFace.querySelector('.card-corner-label');
+
+  if (frontLabel) {
+    frontLabel.removeEventListener('click', copyCardToClipboard);
+    frontLabel.addEventListener('click', copyCardToClipboard);
+  }
+  if (backLabel) {
+    backLabel.removeEventListener('click', copyCardToClipboard);
+    backLabel.addEventListener('click', copyCardToClipboard);
+  }
+}
+
+/**
  * @function renderCardContent
  * @description Renders card content.
  */
@@ -1642,6 +1681,7 @@ function renderCardContent(card) {
     });
   }
   appendSessionImages(back, aImages, 'Answer image');
+  setupSessionCardCopyHandlers();
   queueSessionFaceOverflowSync();
 }
 

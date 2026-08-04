@@ -2722,6 +2722,13 @@ textarea:focus-visible {
   border: 1px solid #2a3f66;
   display: inline-flex;
   align-items: center;
+  cursor: pointer;
+  box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
+  transition: all 0.3s ease;
+}
+
+.card-corner-label:hover {
+  box-shadow: inset 0px 0px 10px 2px #fafafa76;
 }
 
 .session-label-short {
@@ -3374,6 +3381,15 @@ textarea:focus-visible {
 
 .card-tile-title {
   font-weight: 700;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 6px;
+  box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
+  transition: all 0.3s ease;
+}
+
+.card-tile-title:hover {
+  box-shadow: inset 0px 0px 10px 2px #fafafa76;
 }
 
 .card-tile-body {

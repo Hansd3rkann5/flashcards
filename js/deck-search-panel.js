@@ -1025,6 +1025,23 @@ function buildCardTile(card, idx, compact = false) {
   appendCardImages(aBody, getCardImageList(card, 'A'), 'card-thumb', 'Answer image');
 
   tile.append(qTitle, qBody, separator, aTitle, aBody);
+
+  const copyCardToClipboard = async (e) => {
+    e.stopPropagation();
+    const questionText = qBody.textContent?.trim() || '';
+    const answerText = aBody.textContent?.trim() || '';
+    const text = `Q: ${questionText}\n\nA: ${answerText}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log('[Card Tile Copy] Copied to clipboard');
+    } catch (err) {
+      console.error('[Card Tile Copy] Failed:', err);
+    }
+  };
+
+  qTitle.addEventListener('click', copyCardToClipboard);
+  aTitle.addEventListener('click', copyCardToClipboard);
+
   return tile;
 }
 
