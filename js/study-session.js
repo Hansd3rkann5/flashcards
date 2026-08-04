@@ -1952,6 +1952,7 @@ async function gradeCard(result) {
   // ---- queue anti-starvation logic (improved) ----
   // Prevents front-of-queue cycles where the same few cards keep rotating
   // while cards further back never get shown.
+  // Prioritizes by answer count: unbeantwortet (0) > einmal (1) > zweimal (2) etc.
 
   if (session.turns === undefined) session.turns = 0;
   session.turns += 1;
@@ -1959,27 +1960,26 @@ async function gradeCard(result) {
   if (session.activeQueue.length > 2) {
     const queue = session.activeQueue;
 
-    // Check for unseen cards anywhere behind position 1
-    const unseenIndices = [];
+    // Build list of cards behind position 1, sorted by answer count (lowest first = highest priority)
+    const backCandidates = [];
     for (let i = 1; i < queue.length; i += 1) {
       const c = queue[i];
       const count = session.counts?.[c?.id] ?? 0;
-      const hasGrade = session.gradeMap?.[c?.id];
-      if (count === 0 && !hasGrade) unseenIndices.push(i);
+      backCandidates.push({ index: i, count });
     }
+    backCandidates.sort((a, b) => a.count - b.count);
 
-    // If there are unseen cards, promote one every 2 turns.
-    // Otherwise fall back to promoting from the back half every 3 turns.
-    const halfIndex = Math.floor(queue.length * 0.5);
-    const hasUnseen = unseenIndices.length > 0;
+    // Find the minimum count to group "highest priority" candidates
+    const minCount = backCandidates.length > 0 ? backCandidates[0].count : 0;
+    const topPriorityCandidates = backCandidates.filter(c => c.count === minCount);
+
+    const hasUnseen = minCount === 0;
     const interval = hasUnseen ? 2 : 3;
 
-    if (session.turns % interval === 0) {
-      const candidatePool = hasUnseen
-        ? unseenIndices
-        : Array.from({ length: queue.length - halfIndex }, (_, k) => k + halfIndex);
-
-      const promoteIndex = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+    if (session.turns % interval === 0 && topPriorityCandidates.length > 0) {
+      // Pick randomly from top-priority candidates (all with same answer count)
+      const chosen = topPriorityCandidates[Math.floor(Math.random() * topPriorityCandidates.length)];
+      const promoteIndex = chosen.index;
 
       if (promoteIndex >= 1 && promoteIndex < queue.length) {
         const [promoted] = queue.splice(promoteIndex, 1);
@@ -1992,7 +1992,7 @@ async function gradeCard(result) {
           promotedCard: promoted?.id,
           from: promoteIndex,
           to: insertPos,
-          unseen: hasUnseen,
+          answerCount: chosen.count,
           queueLength: queue.length
         });
       }
