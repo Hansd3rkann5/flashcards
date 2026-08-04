@@ -1,5 +1,33 @@
 // Deck/Topic Bulk Actions + Topic Search
 // ============================================================================
+
+/**
+ * @function showCopyToastNotification
+ * @description Shows a temporary "copied to clipboard" toast near cursor.
+ */
+
+function showCopyToastNotification(e) {
+  const toast = document.createElement('div');
+  toast.textContent = 'Copied to clipboard';
+  toast.style.cssText = `
+    position: fixed;
+    left: ${e.clientX + 12}px;
+    top: ${e.clientY - 10}px;
+    background: rgba(20, 20, 30, 0.95);
+    color: #22c55e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 10000;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    animation: fadeInOut 2s ease-out;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
 /**
 * @function getDeckSelectionIds
  * @description Returns the deck selection IDs.
@@ -1033,6 +1061,7 @@ function buildCardTile(card, idx, compact = false) {
     const text = `Q: ${questionText}\n\nA: ${answerText}`;
     try {
       await navigator.clipboard.writeText(text);
+      showCopyToastNotification(e);
       console.log('[Card Tile Copy] Copied to clipboard');
     } catch (err) {
       console.error('[Card Tile Copy] Failed:', err);

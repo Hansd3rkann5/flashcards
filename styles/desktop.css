@@ -3386,6 +3386,10 @@ textarea:focus-visible {
   border-radius: 6px;
   box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
   transition: all 0.3s ease;
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
 }
 
 .card-tile-title:hover {
@@ -7450,5 +7454,24 @@ button.formula-insert.save-primary {
     min-width: 0;
     width: min(100%, 320px);
     background: var(--button);
+  }
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
   }
 }

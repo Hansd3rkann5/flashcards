@@ -1383,6 +1383,33 @@ function getSwipeThresholds() {
 }
 
 /**
+ * @function showCopyToast
+ * @description Shows a temporary "copied to clipboard" toast near cursor.
+ */
+
+function showCopyToast(e) {
+  const toast = document.createElement('div');
+  toast.textContent = 'Copied to clipboard';
+  toast.style.cssText = `
+    position: fixed;
+    left: ${e.clientX + 12}px;
+    top: ${e.clientY - 10}px;
+    background: rgba(20, 20, 30, 0.95);
+    color: #22c55e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 10000;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    animation: fadeInOut 2s ease-out;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+/**
  * @function setupSessionCardCopyHandlers
  * @description Adds click handlers on Q/A labels to copy card Q+A to clipboard.
  */
@@ -1395,13 +1422,15 @@ function setupSessionCardCopyHandlers() {
 
   if (!frontFace || !backFace || !frontContent || !backContent) return;
 
-  const copyCardToClipboard = async () => {
+  const copyCardToClipboard = async (e) => {
+    e.stopPropagation();
     const questionText = frontContent?.textContent?.trim() || '';
     const answerText = backContent?.textContent?.trim() || '';
     const text = `Q: ${questionText}\n\nA: ${answerText}`;
 
     try {
       await navigator.clipboard.writeText(text);
+      showCopyToast(e);
       console.log('[Session Card Copy] Copied to clipboard');
     } catch (err) {
       console.error('[Session Card Copy] Failed:', err);
