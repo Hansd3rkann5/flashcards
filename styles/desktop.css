@@ -3386,10 +3386,10 @@ textarea:focus-visible {
   border-radius: 6px;
   box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
   transition: all 0.3s ease;
-  display: inline-flex;
+  display: block;
   width: fit-content;
-  align-items: center;
-  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .card-tile-title:hover {
