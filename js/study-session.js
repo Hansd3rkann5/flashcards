@@ -2029,17 +2029,23 @@ async function gradeCard(result) {
   if (session.activeQueue.length > 2) {
     const queue = session.activeQueue;
 
+    // Get the count of the next card (position 1) to prevent promoting higher-count cards ahead
+    const nextCardCount = session.counts?.[queue[0]?.id] ?? 0;
+
     // Build list of cards behind position 1, sorted by answer count (lowest first = highest priority)
+    // Only include cards with count <= nextCardCount (don't promote higher-count cards)
     const backCandidates = [];
     for (let i = 1; i < queue.length; i += 1) {
       const c = queue[i];
       const count = session.counts?.[c?.id] ?? 0;
-      backCandidates.push({ index: i, count });
+      if (count <= nextCardCount) {
+        backCandidates.push({ index: i, count });
+      }
     }
     backCandidates.sort((a, b) => a.count - b.count);
 
     // Find the minimum count to group "highest priority" candidates
-    const minCount = backCandidates.length > 0 ? backCandidates[0].count : 0;
+    const minCount = backCandidates.length > 0 ? backCandidates[0].count : -1;
     const topPriorityCandidates = backCandidates.filter(c => c.count === minCount);
 
     const hasUnseen = minCount === 0;
@@ -2062,6 +2068,7 @@ async function gradeCard(result) {
           from: promoteIndex,
           to: insertPos,
           answerCount: chosen.count,
+          nextCardCount: nextCardCount,
           queueLength: queue.length
         });
       }
