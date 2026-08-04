@@ -3384,8 +3384,7 @@ textarea:focus-visible {
   cursor: pointer;
   padding: 0 8px;
   border-radius: 6px;
-  box-shadow: inset 0px 0px 7px 1px #fbfbfb41;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: block;
   width: fit-content;
   margin-left: auto;
@@ -3393,7 +3392,7 @@ textarea:focus-visible {
 }
 
 .card-tile-title:hover {
-  box-shadow: inset 0px 0px 10px 2px #fafafa76;
+  scale: 1.15;
 }
 
 .card-tile-body {
