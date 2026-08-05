@@ -3306,6 +3306,12 @@ textarea:focus-visible {
   position: relative;
 }
 
+.card-tile-excluded {
+  opacity: 0.5;
+  border-color: #5a4a3a;
+  background: linear-gradient(180deg, rgba(84, 60, 40, 0.3) 0%, rgba(84, 60, 40, 0.2) 70%);
+}
+
 .card-tile.card-tile-search {
   cursor: default;
 }

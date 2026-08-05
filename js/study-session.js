@@ -495,7 +495,7 @@ async function startSession(options = {}) {
     );
     const selectedCards = selectedCardIds
       .map(cardId => cardsById.get(cardId))
-      .filter(Boolean);
+      .filter(card => card && card.excludeFromSession !== true);
     if (!selectedCards.length) {
       alert(reviewMode
         ? 'No review cards match the current selection.'

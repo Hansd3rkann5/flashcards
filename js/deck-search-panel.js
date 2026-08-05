@@ -932,6 +932,7 @@ function buildCardTile(card, idx, compact = false) {
   tile.className = 'card-tile card-tile-overview';
   tile.dataset.cardId = String(card?.id || '');
   if (compact) tile.classList.add('card-tile-compact');
+  if (card.excludeFromSession === true) tile.classList.add('card-tile-excluded');
   if (!compact && typeof getCurrentProgressState === 'function') {
     const cardId = String(card?.id || '').trim();
     if (cardId) {
@@ -952,11 +953,13 @@ function buildCardTile(card, idx, compact = false) {
   if (!selectionEnabled) {
     const menu = document.createElement('div');
     menu.className = 'card-tile-menu';
+    const isExcluded = card.excludeFromSession === true;
     menu.innerHTML = `
           <button class="btn card-menu-btn innerGlow" type="button" aria-label="Edit card" title="Edit card"><img src="icons/edit.png" alt="" class="app-icon" aria-hidden="true" /></button>
           <div class="card-menu">
             <button class="btn card-menu-item card-menu-item-edit" type="button">Edit</button>
             <button class="btn card-menu-item card-menu-item-duplicate duplicate-card-btn" type="button">Duplicate</button>
+            <button class="btn card-menu-item card-menu-item-exclude exclude-card-btn" type="button">${isExcluded ? 'Include' : 'Exclude'}</button>
             <button class="btn delete card-menu-item delete-card-btn" type="button">Delete</button>
           </div>
         `;
@@ -973,6 +976,28 @@ function buildCardTile(card, idx, compact = false) {
         e.stopPropagation();
         menu.classList.remove('open');
         await duplicateCard(card);
+      };
+    }
+    const excludeBtn = menu.querySelector('.exclude-card-btn');
+    if (excludeBtn) {
+      excludeBtn.onclick = async (e) => {
+        e.stopPropagation();
+        menu.classList.remove('open');
+        const newExcludeState = !card.excludeFromSession;
+        try {
+          card.excludeFromSession = newExcludeState;
+          await updateCardById(card.id, { excludeFromSession: newExcludeState }, { uiBlocking: false });
+          excludeBtn.textContent = newExcludeState ? 'Include' : 'Exclude';
+          if (newExcludeState) {
+            tile.classList.add('card-tile-excluded');
+          } else {
+            tile.classList.remove('card-tile-excluded');
+          }
+          console.log(`[Card Exclude] Card ${card.id} exclude state: ${newExcludeState}`);
+        } catch (err) {
+          console.error('Failed to update exclude state:', err);
+          alert('Failed to update card exclusion.');
+        }
       };
     }
     menu.querySelector('.delete-card-btn').onclick = async (e) => {
