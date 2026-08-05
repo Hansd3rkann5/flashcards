@@ -986,7 +986,7 @@ function buildCardTile(card, idx, compact = false) {
         const newExcludeState = !card.excludeFromSession;
         try {
           card.excludeFromSession = newExcludeState;
-          await updateCardById(card.id, { excludeFromSession: newExcludeState }, { uiBlocking: false });
+          await put('cards', card, { uiBlocking: false });
           excludeBtn.textContent = newExcludeState ? 'Include' : 'Exclude';
           if (newExcludeState) {
             tile.classList.add('card-tile-excluded');
