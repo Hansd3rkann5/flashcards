@@ -1566,32 +1566,40 @@ function setupDotPreviewHandlers(allCards) {
     }
   };
 
-  document.querySelectorAll('.pill-dot').forEach(dotEl => {
-    dotEl.addEventListener('mouseenter', () => {
-      const cardId = dotEl.dataset.id;
-      const card = cardMap.get(cardId);
-      if (!card) return;
+  const pillBar = el('sessionPillBar');
+  if (!pillBar) return;
 
-      hideCurrentTooltip();
+  pillBar.addEventListener('mouseenter', (e) => {
+    const dotEl = e.target.closest('.pill-dot');
+    if (!dotEl) return;
 
-      currentShowTimeout = setTimeout(() => {
-        currentTooltip = createDotPreviewTooltip(card);
-        const rect = dotEl.getBoundingClientRect();
-        currentTooltip.style.left = Math.max(10, rect.left - 160 + rect.width / 2) + 'px';
-        currentTooltip.style.top = (rect.bottom + 12) + 'px';
-        document.body.appendChild(currentTooltip);
+    const cardId = dotEl.dataset.id;
+    const card = cardMap.get(cardId);
+    if (!card) return;
 
-        requestAnimationFrame(() => {
-          if (currentTooltip) {
-            currentTooltip.style.opacity = '1';
-            currentTooltip.style.transform = 'translateY(0)';
-          }
-        });
-      }, 1000);
-    });
+    hideCurrentTooltip();
 
-    dotEl.addEventListener('mouseleave', hideCurrentTooltip);
-  });
+    currentShowTimeout = setTimeout(() => {
+      currentTooltip = createDotPreviewTooltip(card);
+      const rect = dotEl.getBoundingClientRect();
+      currentTooltip.style.left = Math.max(10, rect.left - 160 + rect.width / 2) + 'px';
+      currentTooltip.style.top = (rect.bottom + 12) + 'px';
+      document.body.appendChild(currentTooltip);
+
+      requestAnimationFrame(() => {
+        if (currentTooltip) {
+          currentTooltip.style.opacity = '1';
+          currentTooltip.style.transform = 'translateY(0)';
+        }
+      });
+    }, 1000);
+  }, true);
+
+  pillBar.addEventListener('mouseleave', (e) => {
+    const dotEl = e.target.closest('.pill-dot');
+    if (!dotEl) return;
+    hideCurrentTooltip();
+  }, true);
 }
 
 /**
