@@ -1478,6 +1478,85 @@ function setupSessionCardCopyHandlers() {
 }
 
 /**
+ * @function setupPillPreviewHandlers
+ * @description Adds hover handlers on topic pills to show Q/A preview.
+ */
+
+function setupPillPreviewHandlers(card) {
+  if (!card) return;
+  const frontPill = el('frontTopicPill');
+  const backPill = el('backTopicPill');
+  if (!frontPill && !backPill) return;
+
+  const sanitizeForHtml = (text = '') => {
+    const div = document.createElement('div');
+    div.textContent = String(text || '');
+    return div.innerHTML;
+  };
+
+  const createPreviewTooltip = (pillEl, position = 'front') => {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'pill-preview-tooltip';
+    tooltip.style.cssText = `
+      position: fixed;
+      background: rgba(20, 20, 30, 0.98);
+      border: 1px solid rgba(100, 100, 120, 0.5);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 280px;
+      z-index: 9999;
+      pointer-events: none;
+      color: #e0e0e0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    `;
+    const q = card.prompt || card.question || '';
+    const a = card.answer || '';
+    const qPreview = sanitizeForHtml(q).substring(0, 150);
+    const aPreview = sanitizeForHtml(a).substring(0, 150);
+    tooltip.innerHTML = `
+      <div style="margin-bottom: 8px;">
+        <div style="font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 4px;">Q</div>
+        <div style="word-break: break-word;">${qPreview}${q.length > 150 ? '...' : ''}</div>
+      </div>
+      <div style="border-top: 1px solid rgba(100, 100, 120, 0.3); padding-top: 8px;">
+        <div style="font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 4px;">A</div>
+        <div style="word-break: break-word;">${aPreview}${a.length > 150 ? '...' : ''}</div>
+      </div>
+    `;
+    return tooltip;
+  };
+
+  const showPreview = (e, position) => {
+    const tooltip = createPreviewTooltip(e.target, position);
+    const rect = e.target.getBoundingClientRect();
+    tooltip.style.left = Math.max(10, rect.left - 140 + rect.width / 2) + 'px';
+    tooltip.style.top = (rect.bottom + 8) + 'px';
+    document.body.appendChild(tooltip);
+    return tooltip;
+  };
+
+  const setupPillHover = (pill, position) => {
+    if (!pill) return;
+    let currentTooltip = null;
+    pill.addEventListener('mouseenter', (e) => {
+      if (currentTooltip) currentTooltip.remove();
+      currentTooltip = showPreview(e, position);
+    });
+    pill.addEventListener('mouseleave', () => {
+      if (currentTooltip) {
+        currentTooltip.remove();
+        currentTooltip = null;
+      }
+    });
+  };
+
+  setupPillHover(frontPill, 'front');
+  setupPillHover(backPill, 'back');
+}
+
+/**
  * @function renderCardContent
  * @description Renders card content.
  */
@@ -1490,6 +1569,7 @@ function renderCardContent(card) {
   const aImages = getCardImageList(card, 'A');
   applySessionCardTheme(card);
   renderSessionTopicPills(card);
+  setupPillPreviewHandlers(card);
   //renderSessionFrontScorePill(card);
   const flashcardEl = el('flashcard');
   if (flashcardEl) {
