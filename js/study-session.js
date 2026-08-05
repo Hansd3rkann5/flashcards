@@ -1383,6 +1383,33 @@ function getSwipeThresholds() {
 }
 
 /**
+ * @function extractCardTextContent
+ * @description Extracts text from card element, preserving line breaks and LaTeX formulas.
+ */
+
+function extractCardTextContent(element) {
+  if (!element) return '';
+  let text = '';
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+    null,
+    false
+  );
+  let node;
+  while (node = walker.nextNode()) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.tagName === 'BR') {
+        text += '\n';
+      }
+    }
+  }
+  return text.trim();
+}
+
+/**
  * @function showCopyToast
  * @description Shows a temporary "copied to clipboard" toast near cursor.
  */
@@ -1424,8 +1451,8 @@ function setupSessionCardCopyHandlers() {
 
   const copyCardToClipboard = async (e) => {
     e.stopPropagation();
-    const questionText = frontContent?.textContent?.trim() || '';
-    const answerText = backContent?.textContent?.trim() || '';
+    const questionText = extractCardTextContent(frontContent) || '';
+    const answerText = extractCardTextContent(backContent) || '';
     const text = `Q: ${questionText}\n\nA: ${answerText}`;
 
     try {
