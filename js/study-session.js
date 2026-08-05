@@ -1484,7 +1484,11 @@ function setupSessionCardCopyHandlers(card) {
 
 function setupDotPreviewHandlers(allCards) {
   if (!Array.isArray(allCards) || allCards.length === 0) return;
-  const cardMap = new Map(allCards.map(c => [String(c?.id || '').trim(), c]));
+
+  const getCard = (cardId) => {
+    const allLive = [...(session?.activeQueue || []), ...(session?.mastered || [])];
+    return allLive.find(c => String(c?.id || '').trim() === cardId) || null;
+  };
 
   let currentTooltip = null;
   let currentShowTimeout = null;
@@ -1573,7 +1577,7 @@ function setupDotPreviewHandlers(allCards) {
     if (!dotEl) return;
 
     const cardId = dotEl.dataset.id;
-    const card = cardMap.get(cardId);
+    const card = getCard(cardId);
     if (!card) return;
 
     hideCurrentTooltip();
