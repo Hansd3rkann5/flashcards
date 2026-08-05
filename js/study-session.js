@@ -575,6 +575,7 @@ async function startSession(options = {}) {
     setView(2);
     renderSessionPills();
     renderSessionCard();
+    setupDotPreviewHandlers(sessionCards);
 
     setupSessionPillResizeObserver();
   } finally {
@@ -1478,15 +1479,13 @@ function setupSessionCardCopyHandlers() {
 }
 
 /**
- * @function setupPillPreviewHandlers
- * @description Adds hover handlers on topic pills to show Q/A preview.
+ * @function setupDotPreviewHandlers
+ * @description Adds hover handlers on pill-dots to show Q/A preview.
  */
 
-function setupPillPreviewHandlers(card) {
-  if (!card) return;
-  const frontPill = el('frontTopicPill');
-  const backPill = el('backTopicPill');
-  if (!frontPill && !backPill) return;
+function setupDotPreviewHandlers(allCards) {
+  if (!Array.isArray(allCards) || allCards.length === 0) return;
+  const cardMap = new Map(allCards.map(c => [String(c?.id || '').trim(), c]));
 
   const sanitizeForHtml = (text = '') => {
     const div = document.createElement('div');
@@ -1494,9 +1493,15 @@ function setupPillPreviewHandlers(card) {
     return div.innerHTML;
   };
 
-  const createPreviewTooltip = (pillEl, position = 'front') => {
+  const showDotPreview = (e) => {
+    const dotEl = e.target.closest('.pill-dot');
+    if (!dotEl) return;
+    const cardId = dotEl.dataset.id;
+    const card = cardMap.get(cardId);
+    if (!card) return;
+
     const tooltip = document.createElement('div');
-    tooltip.className = 'pill-preview-tooltip';
+    tooltip.className = 'dot-preview-tooltip';
     tooltip.style.cssText = `
       position: fixed;
       background: rgba(20, 20, 30, 0.98);
@@ -1511,10 +1516,12 @@ function setupPillPreviewHandlers(card) {
       color: #e0e0e0;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     `;
+
     const q = card.prompt || card.question || '';
     const a = card.answer || '';
     const qPreview = sanitizeForHtml(q).substring(0, 150);
     const aPreview = sanitizeForHtml(a).substring(0, 150);
+
     tooltip.innerHTML = `
       <div style="margin-bottom: 8px;">
         <div style="font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 4px;">Q</div>
@@ -1525,35 +1532,20 @@ function setupPillPreviewHandlers(card) {
         <div style="word-break: break-word;">${aPreview}${a.length > 150 ? '...' : ''}</div>
       </div>
     `;
-    return tooltip;
-  };
 
-  const showPreview = (e, position) => {
-    const tooltip = createPreviewTooltip(e.target, position);
-    const rect = e.target.getBoundingClientRect();
+    const rect = dotEl.getBoundingClientRect();
     tooltip.style.left = Math.max(10, rect.left - 140 + rect.width / 2) + 'px';
     tooltip.style.top = (rect.bottom + 8) + 'px';
     document.body.appendChild(tooltip);
-    return tooltip;
+
+    const cleanup = () => {
+      tooltip.remove();
+      dotEl.removeEventListener('mouseleave', cleanup);
+    };
+    dotEl.addEventListener('mouseleave', cleanup);
   };
 
-  const setupPillHover = (pill, position) => {
-    if (!pill) return;
-    let currentTooltip = null;
-    pill.addEventListener('mouseenter', (e) => {
-      if (currentTooltip) currentTooltip.remove();
-      currentTooltip = showPreview(e, position);
-    });
-    pill.addEventListener('mouseleave', () => {
-      if (currentTooltip) {
-        currentTooltip.remove();
-        currentTooltip = null;
-      }
-    });
-  };
-
-  setupPillHover(frontPill, 'front');
-  setupPillHover(backPill, 'back');
+  document.addEventListener('mouseenter', showDotPreview, true);
 }
 
 /**
@@ -1569,7 +1561,6 @@ function renderCardContent(card) {
   const aImages = getCardImageList(card, 'A');
   applySessionCardTheme(card);
   renderSessionTopicPills(card);
-  setupPillPreviewHandlers(card);
   //renderSessionFrontScorePill(card);
   const flashcardEl = el('flashcard');
   if (flashcardEl) {
