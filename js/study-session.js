@@ -1480,26 +1480,14 @@ function setupSessionCardCopyHandlers() {
 
 /**
  * @function setupDotPreviewHandlers
- * @description Adds hover handlers on pill-dots to show Q/A preview.
+ * @description Adds hover handlers on pill-dots to show Q/A preview with animation.
  */
 
 function setupDotPreviewHandlers(allCards) {
   if (!Array.isArray(allCards) || allCards.length === 0) return;
   const cardMap = new Map(allCards.map(c => [String(c?.id || '').trim(), c]));
 
-  const sanitizeForHtml = (text = '') => {
-    const div = document.createElement('div');
-    div.textContent = String(text || '');
-    return div.innerHTML;
-  };
-
-  const showDotPreview = (e) => {
-    const dotEl = e.target.closest('.pill-dot');
-    if (!dotEl) return;
-    const cardId = dotEl.dataset.id;
-    const card = cardMap.get(cardId);
-    if (!card) return;
-
+  const createDotPreviewTooltip = (card) => {
     const tooltip = document.createElement('div');
     tooltip.className = 'dot-preview-tooltip';
     tooltip.style.cssText = `
@@ -1507,45 +1495,105 @@ function setupDotPreviewHandlers(allCards) {
       background: rgba(20, 20, 30, 0.98);
       border: 1px solid rgba(100, 100, 120, 0.5);
       border-radius: 8px;
-      padding: 12px;
-      font-size: 12px;
-      line-height: 1.4;
-      max-width: 280px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 320px;
+      max-height: 400px;
       z-index: 9999;
       pointer-events: none;
       color: #e0e0e0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+      overflow-y: auto;
     `;
 
-    const q = card.prompt || card.question || '';
-    const a = card.answer || '';
-    const qPreview = sanitizeForHtml(q).substring(0, 150);
-    const aPreview = sanitizeForHtml(a).substring(0, 150);
+    const qLabel = document.createElement('div');
+    qLabel.style.cssText = 'font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;';
+    qLabel.textContent = 'Question';
+    tooltip.appendChild(qLabel);
 
-    tooltip.innerHTML = `
-      <div style="margin-bottom: 8px;">
-        <div style="font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 4px;">Q</div>
-        <div style="word-break: break-word;">${qPreview}${q.length > 150 ? '...' : ''}</div>
-      </div>
-      <div style="border-top: 1px solid rgba(100, 100, 120, 0.3); padding-top: 8px;">
-        <div style="font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 4px;">A</div>
-        <div style="word-break: break-word;">${aPreview}${a.length > 150 ? '...' : ''}</div>
-      </div>
+    const qContent = document.createElement('div');
+    qContent.className = 'dot-preview-content-q';
+    qContent.style.cssText = `
+      margin-bottom: 12px;
+      word-break: break-word;
+      text-align: ${card.textAlign || card.questionTextAlign || 'center'};
     `;
+    renderRich(qContent, card.prompt || card.question || '');
+    tooltip.appendChild(qContent);
 
-    const rect = dotEl.getBoundingClientRect();
-    tooltip.style.left = Math.max(10, rect.left - 140 + rect.width / 2) + 'px';
-    tooltip.style.top = (rect.bottom + 8) + 'px';
-    document.body.appendChild(tooltip);
+    const separator = document.createElement('div');
+    separator.style.cssText = 'border-top: 1px solid rgba(100, 100, 120, 0.3); margin: 12px 0;';
+    tooltip.appendChild(separator);
 
-    const cleanup = () => {
-      tooltip.remove();
-      dotEl.removeEventListener('mouseleave', cleanup);
-    };
-    dotEl.addEventListener('mouseleave', cleanup);
+    const aLabel = document.createElement('div');
+    aLabel.style.cssText = 'font-weight: 600; color: #22c55e; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;';
+    aLabel.textContent = 'Answer';
+    tooltip.appendChild(aLabel);
+
+    const aContent = document.createElement('div');
+    aContent.className = 'dot-preview-content-a';
+    aContent.style.cssText = `
+      word-break: break-word;
+      text-align: ${card.textAlign || card.answerTextAlign || 'center'};
+    `;
+    renderRich(aContent, card.answer || '');
+    tooltip.appendChild(aContent);
+
+    return tooltip;
   };
 
-  document.addEventListener('mouseenter', showDotPreview, true);
+  const showDotPreview = (dotEl, card) => {
+    const tooltip = createDotPreviewTooltip(card);
+    const rect = dotEl.getBoundingClientRect();
+    tooltip.style.left = Math.max(10, rect.left - 160 + rect.width / 2) + 'px';
+    tooltip.style.top = (rect.bottom + 12) + 'px';
+    document.body.appendChild(tooltip);
+
+    requestAnimationFrame(() => {
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+    });
+
+    return tooltip;
+  };
+
+  const hideDotPreview = (tooltip) => {
+    tooltip.style.opacity = '0';
+    tooltip.style.transform = 'translateY(-4px)';
+    setTimeout(() => tooltip.remove(), 200);
+  };
+
+  document.addEventListener('mouseenter', (e) => {
+    const dotEl = e.target.closest('.pill-dot');
+    if (!dotEl) return;
+
+    const cardId = dotEl.dataset.id;
+    const card = cardMap.get(cardId);
+    if (!card) return;
+
+    let showTimeout = null;
+    let currentTooltip = null;
+
+    const handleMouseEnter = () => {
+      showTimeout = setTimeout(() => {
+        currentTooltip = showDotPreview(dotEl, card);
+      }, 1000);
+    };
+
+    const handleMouseLeave = () => {
+      if (showTimeout) clearTimeout(showTimeout);
+      if (currentTooltip) hideDotPreview(currentTooltip);
+    };
+
+    dotEl.addEventListener('mouseenter', handleMouseEnter, { once: false });
+    dotEl.addEventListener('mouseleave', handleMouseLeave, { once: false });
+
+    handleMouseEnter();
+  }, true);
 }
 
 /**
