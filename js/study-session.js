@@ -1487,6 +1487,9 @@ function setupDotPreviewHandlers(allCards) {
   if (!Array.isArray(allCards) || allCards.length === 0) return;
   const cardMap = new Map(allCards.map(c => [String(c?.id || '').trim(), c]));
 
+  let currentTooltip = null;
+  let currentShowTimeout = null;
+
   const createDotPreviewTooltip = (card) => {
     const tooltip = document.createElement('div');
     tooltip.className = 'dot-preview-tooltip';
@@ -1546,54 +1549,49 @@ function setupDotPreviewHandlers(allCards) {
     return tooltip;
   };
 
-  const showDotPreview = (dotEl, card) => {
-    const tooltip = createDotPreviewTooltip(card);
-    const rect = dotEl.getBoundingClientRect();
-    tooltip.style.left = Math.max(10, rect.left - 160 + rect.width / 2) + 'px';
-    tooltip.style.top = (rect.bottom + 12) + 'px';
-    document.body.appendChild(tooltip);
+  const hideCurrentTooltip = () => {
+    if (currentShowTimeout) {
+      clearTimeout(currentShowTimeout);
+      currentShowTimeout = null;
+    }
+    if (currentTooltip) {
+      currentTooltip.style.opacity = '0';
+      currentTooltip.style.transform = 'translateY(-4px)';
+      setTimeout(() => {
+        if (currentTooltip && currentTooltip.parentNode) {
+          currentTooltip.remove();
+        }
+        currentTooltip = null;
+      }, 200);
+    }
+  };
 
-    requestAnimationFrame(() => {
-      tooltip.style.opacity = '1';
-      tooltip.style.transform = 'translateY(0)';
+  document.querySelectorAll('.pill-dot').forEach(dotEl => {
+    dotEl.addEventListener('mouseenter', () => {
+      const cardId = dotEl.dataset.id;
+      const card = cardMap.get(cardId);
+      if (!card) return;
+
+      hideCurrentTooltip();
+
+      currentShowTimeout = setTimeout(() => {
+        currentTooltip = createDotPreviewTooltip(card);
+        const rect = dotEl.getBoundingClientRect();
+        currentTooltip.style.left = Math.max(10, rect.left - 160 + rect.width / 2) + 'px';
+        currentTooltip.style.top = (rect.bottom + 12) + 'px';
+        document.body.appendChild(currentTooltip);
+
+        requestAnimationFrame(() => {
+          if (currentTooltip) {
+            currentTooltip.style.opacity = '1';
+            currentTooltip.style.transform = 'translateY(0)';
+          }
+        });
+      }, 1000);
     });
 
-    return tooltip;
-  };
-
-  const hideDotPreview = (tooltip) => {
-    tooltip.style.opacity = '0';
-    tooltip.style.transform = 'translateY(-4px)';
-    setTimeout(() => tooltip.remove(), 200);
-  };
-
-  document.addEventListener('mouseenter', (e) => {
-    const dotEl = e.target.closest('.pill-dot');
-    if (!dotEl) return;
-
-    const cardId = dotEl.dataset.id;
-    const card = cardMap.get(cardId);
-    if (!card) return;
-
-    let showTimeout = null;
-    let currentTooltip = null;
-
-    const handleMouseEnter = () => {
-      showTimeout = setTimeout(() => {
-        currentTooltip = showDotPreview(dotEl, card);
-      }, 1000);
-    };
-
-    const handleMouseLeave = () => {
-      if (showTimeout) clearTimeout(showTimeout);
-      if (currentTooltip) hideDotPreview(currentTooltip);
-    };
-
-    dotEl.addEventListener('mouseenter', handleMouseEnter, { once: false });
-    dotEl.addEventListener('mouseleave', handleMouseLeave, { once: false });
-
-    handleMouseEnter();
-  }, true);
+    dotEl.addEventListener('mouseleave', hideCurrentTooltip);
+  });
 }
 
 /**
