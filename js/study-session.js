@@ -1442,24 +1442,21 @@ function showCopyToast(e) {
  * @description Adds click handlers on Q/A labels to copy card Q+A to clipboard.
  */
 
-function setupSessionCardCopyHandlers() {
+function setupSessionCardCopyHandlers(card) {
   const frontFace = el('frontFace');
   const backFace = el('backFace');
-  const frontContent = el('frontContent');
-  const backContent = el('backContent');
 
-  if (!frontFace || !backFace || !frontContent || !backContent) return;
+  if (!frontFace || !backFace || !card) return;
 
   const copyCardToClipboard = async (e) => {
     e.stopPropagation();
-    const questionText = extractCardTextContent(frontContent) || '';
-    const answerText = extractCardTextContent(backContent) || '';
-    const text = `Q: ${questionText}\n\nA: ${answerText}`;
+    const q = (card.prompt || card.question || '').trim();
+    const a = (card.answer || '').trim();
+    const text = `Q: ${q}\n\nA: ${a}`;
 
     try {
       await navigator.clipboard.writeText(text);
       showCopyToast(e);
-      console.log('[Session Card Copy] Copied to clipboard');
     } catch (err) {
       console.error('[Session Card Copy] Failed:', err);
     }
@@ -1469,12 +1466,14 @@ function setupSessionCardCopyHandlers() {
   const backLabel = backFace.querySelector('.card-corner-label');
 
   if (frontLabel) {
-    frontLabel.removeEventListener('click', copyCardToClipboard);
-    frontLabel.addEventListener('click', copyCardToClipboard);
+    const newFront = frontLabel.cloneNode(true);
+    frontLabel.parentNode.replaceChild(newFront, frontLabel);
+    newFront.addEventListener('click', copyCardToClipboard);
   }
   if (backLabel) {
-    backLabel.removeEventListener('click', copyCardToClipboard);
-    backLabel.addEventListener('click', copyCardToClipboard);
+    const newBack = backLabel.cloneNode(true);
+    backLabel.parentNode.replaceChild(newBack, backLabel);
+    newBack.addEventListener('click', copyCardToClipboard);
   }
 }
 
@@ -1587,10 +1586,12 @@ function setupDotPreviewHandlers(allCards) {
       document.body.appendChild(currentTooltip);
 
       requestAnimationFrame(() => {
-        if (currentTooltip) {
-          currentTooltip.style.opacity = '1';
-          currentTooltip.style.transform = 'translateY(0)';
-        }
+        requestAnimationFrame(() => {
+          if (currentTooltip) {
+            currentTooltip.style.opacity = '1';
+            currentTooltip.style.transform = 'translateY(0)';
+          }
+        });
       });
     }, 1000);
   }, true);
@@ -1862,7 +1863,7 @@ function renderCardContent(card) {
     });
   }
   appendSessionImages(back, aImages, 'Answer image');
-  setupSessionCardCopyHandlers();
+  setupSessionCardCopyHandlers(card);
   queueSessionFaceOverflowSync();
 }
 

@@ -1108,13 +1108,12 @@ function buildCardTile(card, idx, compact = false) {
 
   const copyCardToClipboard = async (e) => {
     e.stopPropagation();
-    const questionText = extractCardTextContent(qBody) || '';
-    const answerText = extractCardTextContent(aBody) || '';
-    const text = `Q: ${questionText}\n\nA: ${answerText}`;
+    const q = (card.prompt || card.question || '').trim();
+    const a = (card.answer || '').trim();
+    const text = `Q: ${q}\n\nA: ${a}`;
     try {
       await navigator.clipboard.writeText(text);
       showCopyToastNotification(e);
-      console.log('[Card Tile Copy] Copied to clipboard');
     } catch (err) {
       console.error('[Card Tile Copy] Failed:', err);
     }
