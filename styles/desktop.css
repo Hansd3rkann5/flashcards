@@ -2945,7 +2945,12 @@ textarea:focus-visible {
   /* height: calc(100% - (2 * var(--space-4))); */
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  /* The question row stays at 50% while everything fits, and shrinks
+     only as far as needed so the last answer option (and the Check
+     button) stay visible. The answer row is at least 50% but grows to
+     its content height (up to the full face), stealing space from the
+     question row only when the options need more than half. */
+  grid-template-rows: minmax(0, 1fr) minmax(50%, auto);
   gap: 10px;
   align-items: stretch;
   justify-items: stretch !important;
