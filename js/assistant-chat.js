@@ -108,6 +108,7 @@ function ensureAssistantUi() {
               ${ASSISTANT_LANGS.map(l => `<option value="${l.id}">${l.label}</option>`).join('')}
             </select>
           </label>
+          <div class="assistant-ctl assistant-ctl-wide assistant-tpl-note tiny" data-role="template-note"></div>
         </div>
       </div>
       <div class="assistant-messages" data-role="messages"></div>
@@ -138,6 +139,8 @@ function ensureAssistantUi() {
     localStorage.setItem(ASSISTANT_LANG_STORAGE_KEY, langSel.value);
   });
 
+  updateAssistantTemplateNote(panel);
+
   const input = panel.querySelector('[data-role="input"]');
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -149,6 +152,37 @@ function ensureAssistantUi() {
   input.addEventListener('focus', scheduleAssistantFit);
   input.addEventListener('blur', scheduleAssistantFit);
   panel.querySelector('[data-action="send"]').addEventListener('click', () => void sendAssistantTurn());
+}
+
+/**
+ * @function assistantTemplateSubject
+ * @description Returns the user's subject literally named "Template" (or null).
+ */
+function assistantTemplateSubject() {
+  try {
+    if (subjectDirectoryById && typeof subjectDirectoryById.values === 'function') {
+      for (const s of subjectDirectoryById.values()) {
+        if (String(s?.name || '').trim().toLowerCase() === 'template') return s;
+      }
+    }
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
+/**
+ * @function updateAssistantTemplateNote
+ * @description Explains, in ⚙ settings, that card style comes from a "Template" subject.
+ */
+function updateAssistantTemplateNote(panel) {
+  const box = (panel || el('assistantPanel'))?.querySelector('[data-role="template-note"]');
+  if (!box) return;
+  if (assistantTemplateSubject()) {
+    box.innerHTML = 'Card style comes from your <strong>“Template”</strong> subject — edit its example cards to change how generated cards look.';
+    box.classList.add('ok');
+  } else {
+    box.innerHTML = 'Tip: create a subject named <strong>“Template”</strong> with a few example cards — the assistant will imitate their style when generating cards.';
+    box.classList.remove('ok');
+  }
 }
 
 /**
@@ -181,6 +215,7 @@ function openAssistantPanel() {
   backdrop.classList.add('visible');
   document.body.classList.add('assistant-open');
   requestAnimationFrame(() => panel.classList.add('open'));
+  updateAssistantTemplateNote(panel);
   renderAssistantMessages();
   assistantMaxVvH = 0; // recapture the no-keyboard baseline for this open
   bindAssistantViewport();
@@ -326,15 +361,250 @@ function buildAssistantBubble(msg) {
   const body = document.createElement('div');
   body.className = 'assistant-msg-body';
   const text = String(msg.uiText || '');
-  if (msg.role === 'assistant' && typeof renderRich === 'function' && text.trim()) {
+  const hasCards = Array.isArray(msg.cards) && msg.cards.length;
+  if (msg.role === 'assistant' && !text.trim() && !hasCards) {
+    // No content yet → show the "thinking" indicator until the first token.
+    body.appendChild(buildAssistantTyping());
+  } else if (msg.role === 'assistant' && typeof renderRich === 'function' && text.trim()) {
     try { renderRich(body, text); } catch (_) { body.textContent = text; }
   } else {
     body.textContent = text;
   }
   wrap.appendChild(body);
+  if (msg.role === 'assistant' && Array.isArray(msg.cards) && msg.cards.length) {
+    wrap.appendChild(buildAssistantCardPreview(msg));
+  }
   if (msg.role === 'assistant' && Array.isArray(msg.citations) && msg.citations.length) {
     wrap.appendChild(buildCitations(msg.citations));
   }
+  return wrap;
+}
+
+/**
+ * @function getAssistantTopics
+ * @description Returns the current subject's topics ([{id,name}]) for the picker.
+ */
+function getAssistantTopics() {
+  try {
+    if (Array.isArray(currentSubjectTopics) && currentSubjectTopics.length) {
+      return currentSubjectTopics
+        .map(t => ({ id: String(t?.id || '').trim(), name: String(t?.name || '').trim() || 'Untitled topic' }))
+        .filter(t => t.id);
+    }
+  } catch (_) { /* ignore */ }
+  return [];
+}
+
+/**
+ * @function defaultAssistantTopicId
+ * @description Best-guess target topic: current study card's topic → selected topic → first.
+ */
+function defaultAssistantTopicId(topics) {
+  const ctx = getStudySessionContext();
+  const fromCard = String(ctx?.card?.topicId || '').trim();
+  if (fromCard && topics.some(t => t.id === fromCard)) return fromCard;
+  try {
+    const sel = String(selectedTopic?.id || '').trim();
+    if (sel && topics.some(t => t.id === sel)) return sel;
+  } catch (_) { /* ignore */ }
+  return topics[0]?.id || '';
+}
+
+/**
+ * @function buildAssistantCardPreview
+ * @description Renders the proposed cards with include-checkboxes, a topic picker
+ * and an "Add to deck" button that writes them into the cards store.
+ */
+function buildAssistantCardPreview(msg) {
+  const box = document.createElement('div');
+  box.className = 'assistant-cards';
+
+  if (msg.cardsSaved) {
+    const done = document.createElement('div');
+    done.className = 'assistant-cards-done tiny';
+    done.textContent = `✓ Added ${msg.cardsSaved} card${msg.cardsSaved === 1 ? '' : 's'}${msg.cardsSavedTopic ? ` to “${msg.cardsSavedTopic}”` : ''}.`;
+    box.appendChild(done);
+    return box;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'assistant-cards-list';
+  const checks = [];
+  msg.cards.forEach((card, i) => {
+    const isMcq = card?.type === 'mcq' && Array.isArray(card?.options) && card.options.length > 1;
+    const requireOrder = isMcq && !!card.optionsRequireOrder;
+    const row = document.createElement('label');
+    row.className = 'assistant-card-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.dataset.index = String(i);
+    checks.push(cb);
+    row.appendChild(cb);
+    const content = document.createElement('div');
+    content.className = 'assistant-card-content';
+    const badge = requireOrder ? 'Sort' : (isMcq ? 'MCQ' : 'Q&A');
+    const q = document.createElement('div');
+    q.className = 'assistant-card-q';
+    q.innerHTML = `<span class="assistant-card-badge tiny">${badge}</span>${escapeHtml(assistantStripText(card.prompt, 300))}`;
+    content.appendChild(q);
+    if (isMcq) {
+      const opts = document.createElement('div');
+      opts.className = 'assistant-card-opts tiny';
+      const rows = requireOrder
+        ? card.options.slice().sort((a, b) => (Number(a?.order) || 0) - (Number(b?.order) || 0))
+        : card.options;
+      rows.forEach((o, idx) => {
+        const line = document.createElement('div');
+        if (requireOrder) {
+          line.className = 'assistant-opt correct';
+          line.textContent = `${idx + 1}. ${assistantStripText(o?.text, 160)}`;
+        } else {
+          line.className = o?.correct ? 'assistant-opt correct' : 'assistant-opt';
+          line.textContent = `${o?.correct ? '✓' : '✗'} ${assistantStripText(o?.text, 160)}`;
+        }
+        opts.appendChild(line);
+      });
+      content.appendChild(opts);
+    } else {
+      const a = document.createElement('div');
+      a.className = 'assistant-card-a tiny';
+      a.textContent = assistantStripText(card.answer, 300);
+      content.appendChild(a);
+    }
+    row.appendChild(content);
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+
+  const controls = document.createElement('div');
+  controls.className = 'assistant-cards-controls';
+
+  const topics = getAssistantTopics();
+  const topicSel = document.createElement('select');
+  topicSel.className = 'assistant-cards-topic';
+  if (topics.length) {
+    topics.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      topicSel.appendChild(opt);
+    });
+    topicSel.value = defaultAssistantTopicId(topics);
+  } else {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No topics — create one first';
+    topicSel.appendChild(opt);
+    topicSel.disabled = true;
+  }
+  controls.appendChild(topicSel);
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'btn assistant-cards-add';
+  const refreshLabel = () => {
+    const n = checks.filter(c => c.checked).length;
+    addBtn.textContent = `Add ${n} to deck`;
+    addBtn.disabled = n === 0 || !topicSel.value;
+  };
+  checks.forEach(c => c.addEventListener('change', refreshLabel));
+  refreshLabel();
+  addBtn.addEventListener('click', async () => {
+    const topicId = String(topicSel.value || '').trim();
+    if (!topicId) return;
+    const chosen = checks.filter(c => c.checked).map(c => msg.cards[Number(c.dataset.index)]);
+    if (!chosen.length) return;
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
+    try {
+      const n = await saveGeneratedCards(chosen, topicId);
+      msg.cardsSaved = n;
+      msg.cardsSavedTopic = topics.find(t => t.id === topicId)?.name || '';
+      renderAssistantMessages();
+    } catch (err) {
+      addBtn.disabled = false;
+      refreshLabel();
+      alert(`Could not add cards: ${err?.message || err}`);
+    }
+  });
+  controls.appendChild(addBtn);
+  box.appendChild(controls);
+  return box;
+}
+
+/**
+ * @function saveGeneratedCards
+ * @description Writes assistant-proposed cards into the `cards` store using the
+ * same schema and persistence path as manual card creation. Returns the count.
+ */
+async function saveGeneratedCards(proposed, topicId) {
+  const createdAt = new Date().toISOString();
+  let saved = 0;
+  for (const p of proposed) {
+    const requireOrder = p?.type === 'mcq' && !!p?.optionsRequireOrder;
+    const isMcq = p?.type === 'mcq' && Array.isArray(p?.options) && p.options.length > 1;
+    let options = [];
+    if (isMcq) {
+      options = p.options
+        .map((o, idx) => ({
+          text: String(o?.text || '').trim(),
+          correct: requireOrder ? true : !!o?.correct,
+          order: Number(o?.order) || idx + 1
+        }))
+        .filter(o => o.text);
+      // Sorting cards: the correct sequence is defined by `order` (mirrors parseMcqOptions).
+      if (requireOrder) options.sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+    const answer = String(p?.answer || '').trim() ||
+      (isMcq ? (options.find(o => o.correct)?.text || options[0]?.text || '') : '');
+    const cardId = uid();
+    const card = {
+      id: cardId,
+      topicId,
+      type: isMcq && options.length > 1 ? 'mcq' : 'qa',
+      textAlign: 'center',
+      questionTextAlign: 'center',
+      answerTextAlign: p?.answerTextAlign === 'left' ? 'left' : 'center',
+      optionsTextAlign: 'center',
+      prompt: String(p?.prompt || '').trim(),
+      answer,
+      options: isMcq && options.length > 1 ? options : [],
+      optionsRequireOrder: isMcq && options.length > 1 ? requireOrder : false,
+      createdAt,
+      meta: { createdAt }
+    };
+    if (!card.prompt) continue;
+    try { if (typeof applyOptimisticCardCreate === 'function') applyOptimisticCardCreate(card); } catch (_) { /* ignore */ }
+    try { await applyMutationToOfflineSnapshots('cards', 'put', card); } catch (_) { /* ignore */ }
+    await put('cards', card, { uiBlocking: false, skipFlushPending: true });
+    try { if (typeof putCardBank === 'function') await putCardBank(card, { uiBlocking: false }); } catch (_) { /* ignore */ }
+    // Keep topic card counts in sync (mirrors manual creation).
+    try {
+      const bump = t => {
+        if (t && String(t.id || '').trim() === String(topicId).trim()) {
+          const c = Number(t.cardCount);
+          t.cardCount = Number.isFinite(c) ? c + 1 : 1;
+        }
+      };
+      if (Array.isArray(currentSubjectTopics)) currentSubjectTopics.forEach(bump);
+      if (typeof selectedTopic !== 'undefined') bump(selectedTopic);
+    } catch (_) { /* ignore */ }
+    saved += 1;
+  }
+  return saved;
+}
+
+/**
+ * @function buildAssistantTyping
+ * @description Animated "assistant is thinking" indicator (three bouncing dots).
+ */
+function buildAssistantTyping() {
+  const wrap = document.createElement('span');
+  wrap.className = 'assistant-typing';
+  wrap.setAttribute('aria-label', 'Assistant is thinking…');
+  wrap.setAttribute('role', 'status');
+  wrap.innerHTML = '<span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span><span class="assistant-typing-dot"></span>';
   return wrap;
 }
 
@@ -413,6 +683,11 @@ async function sendAssistantTurn() {
         aiMsg.apiContent += text;
         if (aiBody) { aiBody.textContent = aiMsg.uiText; if (scroller) scroller.scrollTop = scroller.scrollHeight; }
       },
+      onCards: cards => {
+        aiMsg.cards = cards;
+        if (!aiMsg.uiText.trim()) aiMsg.uiText = `Proposed ${cards.length} card${cards.length === 1 ? '' : 's'} — review and add them below.`;
+        renderAssistantMessages();
+      },
       onDone: payload => {
         aiMsg.citations = Array.isArray(payload?.citations) ? payload.citations : [];
         renderAssistantMessages();
@@ -429,6 +704,11 @@ async function sendAssistantTurn() {
   } finally {
     assistantState.streaming = false;
     if (sendBtn) sendBtn.disabled = false;
+    // Never leave the thinking indicator spinning on an empty result.
+    if (!String(aiMsg.uiText || '').trim() && !(Array.isArray(aiMsg.cards) && aiMsg.cards.length)) {
+      aiMsg.uiText = '(No response.)';
+      renderAssistantMessages();
+    }
   }
 }
 
@@ -436,7 +716,7 @@ async function sendAssistantTurn() {
  * @function callAssistantStream
  * @description Calls the Edge Function and dispatches SSE events.
  */
-async function callAssistantStream({ subjectId, model, language, messages, onDelta, onDone, onError }) {
+async function callAssistantStream({ subjectId, model, language, messages, onDelta, onCards, onDone, onError }) {
   const { data: { session: authSession } } = await supabaseClient.auth.getSession();
   if (!authSession) { onError?.('Not logged in.'); return; }
 
@@ -470,6 +750,7 @@ async function callAssistantStream({ subjectId, model, language, messages, onDel
       let event;
       try { event = JSON.parse(line.slice(6)); } catch { continue; }
       if (event.type === 'delta') onDelta?.(event.text);
+      else if (event.type === 'cards') onCards?.(Array.isArray(event.cards) ? event.cards : []);
       else if (event.type === 'done') onDone?.(event);
       else if (event.type === 'error') onError?.(event.message || 'Unknown error');
     }

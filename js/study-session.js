@@ -2110,6 +2110,24 @@ function computeSessionFsrsReinsertIndex(fsrsState = null, result = '', remainin
 }
 
 /**
+ * @function sessionCardPriorityStrength
+ * @description Answer "strength" of a card for queue prioritization, mirroring the
+ * pill colour (session.gradeMap): 0 = unanswered/wrong (weakest, highest priority),
+ * 1 = partial, 2+ = correct/green (strongest, lowest priority; near-master ranks even
+ * lower). Uses gradeMap (not the correct-streak count) so pre-graded cards are ranked
+ * by what the user actually sees.
+ */
+function sessionCardPriorityStrength(id) {
+  const grade = session.gradeMap?.[id];
+  if (grade === 'correct') {
+    const count = Number(session.counts?.[id]) || 1;
+    return 2 + Math.max(0, count - 1);
+  }
+  if (grade === 'partial') return 1;
+  return 0;
+}
+
+/**
  * @function gradeCard
  * @description Applies one grade, persists FSRS progress, and repositions the card using FSRS urgency.
  */
@@ -2175,60 +2193,63 @@ async function gradeCard(result) {
     : false;
   if (overviewVisible) void loadDeck();
 
-  // ---- queue anti-starvation logic (improved) ----
-  // Prevents front-of-queue cycles where the same few cards keep rotating
-  // while cards further back never get shown.
-  // Prioritizes by answer count: unbeantwortet (0) > einmal (1) > zweimal (2) etc.
+  // ---- queue anti-starvation logic (priority-aware, with aging) ----
+  // Stops cards from getting stuck at the back while the front keeps cycling.
+  // Priority follows the pill colour (sessionCardPriorityStrength):
+  // unanswered/wrong (0) > partial (1) > correct/green (2+). Weaker cards are
+  // promoted first and often; a green card is the LOWEST priority — it still gets
+  // promoted so it never starves at the back, but only after waiting noticeably
+  // longer, and it is re-inserted behind the weaker cards at the front (it may
+  // only leapfrog equal-or-stronger cards, never a weaker-answered one).
 
   if (session.turns === undefined) session.turns = 0;
   session.turns += 1;
 
   if (session.activeQueue.length > 2) {
     const queue = session.activeQueue;
+    if (!session.waitTurns) session.waitTurns = {};
 
-    // Get the count of the next card (position 1) to prevent promoting higher-count cards ahead
-    const nextCardCount = session.counts?.[queue[0]?.id] ?? 0;
+    // Age every waiting card by one turn; the card on screen resets to 0.
+    queue.forEach((c, idx) => {
+      const id = c?.id;
+      if (!id) return;
+      session.waitTurns[id] = idx === 0 ? 0 : (session.waitTurns[id] ?? 0) + 1;
+    });
 
-    // Build list of cards behind position 1, sorted by answer count (lowest first = highest priority)
-    // Only include cards with count <= nextCardCount (don't promote higher-count cards)
-    const backCandidates = [];
+    // A card becomes eligible once it has waited longer than a threshold that
+    // grows with its answer strength — weaker cards qualify quickly (high prio),
+    // green cards only after a much longer wait (lowest prio, but never "never").
+    const STARVE_BASE = 2;   // weakest cards: promote after ~2 idle turns
+    const STARVE_STEP = 3;   // each strength level delays promotion by 3 more turns
+
+    let best = null; // most-deserving starved card
     for (let i = 1; i < queue.length; i += 1) {
-      const c = queue[i];
-      const count = session.counts?.[c?.id] ?? 0;
-      if (count <= nextCardCount) {
-        backCandidates.push({ index: i, count });
+      const id = queue[i]?.id;
+      const strength = sessionCardPriorityStrength(id);
+      const waited = session.waitTurns?.[id] ?? 0;
+      if (waited < STARVE_BASE + strength * STARVE_STEP) continue;
+      // Prefer the weakest card; tie-break by longest wait, then furthest back.
+      if (!best
+        || strength < best.strength
+        || (strength === best.strength && waited > best.waited)
+        || (strength === best.strength && waited === best.waited && i > best.index)) {
+        best = { index: i, strength, waited };
       }
     }
-    backCandidates.sort((a, b) => a.count - b.count);
 
-    // Find the minimum count to group "highest priority" candidates
-    const minCount = backCandidates.length > 0 ? backCandidates[0].count : -1;
-    const topPriorityCandidates = backCandidates.filter(c => c.count === minCount);
-
-    const hasUnseen = minCount === 0;
-    const interval = hasUnseen ? 2 : 3;
-
-    if (session.turns % interval === 0 && topPriorityCandidates.length > 0) {
-      // Pick randomly from top-priority candidates (all with same answer count)
-      const chosen = topPriorityCandidates[Math.floor(Math.random() * topPriorityCandidates.length)];
-      const promoteIndex = chosen.index;
-
-      if (promoteIndex >= 1 && promoteIndex < queue.length) {
-        const [promoted] = queue.splice(promoteIndex, 1);
-
-        // bring it near the front but not at position 0
-        const insertPos = Math.min(2, queue.length);
-        queue.splice(insertPos, 0, promoted);
-
-        console.log('[Session Queue Rebalance]', {
-          promotedCard: promoted?.id,
-          from: promoteIndex,
-          to: insertPos,
-          answerCount: chosen.count,
-          nextCardCount: nextCardCount,
-          queueLength: queue.length
-        });
+    if (best) {
+      const [promoted] = queue.splice(best.index, 1);
+      // Insert just behind the leading run of strictly-weaker cards, i.e. ahead of
+      // the first card whose answer is equal or stronger. This moves it forward
+      // (leapfrogging stronger cards so it finally gets shown) while never being
+      // placed in front of a weaker-answered card at the front of the queue.
+      let insertPos = queue.length;
+      for (let i = 1; i < queue.length; i += 1) {
+        if (sessionCardPriorityStrength(queue[i]?.id) >= best.strength) { insertPos = i; break; }
       }
+      if (insertPos < 1) insertPos = 1;
+      queue.splice(insertPos, 0, promoted);
+      session.waitTurns[promoted.id] = 0;
     }
   }
 }

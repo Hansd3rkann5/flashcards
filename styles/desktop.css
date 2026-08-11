@@ -7758,6 +7758,21 @@ body.assistant-open .assistant-fab {
   font-size: 0.85rem;
   max-width: 100%;
 }
+.assistant-ctl-wide { flex: 1 1 100%; }
+.assistant-tpl-note {
+  background: rgba(20, 32, 58, 0.6);
+  border: 1px solid #24345a;
+  border-radius: 10px;
+  padding: 8px 10px;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+.assistant-tpl-note strong { color: #f4a9bd; }
+.assistant-tpl-note.ok {
+  border-color: rgba(126, 224, 184, 0.35);
+  opacity: 1;
+}
+.assistant-tpl-note.ok strong { color: #7ee0b8; }
 
 .assistant-cardctx {
   display: flex;
@@ -7780,12 +7795,39 @@ body.assistant-open .assistant-fab {
 .assistant-msg-ai { align-self: flex-start; align-items: flex-start; }
 
 .assistant-msg-body {
-  padding: 10px 13px;
+  padding: 11px 14px;
   border-radius: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 0.92rem;
+  font-size: 1.02rem;
+}
+
+/* "Assistant is thinking" indicator shown until the first token arrives */
+.assistant-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 1.1em;
+  padding: 2px 0;
+}
+.assistant-typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9ab0dd;
+  opacity: 0.4;
+  animation: assistant-typing-bounce 1.2s infinite ease-in-out both;
+}
+.assistant-typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.assistant-typing-dot:nth-child(3) { animation-delay: 0.36s; }
+@keyframes assistant-typing-bounce {
+  0%, 70%, 100% { transform: translateY(0); opacity: 0.35; }
+  35% { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-typing-dot { animation: assistant-typing-fade 1.2s infinite ease-in-out both; }
+  @keyframes assistant-typing-fade { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 }
 .assistant-msg-user .assistant-msg-body {
   background: #6f2bd4;
@@ -7818,6 +7860,84 @@ body.assistant-open .assistant-fab {
   border-left: 2px solid #2f456f;
   opacity: 0.85;
   line-height: 1.4;
+}
+
+/* Generated-card preview inside an assistant bubble */
+.assistant-cards {
+  margin-top: 10px;
+  border-top: 1px solid #24345a;
+  padding-top: 10px;
+}
+.assistant-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.assistant-card-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: rgba(20, 32, 58, 0.6);
+  border: 1px solid #24345a;
+  border-radius: 12px;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+.assistant-card-item input[type="checkbox"] {
+  margin-top: 3px;
+  flex: 0 0 auto;
+  accent-color: #e85f82;
+}
+.assistant-card-content { min-width: 0; flex: 1 1 auto; }
+.assistant-card-q {
+  font-weight: 600;
+  line-height: 1.35;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.assistant-card-badge {
+  background: rgba(232, 95, 130, 0.16);
+  border: 1px solid rgba(232, 95, 130, 0.4);
+  color: #f4a9bd;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.assistant-card-a { margin-top: 3px; opacity: 0.85; line-height: 1.4; }
+.assistant-card-opts { margin-top: 5px; display: flex; flex-direction: column; gap: 2px; }
+.assistant-opt { opacity: 0.7; line-height: 1.35; }
+.assistant-opt.correct { opacity: 1; color: #7ee0b8; }
+.assistant-cards-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+.assistant-cards-topic {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #14203a;
+  border: 1px solid #2f456f;
+  color: #e6ecf7;
+  border-radius: 10px;
+  padding: 7px 9px;
+}
+.assistant-cards-add {
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, #e85f82, #c4416a);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+.assistant-cards-add:disabled { opacity: 0.5; cursor: default; }
+.assistant-cards-done {
+  color: #7ee0b8;
+  font-weight: 600;
 }
 
 .assistant-input {
