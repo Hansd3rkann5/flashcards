@@ -2680,6 +2680,37 @@ async function boot() {
   attachImagePicker(el('editAnswerImagePreview'), dataUrls => {
     appendImagesToField(el('editCardAnswer'), el('editAnswerImagePreview'), dataUrls, 'imageDataA');
   });
+  // Explanation image (MCQ-only optional context) — create + edit dialogs.
+  bindRecentStorageImagePickerButton(
+    'openRecentCreateExplanationImagesBtn',
+    'explanationInput',
+    'explanationImagePreview',
+    'imageDataExplain'
+  );
+  bindRecentStorageImagePickerButton(
+    'openRecentEditExplanationImagesBtn',
+    'editExplanationInput',
+    'editExplanationImagePreview',
+    'imageDataExplain'
+  );
+  attachImageDrop(el('explanationInput'), dataUrls => {
+    appendImagesToField(el('explanationInput'), el('explanationImagePreview'), dataUrls, 'imageDataExplain');
+  });
+  attachImageDrop(el('explanationImagePreview'), dataUrls => {
+    appendImagesToField(el('explanationInput'), el('explanationImagePreview'), dataUrls, 'imageDataExplain');
+  });
+  attachImagePicker(el('explanationImagePreview'), dataUrls => {
+    appendImagesToField(el('explanationInput'), el('explanationImagePreview'), dataUrls, 'imageDataExplain');
+  });
+  attachImageDrop(el('editExplanationInput'), dataUrls => {
+    appendImagesToField(el('editExplanationInput'), el('editExplanationImagePreview'), dataUrls, 'imageDataExplain');
+  });
+  attachImageDrop(el('editExplanationImagePreview'), dataUrls => {
+    appendImagesToField(el('editExplanationInput'), el('editExplanationImagePreview'), dataUrls, 'imageDataExplain');
+  });
+  attachImagePicker(el('editExplanationImagePreview'), dataUrls => {
+    appendImagesToField(el('editExplanationInput'), el('editExplanationImagePreview'), dataUrls, 'imageDataExplain');
+  });
 
   el('cancelSubjectBtn').onclick = () => closeDialog(el('subjectDialog'));
   el('createSubjectBtn').onclick = addSubjectFromDialog;
@@ -2885,10 +2916,11 @@ async function boot() {
     }
     const imagesQ = getFieldImageList(el('cardPrompt'), 'imageDataQ');
     const imagesA = getFieldImageList(el('cardAnswer'), 'imageDataA');
+    const imagesExplain = getFieldImageList(el('explanationInput'), 'imageDataExplain');
     const cardId = uid();
     let imagePayload;
     try {
-      imagePayload = await buildCardImagePayloadForSave(cardId, imagesQ, imagesA);
+      imagePayload = await buildCardImagePayloadForSave(cardId, imagesQ, imagesA, { imagesExplain });
     } catch (err) {
       alert('Image upload failed. Please check your connection and try again.');
       console.warn('Card image upload failed:', err);
@@ -2896,6 +2928,8 @@ async function boot() {
     }
     const options = parseMcqOptions();
     const type = options.length > 1 ? 'mcq' : 'qa';
+    // Explanation (optional extra context) is an MCQ-only feature.
+    const explanation = type === 'mcq' ? String(el('explanationInput')?.value || '').trim() : '';
     const createdAt = new Date().toISOString();
     const card = {
       id: cardId,
@@ -2909,6 +2943,7 @@ async function boot() {
       answer: el('cardAnswer').value,
       options: type === 'mcq' ? options : [],
       optionsRequireOrder: type === 'mcq' ? !!createOptionsRequireOrder : false,
+      explanation,
       ...imagePayload,
       createdAt,
       meta: { createdAt }
@@ -2934,8 +2969,10 @@ async function boot() {
     });
     el('cardPrompt').value = '';
     el('cardAnswer').value = '';
+    if (el('explanationInput')) el('explanationInput').value = '';
     replaceFieldImages(el('cardPrompt'), el('questionImagePreview'), [], 'imageDataQ', updateCreateValidation);
     replaceFieldImages(el('cardAnswer'), el('answerImagePreview'), [], 'imageDataA', updateCreateValidation);
+    replaceFieldImages(el('explanationInput'), el('explanationImagePreview'), [], 'imageDataExplain');
     const primaryToggle = el('primaryAnswerToggle');
     if (primaryToggle) primaryToggle.checked = true;
     const orderToggle = el('mcqRequireOrderToggle');
@@ -3008,9 +3045,10 @@ async function boot() {
       const updatedAt = new Date().toISOString();
       const imagesQ = getFieldImageList(el('editCardPrompt'), 'imageDataQ');
       const imagesA = getFieldImageList(el('editCardAnswer'), 'imageDataA');
+      const imagesExplain = getFieldImageList(el('editExplanationInput'), 'imageDataExplain');
       let imagePayload;
       try {
-        imagePayload = await buildCardImagePayloadForSave(card.id, imagesQ, imagesA);
+        imagePayload = await buildCardImagePayloadForSave(card.id, imagesQ, imagesA, { imagesExplain });
       } catch (err) {
         alert('Image upload failed. Please check your connection and try again.');
         console.warn('Card image upload failed:', err);
@@ -3026,6 +3064,8 @@ async function boot() {
         return;
       }
       const type = options.length > 1 ? 'mcq' : 'qa';
+      // Explanation (optional extra context) is an MCQ-only feature.
+      const explanation = type === 'mcq' ? String(el('editExplanationInput')?.value || '').trim() : '';
       const updated = {
         ...card,
         createdAt,
@@ -3042,6 +3082,7 @@ async function boot() {
         answer: el('editCardAnswer').value,
         options: type === 'mcq' ? options : [],
         optionsRequireOrder: type === 'mcq' ? !!editOptionsRequireOrder : false,
+        explanation,
         type,
         ...imagePayload
       };
@@ -3055,6 +3096,8 @@ async function boot() {
       requestSafeCloseEditDialog('save-button');
       replaceFieldImages(el('editCardPrompt'), el('editQuestionImagePreview'), [], 'imageDataQ');
       replaceFieldImages(el('editCardAnswer'), el('editAnswerImagePreview'), [], 'imageDataA');
+      if (el('editExplanationInput')) el('editExplanationInput').value = '';
+      replaceFieldImages(el('editExplanationInput'), el('editExplanationImagePreview'), [], 'imageDataExplain');
       setPreview('editQuestionPreview', '', editQuestionTextAlign);
       setPreview('editAnswerPreview', '', editAnswerTextAlign);
       deferredSaveInFlight = true;

@@ -638,6 +638,18 @@
                   </div>
                   <div class="field-error hidden" id="answerError">Please enter at least one answer.</div>
                 </div>
+                <div class="editor-field explanation-field hidden" id="explanationFieldCreate">
+                  <div class="field-head">
+                    <label>Explanation (optional)</label>
+                    <button class="btn btn-small image-recent-btn" id="openRecentCreateExplanationImagesBtn" type="button"
+                      title="Reuse a recently stored image">Recent Images</button>
+                  </div>
+                  <div class="editor-input-media-row">
+                    <textarea id="explanationInput"
+                      placeholder="Add a more detailed explanation, shown via the Explain button in the study session…"></textarea>
+                    <div id="explanationImagePreview" class="image-preview">Drop image here</div>
+                  </div>
+                </div>
               </div>
               <div class="editor-footer editor-footer-stack">
                 <button class="btn" id="addMcqOptionBtn">Add Answer</button>
@@ -689,8 +701,8 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.11.2';
-    window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.08.11.26';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.11.3';
+    window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.08.11.37';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
       || window.__APP_VERSION_PUBLIC__;
@@ -1305,6 +1317,18 @@
                 </div>
               </div>
               <div id="editMcqOptions" class="hidden"></div>
+            </div>
+            <div class="editor-field explanation-field hidden" id="explanationFieldEdit">
+              <div class="field-head">
+                <label>Explanation (optional)</label>
+                <button class="btn btn-small image-recent-btn" id="openRecentEditExplanationImagesBtn" type="button"
+                  title="Reuse a recently stored image">Recent Images</button>
+              </div>
+              <div class="editor-input-media-row">
+                <textarea id="editExplanationInput"
+                  placeholder="Add a more detailed explanation, shown via the Explain button in the study session…"></textarea>
+                <div id="editExplanationImagePreview" class="image-preview">Drop image here</div>
+              </div>
             </div>
           </div>
         </div>

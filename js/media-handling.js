@@ -262,7 +262,8 @@ async function uploadImageDataUrlToStorage(dataUrl, options = {}) {
   if (!bucket) throw new Error('Missing Supabase pictures bucket configuration.');
 
   const cardId = sanitizeStoragePathSegment(opts.cardId || uid(), 'card');
-  const side = String(opts.side || 'Q').toUpperCase() === 'A' ? 'a' : 'q';
+  const sideUpper = String(opts.side || 'Q').toUpperCase();
+  const side = sideUpper === 'A' ? 'a' : sideUpper === 'E' ? 'e' : 'q';
   const index = Number.isFinite(Number(opts.index)) ? Math.max(0, Math.trunc(Number(opts.index))) : 0;
   const ext = imageMimeToExtension(parsed.mime);
   const hash = hashImageSource(dataUrl);
@@ -294,7 +295,8 @@ async function persistCardImageSourcesToStorage(cardId, side = 'Q', images = [],
   const opts = options && typeof options === 'object' ? options : {};
   const log = typeof opts.log === 'function' ? opts.log : null;
   const safeCardId = String(cardId || '').trim() || uid();
-  const safeSide = String(side || 'Q').toUpperCase() === 'A' ? 'A' : 'Q';
+  const sideUpper = String(side || 'Q').toUpperCase();
+  const safeSide = sideUpper === 'A' ? 'A' : sideUpper === 'E' ? 'E' : 'Q';
   const normalized = normalizeImageList(images);
   if (!normalized.length) return [];
   const persisted = [];
@@ -356,11 +358,14 @@ function cardHasLegacyBase64Images(card = null) {
  */
 
 function getCardImageList(card, side = 'Q') {
-  const key = String(side || 'Q').toUpperCase() === 'A' ? 'A' : 'Q';
-  const listKey = key === 'Q' ? 'imagesQ' : 'imagesA';
+  const upper = String(side || 'Q').toUpperCase();
+  const key = upper === 'A' ? 'A' : upper === 'E' ? 'E' : 'Q';
+  const listKey = key === 'Q' ? 'imagesQ' : key === 'A' ? 'imagesA' : 'imagesExplain';
   const fallback = key === 'Q'
     ? card?.imageDataQ || card?.imageData || ''
-    : card?.imageDataA || '';
+    : key === 'A'
+      ? card?.imageDataA || ''
+      : card?.imageDataExplain || '';
   return normalizeImageList(card?.[listKey], fallback);
 }
 
@@ -615,7 +620,8 @@ function getCardSupabaseStorageRefs(card = null) {
   if (!safeCard) return [];
   const refs = [
     ...getCardImageList(safeCard, 'Q'),
-    ...getCardImageList(safeCard, 'A')
+    ...getCardImageList(safeCard, 'A'),
+    ...getCardImageList(safeCard, 'E')
   ];
   return normalizeSupabaseStorageRefList(refs);
 }
@@ -1193,9 +1199,15 @@ async function buildCardImagePayloadForSave(cardId, imagesQ, imagesA, options = 
     normalizeImageList(imagesA),
     { log }
   );
-  const payload = getCardImagePayload(storedQ, storedA);
+  const storedExplain = await persistCardImageSourcesToStorage(
+    safeCardId,
+    'E',
+    normalizeImageList(opts.imagesExplain),
+    { log }
+  );
+  const payload = getCardImagePayload(storedQ, storedA, storedExplain);
   rememberRecentSupabaseStorageRefs(
-    [...payload.imagesQ, ...payload.imagesA],
+    [...payload.imagesQ, ...payload.imagesA, ...payload.imagesExplain],
     { limit: RECENT_STORAGE_IMAGE_REFS_LIMIT }
   );
   return payload;
@@ -1206,13 +1218,16 @@ async function buildCardImagePayloadForSave(cardId, imagesQ, imagesA, options = 
  * @description Returns the card image payload.
  */
 
-function getCardImagePayload(imagesQ, imagesA) {
+function getCardImagePayload(imagesQ, imagesA, imagesExplain) {
   const q = normalizeImageList(imagesQ);
   const a = normalizeImageList(imagesA);
+  const e = normalizeImageList(imagesExplain);
   return {
     imagesQ: q,
     imagesA: a,
+    imagesExplain: e,
     imageDataQ: q[0] || '',
-    imageDataA: a[0] || ''
+    imageDataA: a[0] || '',
+    imageDataExplain: e[0] || ''
   };
 }

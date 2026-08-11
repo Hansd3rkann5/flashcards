@@ -40,6 +40,9 @@ function setMcqModeState(edit = false, enabled = false) {
   if (optionsContainer) optionsContainer.classList.toggle('hidden', !enabled);
   optionsEl.classList.toggle('hidden', !enabled);
   if (optionsToolbar) optionsToolbar.classList.toggle('hidden', !enabled);
+  // Explanation (optional extra context + image) is an MCQ-only feature.
+  const explanationField = el(edit ? 'explanationFieldEdit' : 'explanationFieldCreate');
+  if (explanationField) explanationField.classList.toggle('hidden', !enabled);
   header.classList.toggle('hidden', !enabled);
   field.classList.toggle('mcq-primary', enabled);
   field.classList.toggle('mcq-row', enabled);
@@ -2547,6 +2550,14 @@ function openEditDialog(card) {
     el('editAnswerImagePreview'),
     getCardImageList(card, 'A'),
     'imageDataA'
+  );
+  const editExplanationInput = el('editExplanationInput');
+  if (editExplanationInput) editExplanationInput.value = card.explanation || '';
+  replaceFieldImages(
+    el('editExplanationInput'),
+    el('editExplanationImagePreview'),
+    getCardImageList(card, 'E'),
+    'imageDataExplain'
   );
   setPreview('editQuestionPreview', el('editCardPrompt').value || '', editQuestionTextAlign);
   setPreview('editAnswerPreview', el('editCardAnswer').value || '', editAnswerTextAlign);

@@ -1608,6 +1608,91 @@ function setupDotPreviewHandlers(allCards) {
 }
 
 /**
+ * @function cardHasExplanation
+ * @description True when a card carries optional explanation content (text or image).
+ */
+function cardHasExplanation(card) {
+  if (!card || typeof card !== 'object') return false;
+  const text = String(card.explanation || '').trim();
+  if (text) return true;
+  try { return getCardImageList(card, 'E').length > 0; } catch (_) { return false; }
+}
+
+/**
+ * @function ensureExplainOverlay
+ * @description Creates (once) the study-session Explanation overlay modal.
+ */
+function ensureExplainOverlay() {
+  let overlay = el('explainOverlay');
+  if (overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'explainOverlay';
+  overlay.className = 'explain-overlay';
+  overlay.setAttribute('hidden', '');
+  overlay.innerHTML = `
+    <div class="explain-backdrop" data-role="backdrop"></div>
+    <div class="explain-panel" role="dialog" aria-modal="true" aria-label="Explanation">
+      <div class="explain-head">
+        <div class="explain-title">Explanation</div>
+        <button class="btn explain-close" type="button" data-role="close" aria-label="Close" title="Close">✕</button>
+      </div>
+      <div class="explain-scroll">
+        <div class="explain-images" data-role="images"></div>
+        <div class="explain-body" data-role="body"></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('[data-role="backdrop"]').addEventListener('click', closeExplainOverlay);
+  overlay.querySelector('[data-role="close"]').addEventListener('click', closeExplainOverlay);
+  return overlay;
+}
+
+function onExplainOverlayKeydown(e) {
+  if (e.key === 'Escape') { e.stopPropagation(); closeExplainOverlay(); }
+}
+
+/**
+ * @function openExplainOverlay
+ * @description Opens the Explanation overlay for a card (rendered text + images).
+ */
+function openExplainOverlay(card) {
+  if (!card) return;
+  const overlay = ensureExplainOverlay();
+  const imagesBox = overlay.querySelector('[data-role="images"]');
+  const body = overlay.querySelector('[data-role="body"]');
+  const images = (() => { try { return getCardImageList(card, 'E'); } catch (_) { return []; } })();
+  imagesBox.innerHTML = '';
+  if (images.length && typeof appendSessionImages === 'function') {
+    appendSessionImages(imagesBox, images, 'Explanation image');
+  }
+  imagesBox.classList.toggle('hidden', images.length === 0);
+  const text = String(card.explanation || '').trim();
+  body.innerHTML = '';
+  if (text && typeof renderRich === 'function') {
+    try { renderRich(body, text, { textAlign: 'left' }); } catch (_) { body.textContent = text; }
+  } else {
+    body.textContent = text;
+  }
+  body.classList.toggle('hidden', text.length === 0);
+  overlay.removeAttribute('hidden');
+  requestAnimationFrame(() => overlay.classList.add('open'));
+  document.addEventListener('keydown', onExplainOverlayKeydown, true);
+}
+
+/**
+ * @function closeExplainOverlay
+ * @description Hides the Explanation overlay.
+ */
+function closeExplainOverlay() {
+  const overlay = el('explainOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.removeEventListener('keydown', onExplainOverlayKeydown, true);
+  window.setTimeout(() => overlay.setAttribute('hidden', ''), 220);
+}
+
+/**
  * @function renderCardContent
  * @description Renders card content.
  */
@@ -1706,6 +1791,21 @@ function renderCardContent(card) {
     checkBtn.textContent = 'Check';
     checkBtn.dataset.mode = 'check';
     checkRow.appendChild(checkBtn);
+    // Optional "Explain" button — only for cards that have extra explanation
+    // content; revealed after the answer is checked.
+    let explainBtn = null;
+    if (cardHasExplanation(card)) {
+      explainBtn = document.createElement('button');
+      explainBtn.type = 'button';
+      explainBtn.className = 'btn mcq-explain-btn';
+      explainBtn.textContent = 'Explain';
+      explainBtn.hidden = true;
+      explainBtn.onclick = ev => {
+        ev.stopPropagation();
+        openExplainOverlay(card);
+      };
+      checkRow.appendChild(explainBtn);
+    }
     const separator = document.createElement('div');
     separator.className = 'card-tile-separator';
     answerZone.append(separator, optionsWrap, checkRow);
@@ -1848,10 +1948,12 @@ function renderCardContent(card) {
 
       checkBtn.textContent = 'Next';
       checkBtn.dataset.mode = 'next';
+      if (explainBtn) explainBtn.hidden = false; // reveal explanation after checking
       checkBtn.onclick = ev => {
         ev.stopPropagation();
         checkBtn.textContent = 'Check';
         checkBtn.dataset.mode = 'check';
+        if (explainBtn) explainBtn.hidden = true;
         // reset option visuals for next card
         buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'wrong-order', 'selected'));
         void gradeCardWithDesktopAutoMove(result);
