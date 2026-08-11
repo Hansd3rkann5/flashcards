@@ -398,7 +398,7 @@ function formatCardTextForClipboard(card) {
   if (card.type === 'mcq' && Array.isArray(card.options) && card.options.length > 0) {
     const sorted = card.options.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const lines = sorted.map(opt => {
-      const marker = opt.correct ? '✓' : '○';
+      const marker = opt.correct ? '✓' : 'x';
       return `${marker} ${(opt.text || '').trim()}`;
     }).join('\n');
     return `Q: ${q}\n\n${lines}`;
