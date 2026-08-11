@@ -24,3 +24,9 @@ flashcards.backup_before_carbon_update_20260222_143530.sqlite3
 
 # Logs
 *.log
+
+# Supabase CLI local artifacts
+supabase/.temp/
+supabase/.branches/
+.env
+supabase/functions/**/node_modules/

@@ -7485,3 +7485,368 @@ button.formula-insert.save-primary {
     transform: translateY(-8px) scale(0.95);
   }
 }
+/* ============================================================================
+   AI Assistant — Knowledge Base dialog (Phase 1)
+   ========================================================================== */
+.knowledge-dialog {
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 560px;
+  width: min(92vw, 560px);
+  background: #0f172c;
+  color: var(--text, #e8eefc);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.knowledge-dialog::backdrop {
+  background: rgba(4, 8, 20, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.knowledge-dialog-inner {
+  padding: 20px 22px 24px;
+  box-sizing: border-box;
+}
+
+.knowledge-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.knowledge-dialog-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.knowledge-close {
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+}
+
+.knowledge-dialog-sub {
+  margin: 8px 0 16px;
+  opacity: 0.7;
+  line-height: 1.4;
+}
+
+.knowledge-upload-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.knowledge-upload-row input[type="file"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+  font-size: 0.85rem;
+}
+
+.knowledge-upload-btn {
+  flex: 0 0 auto;
+  background: #6f2bd4;
+  border: none;
+  padding: 9px 16px;
+}
+
+.knowledge-status {
+  min-height: 18px;
+  margin: 10px 2px 0;
+  opacity: 0.8;
+}
+
+.knowledge-status.is-error {
+  color: #ff9a8a;
+  opacity: 1;
+}
+
+.knowledge-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 46vh;
+  overflow: auto;
+}
+
+.knowledge-empty {
+  opacity: 0.6;
+  padding: 10px 2px;
+}
+
+.knowledge-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #2f456f;
+  border-radius: 12px;
+  background: rgba(20, 32, 57, 0.6);
+}
+
+.knowledge-item-main {
+  min-width: 0;
+}
+
+.knowledge-item-name {
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.knowledge-item-meta {
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+.knowledge-item-delete {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+}
+
+/* ============================================================================
+   AI Assistant — Chat panel (Phase 3)
+   ========================================================================== */
+.assistant-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #6f2bd4, #2dd4bf);
+  color: #fff;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45);
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+.assistant-fab:hover { transform: translateY(-2px) scale(1.05); }
+
+/* FAB icon: mini 3-card stack (mirrors the app loader). */
+.assistant-fab-stack {
+  position: relative;
+  width: 26px;
+  height: 30px;
+  pointer-events: none;
+}
+.assistant-fab-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 22px;
+  margin: -11px 0 0 -8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(165deg, #e85f82 8%, #c155ba 52%, #48b4ee 100%);
+  box-shadow: 0 3px 8px rgba(20, 17, 52, 0.4);
+}
+.assistant-fab-card.c1 { transform: translate(-6px, -2px) rotate(-15deg); z-index: 3; }
+.assistant-fab-card.c2 { transform: translate(3px, 0) rotate(14deg); z-index: 2; }
+.assistant-fab-card.c3 { transform: translate(0, 4px) rotate(40deg); z-index: 1; }
+
+/* While the panel is open the button has "grown" into the panel — hide it. */
+body.assistant-open .assistant-fab {
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+}
+
+.assistant-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 20, 0.12);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+  z-index: 1450;
+}
+.assistant-backdrop.visible { opacity: 1; pointer-events: auto; }
+
+.assistant-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(440px, 94vw);
+  /* Translucent so the content behind faintly shines through the modal. */
+  background: rgba(13, 20, 38, 0.78);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  color: var(--text, #e8eefc);
+  box-shadow: 0 0 42px 2px rgba(232, 95, 130, 0.55), -20px 0 60px rgba(0, 0, 0, 0.5);
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* Grow out of the FAB (bottom-right) instead of sliding in. */
+  clip-path: circle(0% at calc(100% - 47px) calc(100% - 47px));
+  transition: clip-path 0.34s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: clip-path;
+}
+.assistant-panel.open {
+  clip-path: circle(165% at calc(100% - 47px) calc(100% - 47px));
+}
+
+/* Scroll container: head is sticky inside it, messages scroll behind the head. */
+.assistant-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.assistant-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 14px 16px 12px;
+  background: rgba(13, 20, 38, 0.7);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(47, 69, 111, 0.5);
+}
+.assistant-head-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.assistant-titles { min-width: 0; }
+.assistant-title { font-weight: 800; font-size: 1.05rem; }
+.assistant-subject { opacity: 0.6; margin-top: 2px; word-break: break-word; }
+.assistant-head-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.assistant-icon-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.assistant-controls {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0 2px;
+  flex-wrap: wrap;
+}
+.assistant-controls[hidden] { display: none; }
+.assistant-ctl { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+.assistant-ctl span { opacity: 0.6; }
+.assistant-ctl select {
+  background: #14203a;
+  border: 1px solid #2f456f;
+  color: var(--text, #e8eefc);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  max-width: 100%;
+}
+
+.assistant-cardctx {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px 0;
+  opacity: 0.85;
+}
+
+.assistant-messages {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.assistant-empty { opacity: 0.6; line-height: 1.5; }
+
+.assistant-msg { display: flex; flex-direction: column; gap: 4px; max-width: 92%; }
+.assistant-msg-user { align-self: flex-end; align-items: flex-end; }
+.assistant-msg-ai { align-self: flex-start; align-items: flex-start; }
+
+.assistant-msg-body {
+  padding: 10px 13px;
+  border-radius: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.92rem;
+}
+.assistant-msg-user .assistant-msg-body {
+  background: #6f2bd4;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  white-space: pre-wrap;
+}
+.assistant-msg-ai .assistant-msg-body {
+  background: rgba(20, 32, 57, 0.85);
+  border: 1px solid #2f456f;
+  border-bottom-left-radius: 4px;
+}
+.assistant-msg-ai .assistant-msg-body :where(p, ul, ol) { margin: 0.3em 0; }
+.assistant-msg-ai .assistant-msg-body :where(ul, ol) { padding-left: 1.2em; }
+
+.assistant-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.assistant-chip {
+  background: rgba(45, 212, 191, 0.16);
+  border: 1px solid rgba(45, 212, 191, 0.4);
+  color: #9ff0e4;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.assistant-citations { margin-top: 2px; opacity: 0.8; }
+.assistant-citations summary { cursor: pointer; opacity: 0.7; }
+.assistant-citation {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid #2f456f;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+.assistant-input {
+  display: flex;
+  gap: 10px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #1e2b49;
+  align-items: flex-end;
+}
+.assistant-input textarea {
+  flex: 1 1 auto;
+  resize: none;
+  background: #14203a;
+  border: 1px solid #2f456f;
+  color: var(--text, #e8eefc);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.92rem;
+  min-height: 22px;
+  max-height: 140px;
+}
+.assistant-send {
+  flex: 0 0 auto;
+  background: #6f2bd4;
+  border: none;
+  padding: 10px 16px;
+  align-self: stretch;
+}
+.assistant-send:disabled { opacity: 0.5; cursor: default; }
+
+/* Mobile/phone overrides for the assistant live in styles/phone.css. */

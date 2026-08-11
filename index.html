@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#0a0f1e" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -284,7 +284,7 @@
           <div class="section" style="display: flex;">
             <h3 id="addTopicTitle">Add Topic</h3>
             <div class="topic-input-wrap">
-              <input id="topicName" class="topic-input" placeholder="e.g., Thermodynamics" />
+              <input id="topicName" class="topic-input" placeholder="e.g. Metals" />
               <button class="btn create-card-icon-btn topic-add-btn" id="addTopicBtn" type="button"
                 aria-label="Add topic" title="Add topic" style="background-color: var(--success)">+</button>
             </div>
@@ -689,8 +689,8 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.10.1';
-    window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.08.10.02';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.11.1';
+    window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.08.11.10';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
       || window.__APP_VERSION_PUBLIC__;
@@ -706,12 +706,14 @@
   <script src="js/navigation-layout.js" defer></script>
   <script src="js/text-rendering.js" defer></script>
   <script src="js/media-handling.js" defer></script>
+  <script src="js/knowledge-base.js" defer></script>
   <script src="js/sidebar-subject-management.js" defer></script>
   <script src="js/subject-topic-panel.js" defer></script>
   <script src="js/editor-panel.js" defer></script>
   <script src="js/deck-search-panel.js" defer></script>
   <script src="js/study-session.js" defer></script>
   <script src="js/settings-management.js" defer></script>
+  <script src="js/assistant-chat.js" defer></script>
   <script src="js/bootstrap.js" defer></script>
 
   <dialog id="subjectDialog" class="modal subject-edit-modal">
@@ -824,7 +826,7 @@
     <h3>Edit Topic</h3>
     <div class="topic-edit-field">
       <label>Name</label>
-      <input id="editTopicName" placeholder="e.g., Thermodynamics" />
+      <input id="editTopicName" placeholder="e.g., Metals" />
     </div>
     <div class="controls topic-edit-actions">
       <button class="btn save-primary" id="saveTopicEditBtn" type="button">Save</button>

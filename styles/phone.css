@@ -868,3 +868,34 @@
     border-bottom-right-radius: 44px;
   }
 }
+
+/* ============================================================================
+   AI Assistant — phone overrides (Phase 3)
+   Base + desktop styles live in styles/desktop.css; these are the mobile-only
+   overrides for the chat panel and FAB.
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* Inset floating modal: a clear margin to every screen edge so the app
+     behind stays visible through the blurred backdrop. Tune via the variable. */
+  .assistant-panel {
+    --assistant-mobile-margin: 16px;
+    top: calc(env(safe-area-inset-top, 0px) + var(--assistant-mobile-margin));
+    right: var(--assistant-mobile-margin);
+    left: var(--assistant-mobile-margin);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--assistant-mobile-margin));
+    width: auto;
+    height: auto;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 0 36px 2px rgba(232, 95, 130, 0.6), 0 30px 80px rgba(0, 0, 0, 0.55);
+  }
+  /* FAB sits 7px from the bottom/right edges — no safe-area inset on phone. */
+  .assistant-fab {
+    right: 7px;
+    bottom: 7px;
+  }
+
+  .assistant-input {
+  padding: 12px 18px 12px;
+  }
+}

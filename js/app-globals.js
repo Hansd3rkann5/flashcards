@@ -17,7 +17,8 @@ const STORE_KEYS = {
   cards: 'id',
   progress: 'cardId',
   cardbank: 'id',
-  settings: 'id'
+  settings: 'id',
+  knowledge: 'id'
 };
 let dbReady = false;
 let selectedSubject = null;

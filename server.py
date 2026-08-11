@@ -26,6 +26,7 @@ KEY_FIELDS = {
     "cards": "id",
     "progress": "cardId",
     "cardbank": "id",
+    "knowledge": "id",
 }
 
 BENIGN_NETWORK_ERRORS = (

@@ -394,6 +394,7 @@ function buildSubjectTileMenu(subject = null, options = {}) {
     </button>
     <div class="tile-menu-list">
       <button class="btn card-menu-item card-menu-item-edit" data-action="edit" type="button">Edit</button>
+      ${isArchiveView ? '' : '<button class="btn card-menu-item card-menu-item-knowledge" data-action="knowledge" type="button">Knowledge</button>'}
       <button class="btn card-menu-item ${secondaryClass}" data-action="secondary" type="button">${secondaryLabel}</button>
       <button class="btn delete card-menu-item" data-action="delete" type="button">Delete</button>
     </div>
@@ -423,6 +424,17 @@ function buildSubjectTileMenu(subject = null, options = {}) {
       e.stopPropagation();
       closeSubjectTileMenus();
       await openSubjectEditDialogById(safeId, { uiBlocking: false });
+    };
+  }
+
+  const knowledgeBtn = menu.querySelector('[data-action="knowledge"]');
+  if (knowledgeBtn) {
+    knowledgeBtn.onclick = async e => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSubjectTileMenus();
+      if (!safeId) return;
+      await openKnowledgeBaseDialog(safeId, String(safeSubject?.name || '').trim());
     };
   }
 
