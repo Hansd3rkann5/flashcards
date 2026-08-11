@@ -4305,6 +4305,8 @@ body.session-image-open {
   padding: 6px 10px;
   vertical-align: top;
   text-align: left;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .rich-content .md-table thead .md-table-cell {

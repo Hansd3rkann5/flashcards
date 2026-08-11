@@ -393,4 +393,18 @@ function bumpDeckTopicCardCount(delta = 0) {
   setDeckTopicCardCount(next);
 }
 
+function formatCardTextForClipboard(card) {
+  const q = (card.prompt || card.question || '').trim();
+  if (card.type === 'mcq' && Array.isArray(card.options) && card.options.length > 0) {
+    const sorted = card.options.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const lines = sorted.map(opt => {
+      const marker = opt.correct ? '✓' : '○';
+      return `${marker} ${(opt.text || '').trim()}`;
+    }).join('\n');
+    return `Q: ${q}\n\n${lines}`;
+  }
+  const a = (card.answer || '').trim();
+  return `Q: ${q}\n\nA: ${a}`;
+}
+
 // ============================================================================

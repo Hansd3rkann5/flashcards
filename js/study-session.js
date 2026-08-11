@@ -390,6 +390,23 @@ function wireSessionScaleDebugControls() {
 }
 
 /**
+ * @function sessionCardHasExistingGrade
+ * @description True when a card already carries a persisted grade/attempt (yellow/red/
+ * green), i.e. it was answered in an earlier (e.g. interrupted) session. Relies on
+ * progress already loaded into progressByCardId (the session filter ensures this).
+ */
+function sessionCardHasExistingGrade(cardId) {
+  try {
+    if (typeof getCurrentProgressState !== 'function') return false;
+    const state = getCurrentProgressState(progressByCardId.get(cardId), cardId);
+    const key = String(state?.key || '').trim().toLowerCase();
+    return key !== '' && key !== 'not-answered' && key !== 'not-answered-yet';
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
 * @function startSession
  * @description Builds and starts a study session queue from selected topics, cards, and filters.
  */
@@ -484,7 +501,20 @@ async function startSession(options = {}) {
         return String(a || '').localeCompare(String(b || ''));
       });
     } else {
-      shuffleArrayInPlace(prioritizedEligibleCardIds);
+      // Prioritize cards that already carry a grade (yellow/red/green) — e.g. from
+      // an interrupted session — so they re-enter the session first instead of a
+      // random draw from the whole (filter-matched) topic. Shuffle within each
+      // group for variety. Relies on progress loaded by the eligibility filter.
+      const answered = [];
+      const fresh = [];
+      for (const cardId of prioritizedEligibleCardIds) {
+        if (sessionCardHasExistingGrade(cardId)) answered.push(cardId);
+        else fresh.push(cardId);
+      }
+      shuffleArrayInPlace(answered);
+      shuffleArrayInPlace(fresh);
+      prioritizedEligibleCardIds.length = 0;
+      prioritizedEligibleCardIds.push(...answered, ...fresh);
     }
     const selectedCardIds = prioritizedEligibleCardIds.slice(0, sessionSize);
     const fetchedCards = await getCardsByCardIds(selectedCardIds, {
@@ -1450,10 +1480,7 @@ function setupSessionCardCopyHandlers(card) {
 
   const copyCardToClipboard = async (e) => {
     e.stopPropagation();
-    const q = (card.prompt || card.question || '').trim();
-    const a = (card.answer || '').trim();
-    const text = `Q: ${q}\n\nA: ${a}`;
-
+    const text = formatCardTextForClipboard(card);
     try {
       await navigator.clipboard.writeText(text);
       showCopyToast(e);

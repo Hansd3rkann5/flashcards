@@ -1108,9 +1108,7 @@ function buildCardTile(card, idx, compact = false) {
 
   const copyCardToClipboard = async (e) => {
     e.stopPropagation();
-    const q = (card.prompt || card.question || '').trim();
-    const a = (card.answer || '').trim();
-    const text = `Q: ${q}\n\nA: ${a}`;
+    const text = formatCardTextForClipboard(card);
     try {
       await navigator.clipboard.writeText(text);
       showCopyToastNotification(e);
