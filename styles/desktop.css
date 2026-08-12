@@ -7956,6 +7956,16 @@ body.assistant-open .assistant-fab {
 .assistant-title {
   font-weight: 800;
   font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.assistant-provider-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .assistant-subject {

@@ -26,6 +26,16 @@ const assistantState = {
   streaming: false
 };
 
+function updateAssistantProviderHeader() {
+  const panel = el('assistantPanel');
+  if (!panel) return;
+  const isMistral = assistantState.model.startsWith('mistral-');
+  const logo = panel.querySelector('[data-role="provider-logo"]');
+  const name = panel.querySelector('[data-role="provider-name"]');
+  if (logo) logo.src = isMistral ? 'icons/mistral-ai-icon.svg' : 'icons/claude-code-icon.svg';
+  if (name) name.textContent = isMistral ? 'Mistral' : 'Claude';
+}
+
 /**
  * @function assistantStripText
  * @description Reduces stored HTML/markdown to a plain-text snippet for context.
@@ -89,7 +99,10 @@ function ensureAssistantUi() {
       <div class="assistant-head">
         <div class="assistant-head-top">
           <div class="assistant-titles">
-            <div class="assistant-title">Claude</div>
+            <div class="assistant-title">
+              <img class="assistant-provider-logo" data-role="provider-logo" src="icons/claude-code-icon.svg" alt="" aria-hidden="true" />
+              <span data-role="provider-name">Claude</span>
+            </div>
             <div class="assistant-subject tiny" data-role="subject-name"></div>
           </div>
           <div class="assistant-head-actions">
@@ -129,9 +142,11 @@ function ensureAssistantUi() {
 
   const modelSel = panel.querySelector('[data-role="model"]');
   modelSel.value = assistantState.model;
+  updateAssistantProviderHeader();
   modelSel.addEventListener('change', () => {
     assistantState.model = modelSel.value;
     localStorage.setItem(ASSISTANT_MODEL_STORAGE_KEY, modelSel.value);
+    updateAssistantProviderHeader();
   });
 
   const langSel = panel.querySelector('[data-role="language"]');
