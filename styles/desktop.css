@@ -7861,12 +7861,12 @@ body.assistant-open .assistant-fab {
 
 /* Knocking pulse when a response arrived while the panel was closed. */
 @keyframes fab-knock {
-  0%   { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
-  8%   { transform: scale(1.07); box-shadow: 0 12px 38px rgba(111, 43, 212, 0.72), 0 0 0 9px rgba(111, 43, 212, 0.22); }
-  16%  { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
-  26%  { transform: scale(1.07); box-shadow: 0 12px 38px rgba(111, 43, 212, 0.72), 0 0 0 9px rgba(111, 43, 212, 0.22); }
-  34%  { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
-  100% { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
+  0%   { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45)}
+  8%   { transform: scale(1.07); box-shadow: 0 12px 38px rgba(111, 43, 212, 1)}
+  16%  { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45)}
+  26%  { transform: scale(1.07); box-shadow: 0 12px 38px rgba(111, 43, 212, 1)}
+  34%  { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45)}
+  100% { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45)}
 }
 
 .assistant-fab.assistant-fab--has-response {
