@@ -4636,6 +4636,23 @@ body.session-image-open {
   white-space: nowrap;
 }
 
+.edit-dialog-exclude-btn {
+  background: transparent;
+  border: 1px solid #7a3030;
+  color: #f87171;
+  border-radius: 8px;
+  padding: 4px 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.edit-dialog-exclude-btn:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: #f87171;
+}
+
 .editor-overlay {
   display: none;
 }
@@ -7840,6 +7857,27 @@ body.assistant-open .assistant-fab {
   opacity: 0;
   transform: scale(0.4);
   pointer-events: none;
+}
+
+/* Knocking pulse when a response arrived while the panel was closed. */
+@keyframes fab-knock {
+  0%   { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
+  8%   { transform: scale(1.07); box-shadow: 0 12px 38px rgba(111, 43, 212, 0.72), 0 0 0 9px rgba(111, 43, 212, 0.22); }
+  16%  { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
+  26%  { transform: scale(1.07); box-shadow: 0 12px 38px rgba(111, 43, 212, 0.72), 0 0 0 9px rgba(111, 43, 212, 0.22); }
+  34%  { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
+  100% { transform: scale(1);    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45); }
+}
+
+.assistant-fab.assistant-fab--has-response {
+  animation: fab-knock 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-fab.assistant-fab--has-response {
+    animation: none;
+    box-shadow: 0 10px 30px rgba(111, 43, 212, 0.45), 0 0 0 5px rgba(111, 43, 212, 0.38);
+  }
 }
 
 .assistant-backdrop {

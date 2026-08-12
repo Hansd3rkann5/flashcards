@@ -218,6 +218,7 @@ function openAssistantPanel() {
       : 'Daily Review';
   }
 
+  el('assistantFab')?.classList.remove('assistant-fab--has-response');
   panel.removeAttribute('hidden');
   backdrop.classList.add('visible');
   document.body.classList.add('assistant-open');
@@ -718,6 +719,10 @@ async function sendAssistantTurn() {
     if (!String(aiMsg.uiText || '').trim() && !(Array.isArray(aiMsg.cards) && aiMsg.cards.length)) {
       aiMsg.uiText = '(No response.)';
       renderAssistantMessages();
+    }
+    // Notify via FAB pulse if the panel was closed while waiting for the response.
+    if (!document.body.classList.contains('assistant-open')) {
+      el('assistantFab')?.classList.add('assistant-fab--has-response');
     }
   }
 }

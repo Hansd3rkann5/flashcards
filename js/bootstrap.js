@@ -1767,6 +1767,31 @@ async function boot() {
   const editBtnBack = el('editSessionCardBtnBack');
   if (editBtnBack && editBtn) editBtnBack.onclick = () => editBtn.click();
 
+  const editDialogExcludeBtn = el('editDialogExcludeBtn');
+  if (editDialogExcludeBtn) {
+    editDialogExcludeBtn.onclick = async () => {
+      if (!session.active) return;
+      const card = session.activeQueue[0];
+      if (!card || card.id !== editingCardId) return;
+      const prevExclude = card.excludeFromSession;
+      try {
+        card.excludeFromSession = true;
+        await put('cards', card, { uiBlocking: false });
+        session.activeQueue.shift();
+        session.mastered.push(card);
+        delete session.gradeMap[card.id];
+        const dialog = el('editCardDialog');
+        if (dialog) closeDialog(dialog);
+        renderSessionPills();
+        await renderSessionCard();
+      } catch (err) {
+        card.excludeFromSession = prevExclude;
+        console.error('[Exclude] Failed:', err);
+        alert('Failed to exclude card.');
+      }
+    };
+  }
+
   const resetEditDialogStateSafe = () => {
     editingCardId = null;
     editingCardSnapshot = null;

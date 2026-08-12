@@ -701,8 +701,8 @@
     window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://ioizksaimszcsqkwqkhn.supabase.co';
     window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_eMvhc7DI6u_CpahCZ6dPOQ_99NFTjEk';
     window.__SUPABASE_PICTURES_BUCKET__ = window.__SUPABASE_PICTURES_BUCKET__ || 'Pictures';
-    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.12.4';
-    window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.08.12.4';
+    window.__APP_VERSION_PUBLIC__ = window.__APP_VERSION_PUBLIC__ || 'v2026.08.12.5';
+    window.__APP_VERSION_LOCAL__ = window.__APP_VERSION_LOCAL__ || 'v2026.08.12.6';
     window.__APP_VERSION__ = window.__APP_VERSION__
       || window.__APP_VERSION_LOCAL__
       || window.__APP_VERSION_PUBLIC__;
@@ -1210,10 +1210,14 @@
   <dialog id="editCardDialog" class="modal modal-wide">
     <div class="editor-header">
       <h3>Edit Flashcard</h3>
-      <button class="btn close-icon-btn" id="closeEditCardBtn" type="button" aria-label="Close edit card dialog"
-        title="Close">
-        <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
-      </button>
+      <div class="editor-header-actions">
+        <button class="btn btn-small edit-dialog-exclude-btn" id="editDialogExcludeBtn" type="button" hidden
+          title="Exclude this card from all future sessions and move it to the mastered pile">Exclude</button>
+        <button class="btn close-icon-btn" id="closeEditCardBtn" type="button" aria-label="Close edit card dialog"
+          title="Close">
+          <img src="icons/close.svg" alt="" aria-hidden="true" class="app-icon" />
+        </button>
+      </div>
     </div>
     <div class="editor-separator hor" aria-hidden="true"></div>
     <div class="editor-grid editor-grid-single">

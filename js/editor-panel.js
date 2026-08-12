@@ -2587,6 +2587,11 @@ function openEditDialog(card) {
     saveBtn.dataset.busy = '0';
     saveBtn.disabled = false;
   }
+  const excludeBtn = el('editDialogExcludeBtn');
+  if (excludeBtn) {
+    const inSession = typeof session !== 'undefined' && session?.active === true;
+    excludeBtn.hidden = !inSession;
+  }
   el('editCardDialog').showModal();
 }
 
