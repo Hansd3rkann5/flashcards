@@ -1663,6 +1663,7 @@ async function boot() {
         && session.active
         && isStudySessionVisible()
         && !document.body.classList.contains('session-image-open')
+        && !document.body.classList.contains('assistant-open')
         && !document.querySelector('dialog[open]')
       );
       const isMcqSessionCard = isSessionShortcutContext && flashcardEl.dataset.type === 'mcq';
