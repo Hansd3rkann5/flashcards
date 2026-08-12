@@ -293,21 +293,33 @@ async function renderKnowledgeList(dialog, subjectId) {
     const priority = Number(rec.priority ?? 2);
     const row = document.createElement('div');
     row.className = 'knowledge-item';
-    row.innerHTML = `
-      <div class=”knowledge-item-main”>
-        <div class=”knowledge-item-name”>${escapeHtml(rec.filename || 'Material')}</div>
-        <div class=”knowledge-item-meta tiny”>${escapeHtml(formatKnowledgeMeta(rec))}</div>
-      </div>
-      <div class=”knowledge-item-actions”>
-        <select class=”knowledge-priority-select” aria-label=”Priority” title=”Context priority”>
-          <option value=”1”${priority === 1 ? ' selected' : ''}>⬆ High</option>
-          <option value=”2”${priority === 2 ? ' selected' : ''}>▶ Medium</option>
-          <option value=”3”${priority === 3 ? ' selected' : ''}>⬇ Low</option>
-        </select>
-        <button class=”btn delete knowledge-item-delete” type=”button” aria-label=”Remove”>Remove</button>
-      </div>
-    `;
-    row.querySelector('.knowledge-priority-select').addEventListener('change', async (e) => {
+
+    const main = document.createElement('div');
+    main.className = 'knowledge-item-main';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'knowledge-item-name';
+    nameEl.textContent = rec.filename || 'Material';
+    const metaEl = document.createElement('div');
+    metaEl.className = 'knowledge-item-meta tiny';
+    metaEl.textContent = formatKnowledgeMeta(rec);
+    main.appendChild(nameEl);
+    main.appendChild(metaEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'knowledge-item-actions';
+
+    const select = document.createElement('select');
+    select.className = 'knowledge-priority-select';
+    select.setAttribute('aria-label', 'Priority');
+    select.title = 'Context priority';
+    [['1', '⬆ High'], ['2', '▶ Medium'], ['3', '⬇ Low']].forEach(([val, label]) => {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = label;
+      if (Number(val) === priority) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', async (e) => {
       const newPriority = Number(e.target.value);
       rec.priority = newPriority;
       rec.updatedAt = new Date().toISOString();
@@ -318,7 +330,13 @@ async function renderKnowledgeList(dialog, subjectId) {
         setKnowledgeStatus(dialog, `Priority update failed: ${err?.message || err}`, true);
       }
     });
-    row.querySelector('.knowledge-item-delete').addEventListener('click', async () => {
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn delete knowledge-item-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('aria-label', 'Remove');
+    deleteBtn.textContent = 'Remove';
+    deleteBtn.addEventListener('click', async () => {
       if (!confirm(`Remove “${rec.filename}” from the knowledge base?`)) return;
       setKnowledgeStatus(dialog, 'Removing…');
       try {
@@ -329,6 +347,11 @@ async function renderKnowledgeList(dialog, subjectId) {
         setKnowledgeStatus(dialog, `Removal failed: ${err?.message || err}`, true);
       }
     });
+
+    actions.appendChild(select);
+    actions.appendChild(deleteBtn);
+    row.appendChild(main);
+    row.appendChild(actions);
     list.appendChild(row);
   });
 }
