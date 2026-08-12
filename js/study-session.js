@@ -666,6 +666,8 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
   }
   const cols = total >= 2 ? 2 : 1;
   optionsWrap.style.setProperty('--mcq-grid-cols', String(cols));
+  // On phone (≤520 px) let each option take its natural height.
+  if (window.innerWidth > 520) applyEqualMcqOptionTileSize(optionsWrap);
 }
 
 /**
