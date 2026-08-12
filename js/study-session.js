@@ -1633,6 +1633,36 @@ function setupDotPreviewHandlers(allCards) {
     if (!dotEl) return;
     hideCurrentTooltip();
   }, true);
+
+  // Triple-click on a mastered dot → undo exclusion if card was excluded.
+  let tripleClickState = { id: null, count: 0, timer: null };
+  pillBar.addEventListener('click', (e) => {
+    const dotEl = e.target.closest('.pill-dot.mastered');
+    if (!dotEl) return;
+    const cardId = dotEl.dataset.id;
+    if (tripleClickState.id !== cardId) {
+      tripleClickState = { id: cardId, count: 0, timer: null };
+    }
+    clearTimeout(tripleClickState.timer);
+    tripleClickState.count += 1;
+    if (tripleClickState.count >= 3) {
+      tripleClickState = { id: null, count: 0, timer: null };
+      const card = session.mastered.find(c => String(c?.id) === cardId);
+      if (!card || !card.excludeFromSession) return;
+      card.excludeFromSession = false;
+      put('cards', card, { uiBlocking: false }).catch(err => {
+        card.excludeFromSession = true;
+        console.error('[Undo Exclude] Failed:', err);
+      });
+      session.mastered = session.mastered.filter(c => String(c?.id) !== cardId);
+      session.activeQueue.push(card);
+      renderSessionPills();
+    } else {
+      tripleClickState.timer = setTimeout(() => {
+        tripleClickState = { id: null, count: 0, timer: null };
+      }, 500);
+    }
+  });
 }
 
 /**
