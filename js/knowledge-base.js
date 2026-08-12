@@ -133,6 +133,7 @@ async function addKnowledgeFileForSubject(subjectId, file, options = {}) {
     tokenEstimate: estimateKnowledgeTokens(text),
     originalRef: '',
     textRef: '',
+    priority: 2,
     createdAt: nowIso,
     updatedAt: nowIso
   };
@@ -175,7 +176,12 @@ async function listKnowledgeForSubject(subjectId, options = {}) {
   const all = await getAll(KNOWLEDGE_STORE, { ...options });
   return (Array.isArray(all) ? all : [])
     .filter(rec => String(rec?.subjectId || '').trim() === safeSubjectId)
-    .sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+    .sort((a, b) => {
+      const pa = Number(a?.priority ?? 2);
+      const pb = Number(b?.priority ?? 2);
+      if (pa !== pb) return pa - pb;
+      return String(b?.createdAt || '').localeCompare(String(a?.createdAt || ''));
+    });
 }
 
 /**
@@ -284,15 +290,34 @@ async function renderKnowledgeList(dialog, subjectId) {
   }
   list.innerHTML = '';
   records.forEach(rec => {
+    const priority = Number(rec.priority ?? 2);
     const row = document.createElement('div');
     row.className = 'knowledge-item';
     row.innerHTML = `
-      <div class="knowledge-item-main">
-        <div class="knowledge-item-name">${escapeHtml(rec.filename || 'Material')}</div>
-        <div class="knowledge-item-meta tiny">${escapeHtml(formatKnowledgeMeta(rec))}</div>
+      <div class=”knowledge-item-main”>
+        <div class=”knowledge-item-name”>${escapeHtml(rec.filename || 'Material')}</div>
+        <div class=”knowledge-item-meta tiny”>${escapeHtml(formatKnowledgeMeta(rec))}</div>
       </div>
-      <button class="btn delete knowledge-item-delete" type="button" aria-label="Remove">Remove</button>
+      <div class=”knowledge-item-actions”>
+        <select class=”knowledge-priority-select” aria-label=”Priority” title=”Context priority”>
+          <option value=”1”${priority === 1 ? ' selected' : ''}>⬆ High</option>
+          <option value=”2”${priority === 2 ? ' selected' : ''}>▶ Medium</option>
+          <option value=”3”${priority === 3 ? ' selected' : ''}>⬇ Low</option>
+        </select>
+        <button class=”btn delete knowledge-item-delete” type=”button” aria-label=”Remove”>Remove</button>
+      </div>
     `;
+    row.querySelector('.knowledge-priority-select').addEventListener('change', async (e) => {
+      const newPriority = Number(e.target.value);
+      rec.priority = newPriority;
+      rec.updatedAt = new Date().toISOString();
+      try {
+        await put(KNOWLEDGE_STORE, rec, { uiBlocking: false });
+        await renderKnowledgeList(dialog, subjectId);
+      } catch (err) {
+        setKnowledgeStatus(dialog, `Priority update failed: ${err?.message || err}`, true);
+      }
+    });
     row.querySelector('.knowledge-item-delete').addEventListener('click', async () => {
       if (!confirm(`Remove “${rec.filename}” from the knowledge base?`)) return;
       setKnowledgeStatus(dialog, 'Removing…');

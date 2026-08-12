@@ -25,7 +25,7 @@ const ALLOWED_MODELS = new Set([
   "claude-opus-4-8",
   "mistral-small-latest",
 ]);
-const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_MODEL = "mistral-small-latest";
 
 const BASE_SYSTEM = [
   "You are a helpful study assistant inside a flashcards app.",
@@ -209,14 +209,17 @@ async function loadTemplateSystem(supabase: any): Promise<string> {
 }
 
 // ---- Mistral streaming call (OpenAI-compatible endpoint) ----
-const MISTRAL_MAX_DOC_CHARS = 40000;
+// Priority 1 (High) = 80K chars, 2 (Medium) = 40K, 3 (Low) = 15K.
+// Total budget: 400K chars (~100K tokens) — well within Mistral Small's 128K ctx.
+const MISTRAL_PRIORITY_CHAR_LIMIT: Record<number, number> = { 1: 80_000, 2: 40_000, 3: 15_000 };
+const MISTRAL_MAX_TOTAL_DOC_CHARS = 400_000;
 
 async function streamMistral(params: {
   apiKey: string;
   model: string;
   systemText: string;
   templateSystem: string;
-  documents: { title: string; text: string }[];
+  documents: { title: string; text: string; priority: number }[];
   conversation: { role: string; content: string }[];
   send: (event: unknown) => void;
 }): Promise<void> {
@@ -224,8 +227,19 @@ async function streamMistral(params: {
 
   let docsText = "";
   if (documents.length > 0) {
-    const raw = documents.map((d) => `=== ${d.title} ===\n${d.text}`).join("\n\n");
-    docsText = "\n\nUser's lecture materials:\n\n" + (raw.length > MISTRAL_MAX_DOC_CHARS ? raw.slice(0, MISTRAL_MAX_DOC_CHARS) + "\n[…truncated]" : raw);
+    let totalChars = 0;
+    const parts: string[] = [];
+    const sorted = [...documents].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2));
+    for (const d of sorted) {
+      if (totalChars >= MISTRAL_MAX_TOTAL_DOC_CHARS) break;
+      const perDocLimit = MISTRAL_PRIORITY_CHAR_LIMIT[d.priority ?? 2] ?? 40_000;
+      const text = d.text.length > perDocLimit
+        ? d.text.slice(0, perDocLimit) + "\n[…truncated]"
+        : d.text;
+      parts.push(`=== ${d.title} ===\n${text}`);
+      totalChars += text.length;
+    }
+    docsText = "\n\nUser's lecture materials:\n\n" + parts.join("\n\n");
   } else {
     docsText = "\n\nNo lecture materials have been added for this subject yet.";
   }
@@ -369,7 +383,7 @@ Deno.serve(async (req: Request) => {
   if (!conversation.length) return json({ error: "empty_messages" }, 400);
 
   // Load knowledge base (empty subjectId = review session = no materials, which is fine).
-  const documents: { title: string; text: string }[] = [];
+  const documents: { title: string; text: string; priority: number }[] = [];
   if (subjectId) {
     const { data: rows, error: recErr } = await supabase
       .from("records")
@@ -390,7 +404,7 @@ Deno.serve(async (req: Request) => {
         }
       }
       if (text.trim()) {
-        documents.push({ title: String(payload.filename || "Material"), text });
+        documents.push({ title: String(payload.filename || "Material"), text, priority: Number(payload.priority ?? 2) || 2 });
       }
     }
   }

@@ -7784,6 +7784,23 @@ button.formula-insert.save-primary {
   margin-top: 2px;
 }
 
+.knowledge-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.knowledge-priority-select {
+  font-size: 0.78rem;
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid #2f456f;
+  background: rgba(20, 32, 57, 0.8);
+  color: inherit;
+  cursor: pointer;
+}
+
 .knowledge-item-delete {
   flex: 0 0 auto;
   padding: 6px 12px;
