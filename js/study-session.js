@@ -1668,11 +1668,19 @@ function ensureExplainOverlay() {
         <div class="explain-images" data-role="images"></div>
         <div class="explain-body" data-role="body"></div>
       </div>
+      <div class="explain-footer">
+        <button class="btn explain-next-btn" type="button" data-role="next">Next →</button>
+      </div>
     </div>
   `;
   document.body.appendChild(overlay);
   overlay.querySelector('[data-role="backdrop"]').addEventListener('click', closeExplainOverlay);
   overlay.querySelector('[data-role="close"]').addEventListener('click', closeExplainOverlay);
+  overlay.querySelector('[data-role="next"]').addEventListener('click', () => {
+    const cb = overlay._explainOnNext;
+    overlay._explainOnNext = null;
+    closeExplainOverlay(cb);
+  });
   return overlay;
 }
 
@@ -1684,9 +1692,10 @@ function onExplainOverlayKeydown(e) {
  * @function openExplainOverlay
  * @description Opens the Explanation overlay for a card (rendered text + images).
  */
-function openExplainOverlay(card) {
+function openExplainOverlay(card, onNext) {
   if (!card) return;
   const overlay = ensureExplainOverlay();
+  overlay._explainOnNext = typeof onNext === 'function' ? onNext : null;
   const imagesBox = overlay.querySelector('[data-role="images"]');
   const body = overlay.querySelector('[data-role="body"]');
   const images = (() => { try { return getCardImageList(card, 'E'); } catch (_) { return []; } })();
@@ -1712,12 +1721,12 @@ function openExplainOverlay(card) {
  * @function closeExplainOverlay
  * @description Hides the Explanation overlay.
  */
-function closeExplainOverlay() {
+function closeExplainOverlay(andThen) {
   const overlay = el('explainOverlay');
-  if (!overlay) return;
+  if (!overlay) { andThen?.(); return; }
   overlay.classList.remove('open');
   document.removeEventListener('keydown', onExplainOverlayKeydown, true);
-  window.setTimeout(() => overlay.setAttribute('hidden', ''), 220);
+  window.setTimeout(() => { overlay.setAttribute('hidden', ''); andThen?.(); }, 260);
 }
 
 /**
@@ -1819,21 +1828,6 @@ function renderCardContent(card) {
     checkBtn.textContent = 'Check';
     checkBtn.dataset.mode = 'check';
     checkRow.appendChild(checkBtn);
-    // Optional "Explain" button — only for cards that have extra explanation
-    // content; revealed after the answer is checked.
-    let explainBtn = null;
-    if (cardHasExplanation(card)) {
-      explainBtn = document.createElement('button');
-      explainBtn.type = 'button';
-      explainBtn.className = 'btn mcq-explain-btn';
-      explainBtn.textContent = 'Explain';
-      explainBtn.hidden = true;
-      explainBtn.onclick = ev => {
-        ev.stopPropagation();
-        openExplainOverlay(card);
-      };
-      checkRow.appendChild(explainBtn);
-    }
     const separator = document.createElement('div');
     separator.className = 'card-tile-separator';
     answerZone.append(separator, optionsWrap, checkRow);
@@ -1974,18 +1968,24 @@ function renderCardContent(card) {
         }
       }
 
-      checkBtn.textContent = 'Next';
-      checkBtn.dataset.mode = 'next';
-      if (explainBtn) explainBtn.hidden = false; // reveal explanation after checking
-      checkBtn.onclick = ev => {
-        ev.stopPropagation();
+      const advance = () => {
         checkBtn.textContent = 'Check';
         checkBtn.dataset.mode = 'check';
-        if (explainBtn) explainBtn.hidden = true;
-        // reset option visuals for next card
         buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'wrong-order', 'selected'));
         void gradeCardWithDesktopAutoMove(result);
       };
+      if (cardHasExplanation(card)) {
+        checkBtn.textContent = 'Explain';
+        checkBtn.dataset.mode = 'explain';
+        checkBtn.onclick = ev => {
+          ev.stopPropagation();
+          openExplainOverlay(card, advance);
+        };
+      } else {
+        checkBtn.textContent = 'Next';
+        checkBtn.dataset.mode = 'next';
+        checkBtn.onclick = ev => { ev.stopPropagation(); advance(); };
+      }
     };
   } else {
     back.innerHTML = `<div></div><div class="atxt"></div>`;

@@ -1,0 +1,459 @@
+{
+  "_readme": {
+    "zweck": "Template für neue Karteikarten in deiner App, abgeleitet aus der Analyse deines Exports (1953 Karten, Stand 27.07.2026).",
+    "aufbau": "3 Ebenen: subjects (Fächer) -> topics (Themen, referenzieren subjectId) -> cards (Karten, referenzieren topicId).",
+    "feld_status_legende": {
+      "AUTO": "Wird von der App selbst vergeben (id, Timestamps). Beim manuellen Erstellen kannst du das Feld weglassen oder leer lassen.",
+      "PFLICHT": "Musst du selbst befüllen, sonst ist die Karte unvollständig.",
+      "OPTIONAL": "Kann leer/leeres Array bleiben."
+    },
+    "hinweis_progress": "Der Export enthält zusätzlich ein 'progress'-Array (FSRS-Lernfortschritt: Wiederholungsintervalle, Trefferquote etc.). Das ist reine App-generierte Lernstatistik und gehört NICHT zur Karten-Erstellung - hier bewusst weggelassen.",
+    "verwendung": "Kopiere dir aus 'cards' den passenden Beispiel-Kartentyp, ersetze die Inhalte und häng ihn an dein cards-Array an. Formatierungs- und Stilregeln siehe unten."
+  },
+  "_struktur_subject": {
+    "beschreibung": "Ein Fach/Deck, z.B. 'Polymer Engineering'.",
+    "felder": {
+      "id": "UUID - AUTO",
+      "name": "PFLICHT - Fachname",
+      "accent": "OPTIONAL - Hex-Farbcode fürs UI, z.B. '#b06f31'",
+      "examDate": "OPTIONAL - ISO-Datum des Prüfungstermins, sonst leerer String",
+      "createdAt / updatedAt": "AUTO - ISO-Timestamp, auch verschachtelt in meta",
+      "archivedAt / archivedBy / isArchived": "OPTIONAL - für Archivierung, im Normalfall leer / false",
+      "excludeFromReview": "OPTIONAL - true = Karten dieses Fachs werden vom Spaced-Repetition-Review ausgeschlossen"
+    }
+  },
+  "_struktur_topic": {
+    "beschreibung": "Ein Thema innerhalb eines Fachs, z.B. 'Copper' innerhalb 'ERT (Helbig)'.",
+    "felder": {
+      "id": "UUID - AUTO",
+      "name": "PFLICHT - Themenname",
+      "subjectId": "PFLICHT - muss die id eines subjects referenzieren",
+      "subjectName": "AUTO/denormalisiert - wird aus subjectId abgeleitet, nur zur Anzeige gecacht",
+      "updatedAt / meta.updatedAt": "AUTO"
+    }
+  },
+  "_struktur_card_gemeinsame_felder": {
+    "id": "UUID - AUTO",
+    "type": "PFLICHT - 'qa' (normale Frage-Antwort-Karte) oder 'mcq' (Multiple-Choice / Sortier-Karte, siehe _kartentypen)",
+    "prompt": "PFLICHT - die Frage/Aufgabenstellung, unterstützt Formatierung (siehe _formatierung)",
+    "answer": "PFLICHT - bei 'qa': die vollständige Antwort. Bei 'mcq': Text der (ersten) korrekten Option (redundant zu options, aber von der App genutzt)",
+    "options": "PFLICHT (leeres Array [] bei 'qa') - siehe _kartentypen für mcq/order",
+    "optionsRequireOrder": "nur bei type='mcq' relevant - false = normales Multiple Choice, true = Sortier-Karte (order-Typ)",
+    "topicId": "PFLICHT - muss die id eines topics referenzieren",
+    "topicName / subjectName": "AUTO/denormalisiert - aus topicId abgeleitet",
+    "textAlign / questionTextAlign": "OPTIONAL, Standard 'center' - Ausrichtung der Frage",
+    "answerTextAlign": "OPTIONAL, Standard 'center' - 'left' wenn die Antwort eine Tabelle oder mehrzeilige Liste ist",
+    "optionsTextAlign": "OPTIONAL, Standard 'center' - 'left' bei längeren Options-Texten",
+    "imageDataQ / imageDataA": "OPTIONAL - einzelnes Bild zu Frage/Antwort. Wird beim Hochladen in der App selbst gesetzt (interner Storage-Pfad 'sb://Pictures/...'), nicht manuell befüllen",
+    "imagesQ / imagesA": "OPTIONAL - Array für mehrere Bilder, gleiches Prinzip wie imageDataQ/A",
+    "explanation": "OPTIONAL, nur bei type='mcq' - ausführlicher Erklärungstext der nach dem Check über einen 'Explain'-Button abrufbar ist. Unterstützt dieselbe Formatierung wie prompt/answer (Markdown, LaTeX, Tabellen).",
+    "imageDataExplain": "OPTIONAL - einzelnes Bild zur Erklärung. Wie imageDataQ/A vom Storage-Pfad befüllt, nicht manuell setzen.",
+    "imagesExplain": "OPTIONAL - Array für mehrere Bilder zur Erklärung."
+    "createdAt / meta.createdAt / meta.updatedAt": "AUTO"
+  },
+  "_kartentypen": {
+    "1_qa_normal": {
+      "beschreibung": "Klassische Frage-Antwort-Karte. Häufigster Typ (94% deiner Karten). 'options' bleibt leeres Array.",
+      "beispiel": {
+        "type": "qa",
+        "prompt": "What is the difference between a **primary** and a **secondary** material?",
+        "answer": "Primary --> Raw Material\nSecondary --> Processed raw material",
+        "options": []
+      }
+    },
+    "2_mcq_single_oder_multiple_choice": {
+      "beschreibung": "Multiple Choice mit 2-4(+) Optionen, 1 oder mehrere davon korrekt. 'optionsRequireOrder' = false. Jede Option braucht 'text', 'order' (Anzeigeposition, funktional meist irrelevant) und 'correct' (bool).",
+      "beispiel": {
+        "type": "mcq",
+        "prompt": "Which **region** will **deform first during deformation** of a **semicrystalline** **polymer**?",
+        "answer": "Amorphous region",
+        "optionsRequireOrder": false,
+        "options": [
+          {
+            "text": "Amorphous region",
+            "order": 1,
+            "correct": true
+          },
+          {
+            "text": "Crystalline region",
+            "order": 2,
+            "correct": false
+          }
+        ]
+      }
+    },
+    "2b_mcq_mit_explanation": {
+      "beschreibung": "MCQ wie Typ 2, aber mit optionalem 'explanation'-Feld. Nach dem Check erscheint ein 'Explain'-Button, der ein Overlay mit dem Erklärungstext (und ggf. Bildern) öffnet. Nur bei type='mcq' nutzbar.",
+      "beispiel": {
+        "type": "mcq",
+        "prompt": "Which **failure mode** is most common in **fatigue loading**?",
+        "answer": "Crack initiation at surface defects",
+        "optionsRequireOrder": false,
+        "options": [
+          {
+            "text": "Crack initiation at surface defects",
+            "order": 1,
+            "correct": true
+          },
+          {
+            "text": "Uniform plastic deformation",
+            "order": 2,
+            "correct": false
+          },
+          {
+            "text": "Sudden brittle fracture throughout",
+            "order": 3,
+            "correct": false
+          }
+        ],
+        "explanation": "**Fatigue failure** typically progresses in three stages:\n1. **Crack initiation** – at stress concentrations (surface scratches, notches, inclusions)\n2. **Crack propagation** – cyclic loading advances the crack incrementally (visible as beach marks)\n3. **Final fracture** – once the remaining cross-section can no longer carry the load\n\n-> Surface finish is critical: polished surfaces have ~2× higher fatigue life than rough ones.",
+        "imagesExplain": [],
+        "imageDataExplain": ""
+      }
+    },
+    "3_mcq_order_sortier_karte": {
+      "beschreibung": "Sortier-/Reihenfolge-Karte: gleicher type='mcq', aber 'optionsRequireOrder' = true. Das Feld 'order' definiert hier die KORREKTE Reihenfolge (1 = zuerst usw.), nicht nur die Anzeige. 'correct' bei jeder Option auf true setzen.",
+      "beispiel": {
+        "type": "mcq",
+        "prompt": "Sort the material classes by their average density.",
+        "answer": "Metals",
+        "optionsRequireOrder": true,
+        "options": [
+          {
+            "text": "Metals",
+            "order": 1,
+            "correct": true
+          },
+          {
+            "text": "Ceramics",
+            "order": 2,
+            "correct": true
+          },
+          {
+            "text": "Polymers",
+            "order": 3,
+            "correct": true
+          },
+          {
+            "text": "Composites",
+            "order": 4,
+            "correct": true
+          }
+        ]
+      }
+    }
+  },
+  "_formatierung": {
+    "fett": "**Text** -> für Fachbegriffe, oft der gesuchte Begriff direkt in der Frage betont",
+    "kursiv": "*Text* -> selten genutzt, z.B. für Fachbegriffe/Prozessnamen",
+    "fett_und_kursiv": "***Text*** -> Kombination, gelegentlich für Fachbegriffe in der Frage",
+    "unterstrichen": "__Text__ -> meist in Kombination mit fett als Label/Überschrift, siehe _deine_stilmuster.vergleich_a_vs_b",
+    "tabellen": {
+      "syntax": "Markdown-Tabelle: Kopfzeile, Trennzeile mit --- , dann Datenzeilen",
+      "beispiel": "| Group | Name | Main alloy element |\n| --- | --- | --- |\n| 1XXX | Aluminum | min. 99% Al |\n| 2XXX | Al-Cu alloys | Copper |",
+      "zell_ausrichtung": "[[align:center]] direkt vor den Zelleninhalt schreiben, um einzelne Zellen zu zentrieren, z.B. '| [[align:center]] $CH_4$ | [[align:center]] 1.9 |'. Bei Tabellen answerTextAlign auf 'left' setzen."
+    },
+    "latex_formeln": {
+      "syntax": "Inline-Mathe mit einfachem $...$ (kein Block-LaTeX mit $$ im Export gefunden)",
+      "beispiele": [
+        "$Al$",
+        "$CO_2$",
+        "$\\frac{Reserves[t]}{Production[t/y]}$",
+        "$\\eta_{overall}$",
+        "$0.9 \\cdot 0.3 = 28\\%$",
+        "$CO_2 + H_2O \\rightarrow \\frac{1}{6}C_6H_{12}O_6 + O_2$"
+      ]
+    },
+    "pfeile": {
+      "-->": "für Reaktionsgleichungen / direkte Konsequenz, z.B. 'Al + O2 --> Al2O3'",
+      "->": "für einzelne Schritte einer Argumentations-/Kritikkette, meist am Zeilenanfang nach einem Bullet",
+      "unicode_pfeil_→_oder_\\rightarrow_in_latex": "innerhalb von Fließtext oder LaTeX-Ausdrücken"
+    },
+    "aufzaehlungen": "'- ' am Zeilenanfang für Bulletpoints, alternativ '•' im Fließtext",
+    "nummerierte_liste": "'1. ', '2. ', '3. ' am Zeilenanfang",
+    "zeilenumbrueche": "\\n für einfachen Zeilenumbruch, \\n\\n (Leerzeile) als Absatzabstand - v.a. zwischen zwei Vergleichs-/Definitionsblöcken",
+    "hoch_tiefstellung": "Direkt als Unicode-Zeichen tippen, NICHT als Markdown-Syntax: z.B. 'CO₂', 'm²' (nur nötig außerhalb von LaTeX-$...$, da $CO_2$ innerhalb LaTeX automatisch tiefgestellt wird)",
+    "textausrichtung_felder": {
+      "textAlign_und_questionTextAlign": "'center' (Standard, >99% deiner Karten) oder 'left'",
+      "answerTextAlign": "'center' Standard, 'left' sobald die Antwort eine Tabelle oder eine mehrzeilige/strukturierte Liste ist",
+      "optionsTextAlign": "'center' bei kurzen MCQ-Optionen (Standard), 'left' bei längeren/mehrzeiligen Options-Texten"
+    }
+  },
+  "_deine_stilmuster": {
+    "1_vergleich_a_vs_b": {
+      "wann": "Bei Fragen wie 'Unterschied zwischen X und Y', 'X vs. Y'",
+      "schema": "**__Label A__**\\n(Doppelpunkt optional)\\nBeschreibung/Bulletpoints zu A\\n\\n**__Label B__**\\nBeschreibung/Bulletpoints zu B  <- Leerzeile trennt die beiden Blöcke",
+      "beispiel_prompt": "What is the difference between Reserves and Resources?",
+      "beispiel_answer": "**__Reserves__**:\nEverything that is technically/economically available/extractable (at the moment - the amount can change over time)\n\n**__Resources__**:\nEverything of an element that is in the earths crust",
+      "variante_kurz": "Bei kurzen Ein-Wort-Antworten reicht auch ein einzeiliges Schema mit Bulletpoints: '- **__Mineral__**: a naturally occuring inorganic solid...\\n- **__Rock__**: a natural aggregate of different minerals'"
+    },
+    "2_ursache_wirkungs_kette": {
+      "wann": "Bei mehrteiligen Kritik-/Ergebnis-Fragen, oft aus Foliensätzen mit Quellenangabe",
+      "schema": "Erste Zeile = Kernaussage/Ergebnis, jede Folgezeile beginnt mit '-> ' für einen weiteren Punkt/Schritt",
+      "beispiel_prompt": "Deutschlands bilaterale Rohstoffpartnerschaften — Ergebnis der Prüfung 2021? (S. 27)",
+      "beispiel_answer": "Kritik des Bundesrechnungshofs:\n-> Haushaltsmittel nicht genutzt, Förderung unwirtschaftlich\n-> keine Wirtschaftlichkeitsuntersuchungen, BAFA verletzte Rechtsvorgaben\n-> kein Mehrwert über bestehende Geschäftskontakte hinaus",
+      "quellenangabe": "Bei Foliensatz-Fragen optional die Seitenzahl direkt im prompt in Klammern ergänzen, z.B. '(S. 27)'"
+    },
+    "3_definitionstabelle": {
+      "wann": "Für Gruppierungen/Klassifikationen/Vergleiche mit mehreren Spalten (z.B. Normen, Legierungsgruppen, Kennzahlen, Materialvergleiche, Eigenschaften)",
+      "schema": "Markdown-Tabelle, answerTextAlign auf 'left', Zellen bei Bedarf mit [[align:center]] zentrieren",
+      "beispiel_answer": "| Group | Name | Main alloy element |\n| --- | --- | --- |\n| 1XXX | Aluminum | min. 99% Al |\n| 2XXX | Al-Cu alloys | Copper |\n| 3XXX | Al-Mn alloys | Manganese |"
+    },
+    "4_schluesselbegriff_in_frage_fett": {
+      "wann": "Bei ca. 40% deiner Fragen wird der gesuchte/zentrale Fachbegriff direkt in der Frage fett markiert",
+      "beispiel": "Was ist der Unterschied zwischen **primary** und **secondary** material?"
+    },
+    "5_chemische_formeln_immer_in_latex": {
+      "Elemente/Verbindungen wie $Al$, $CO_2$, $H_2O$ konsequent in $...$ setzen statt als Klartext - auch mitten im Satz.": "Beispiel: 'Die Reaktion von $CO_2$ mit $H_2O$ ergibt $\\frac{1}{6}C_6H_{12}O_6 + O_2$.'"
+    },
+    "6_lueckentexte": {
+      "wann": "Für zuordnungen von bestimmten Eigenschaften, Formeln, Zahlenwerten oder Fachbegriffen. Lücken mit ---1---, ---2--- usw. nummerieren. Immer in *kursiv*",
+      "beispiel_prompt": "*For metals the dominant load in bone tissue is ---1--- and in blood vessel it is --2--.*",
+      "beispiel_options": [
+        {
+          "text": "1 mechanical",
+          "correct": true
+        },
+        {
+          "text": "2 chemical",
+          "correct": true
+        },
+        {
+          "text": "1 chemical",
+          "correct": true
+        },
+        {
+          "text": "2 mechanical",
+          "correct": true
+        }
+      ]
+    }
+  },
+  "subjects": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "name": "Beispiel-Fach",
+      "accent": "#b06f31",
+      "examDate": "",
+      "createdAt": "",
+      "updatedAt": "",
+      "archivedAt": "",
+      "archivedBy": "",
+      "isArchived": false,
+      "excludeFromReview": false
+    }
+  ],
+  "topics": [
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Beispiel-Thema",
+      "subjectId": "11111111-1111-1111-1111-111111111111",
+      "updatedAt": "",
+      "meta": {
+        "updatedAt": ""
+      },
+      "subjectName": "Beispiel-Fach"
+    }
+  ],
+  "cards": [
+    {
+      "id": "",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "type": "qa",
+      "prompt": "What is the difference between a **primary** and a **secondary** material?",
+      "answer": "Primary --> Raw Material\nSecondary --> Processed raw material",
+      "options": [],
+      "topicId": "22222222-2222-2222-2222-222222222222",
+      "createdAt": "",
+      "textAlign": "center",
+      "imageDataA": "",
+      "imageDataQ": "",
+      "imagesA": [],
+      "imagesQ": [],
+      "answerTextAlign": "center",
+      "optionsTextAlign": "left",
+      "questionTextAlign": "center",
+      "topicName": "Beispiel-Thema",
+      "subjectName": "Beispiel-Fach"
+    },
+    {
+      "id": "",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "type": "qa",
+      "prompt": "What is the difference between Reserves and Resources?",
+      "answer": "**__Reserves__**:\nEverything that is technically/economically available/extractable (at the moment - the amount can change over time)\n\n**__Resources__**:\nEverything of an element that is in the earths crust",
+      "options": [],
+      "topicId": "22222222-2222-2222-2222-222222222222",
+      "createdAt": "",
+      "textAlign": "center",
+      "imageDataA": "",
+      "imageDataQ": "",
+      "imagesA": [],
+      "imagesQ": [],
+      "answerTextAlign": "center",
+      "optionsTextAlign": "left",
+      "questionTextAlign": "center",
+      "topicName": "Beispiel-Thema",
+      "subjectName": "Beispiel-Fach"
+    },
+    {
+      "id": "",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "type": "qa",
+      "prompt": "Deutschlands bilaterale Rohstoffpartnerschaften — Ergebnis der Prüfung 2021? (S. 27)",
+      "answer": "Kritik des Bundesrechnungshofs:\n-> Haushaltsmittel nicht genutzt, Förderung unwirtschaftlich\n-> keine Wirtschaftlichkeitsuntersuchungen, BAFA verletzte Rechtsvorgaben\n-> kein Mehrwert über bestehende Geschäftskontakte hinaus",
+      "options": [],
+      "topicId": "22222222-2222-2222-2222-222222222222",
+      "createdAt": "",
+      "textAlign": "center",
+      "imageDataA": "",
+      "imageDataQ": "",
+      "imagesA": [],
+      "imagesQ": [],
+      "answerTextAlign": "center",
+      "optionsTextAlign": "left",
+      "questionTextAlign": "center",
+      "topicName": "Beispiel-Thema",
+      "subjectName": "Beispiel-Fach"
+    },
+    {
+      "id": "",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "type": "mcq",
+      "prompt": "Which **region** will **deform first during deformation** of a **semicrystalline** **polymer**?",
+      "answer": "Amorphous region",
+      "options": [
+        {
+          "text": "Amorphous region",
+          "order": 1,
+          "correct": true
+        },
+        {
+          "text": "Crystalline region",
+          "order": 2,
+          "correct": false
+        }
+      ],
+      "topicId": "22222222-2222-2222-2222-222222222222",
+      "createdAt": "",
+      "textAlign": "center",
+      "imageDataA": "",
+      "imageDataQ": "",
+      "imagesA": [],
+      "imagesQ": [],
+      "answerTextAlign": "center",
+      "optionsTextAlign": "center",
+      "questionTextAlign": "center",
+      "topicName": "Beispiel-Thema",
+      "subjectName": "Beispiel-Fach",
+      "optionsRequireOrder": false,
+      "explanation": "",
+      "imagesExplain": [],
+      "imageDataExplain": ""
+    },
+    {
+      "id": "",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "type": "mcq",
+      "prompt": "Which **failure mode** is most common in **fatigue loading**?",
+      "answer": "Crack initiation at surface defects",
+      "options": [
+        {
+          "text": "Crack initiation at surface defects",
+          "order": 1,
+          "correct": true
+        },
+        {
+          "text": "Uniform plastic deformation",
+          "order": 2,
+          "correct": false
+        },
+        {
+          "text": "Sudden brittle fracture throughout",
+          "order": 3,
+          "correct": false
+        }
+      ],
+      "topicId": "22222222-2222-2222-2222-222222222222",
+      "createdAt": "",
+      "textAlign": "center",
+      "imageDataA": "",
+      "imageDataQ": "",
+      "imagesA": [],
+      "imagesQ": [],
+      "answerTextAlign": "center",
+      "optionsTextAlign": "left",
+      "questionTextAlign": "center",
+      "topicName": "Beispiel-Thema",
+      "subjectName": "Beispiel-Fach",
+      "optionsRequireOrder": false,
+      "explanation": "**Fatigue failure** typically progresses in three stages:\n1. **Crack initiation** – at stress concentrations (surface scratches, notches, inclusions)\n2. **Crack propagation** – cyclic loading advances the crack incrementally (visible as beach marks)\n3. **Final fracture** – once the remaining cross-section can no longer carry the load\n\n-> Surface finish is critical: polished surfaces have ~2× higher fatigue life than rough ones.",
+      "imagesExplain": [],
+      "imageDataExplain": ""
+    },
+    {
+      "id": "",
+      "meta": {
+        "createdAt": "",
+        "updatedAt": ""
+      },
+      "type": "mcq",
+      "prompt": "Sort the material classes by their average density.",
+      "answer": "Metals",
+      "options": [
+        {
+          "text": "Metals",
+          "order": 1,
+          "correct": true
+        },
+        {
+          "text": "Ceramics",
+          "order": 2,
+          "correct": true
+        },
+        {
+          "text": "Polymers",
+          "order": 3,
+          "correct": true
+        },
+        {
+          "text": "Composites",
+          "order": 4,
+          "correct": true
+        }
+      ],
+      "topicId": "22222222-2222-2222-2222-222222222222",
+      "createdAt": "",
+      "textAlign": "center",
+      "imageDataA": "",
+      "imageDataQ": "",
+      "imagesA": [],
+      "imagesQ": [],
+      "answerTextAlign": "center",
+      "optionsTextAlign": "center",
+      "questionTextAlign": "center",
+      "topicName": "Beispiel-Thema",
+      "subjectName": "Beispiel-Fach",
+      "optionsRequireOrder": true
+    }
+  ]
+}
