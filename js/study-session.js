@@ -2347,14 +2347,23 @@ async function gradeCard(result) {
     });
 
     // A card becomes eligible once it has waited longer than a threshold that
-    // grows with its answer strength — weaker cards qualify quickly (high prio),
-    // green cards only after a much longer wait (lowest prio, but never "never").
-    const STARVE_BASE = 2;   // weakest cards: promote after ~2 idle turns
+    // grows with its answer strength — unanswered cards qualify after a moderate
+    // wait, green cards only after a much longer wait (lowest prio).
+    // Wrong/partial cards are NEVER promoted here: FSRS already placed them near
+    // the front for quick re-review; moving them would break that repetition loop.
+    const STARVE_BASE = 4;   // unanswered cards: promote after ~4 idle turns
     const STARVE_STEP = 3;   // each strength level delays promotion by 3 more turns
+
+    const isRecentlyGraded = id => {
+      const g = session.gradeMap?.[id];
+      return g === 'wrong' || g === 'partial';
+    };
 
     let best = null; // most-deserving starved card
     for (let i = 1; i < queue.length; i += 1) {
       const id = queue[i]?.id;
+      // Skip wrong/partial — their FSRS position must not be disturbed.
+      if (isRecentlyGraded(id)) continue;
       const strength = sessionCardPriorityStrength(id);
       const waited = session.waitTurns?.[id] ?? 0;
       if (waited < STARVE_BASE + strength * STARVE_STEP) continue;
@@ -2369,13 +2378,14 @@ async function gradeCard(result) {
 
     if (best) {
       const [promoted] = queue.splice(best.index, 1);
-      // Insert just behind the leading run of strictly-weaker cards, i.e. ahead of
-      // the first card whose answer is equal or stronger. This moves it forward
-      // (leapfrogging stronger cards so it finally gets shown) while never being
-      // placed in front of a weaker-answered card at the front of the queue.
+      // Insert behind the block of recently-graded (wrong/partial) cards AND behind
+      // any strictly-weaker unanswered cards. Wrong/partial cards act as hard
+      // barriers — the promoted card must never leapfrog them.
       let insertPos = queue.length;
       for (let i = 1; i < queue.length; i += 1) {
-        if (sessionCardPriorityStrength(queue[i]?.id) >= best.strength) { insertPos = i; break; }
+        const qid = queue[i]?.id;
+        if (isRecentlyGraded(qid)) continue; // barrier — skip past it
+        if (sessionCardPriorityStrength(qid) >= best.strength) { insertPos = i; break; }
       }
       if (insertPos < 1) insertPos = 1;
       queue.splice(insertPos, 0, promoted);
