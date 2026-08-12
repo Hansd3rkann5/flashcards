@@ -7,9 +7,10 @@
 const ASSISTANT_MODEL_STORAGE_KEY = 'flashcards.assistant.model.v1';
 const ASSISTANT_LANG_STORAGE_KEY = 'flashcards.assistant.language.v1';
 const ASSISTANT_MODELS = [
-  { id: 'claude-haiku-4-5-20251001', label: 'Haiku (cheap)' },
-  { id: 'claude-sonnet-4-6', label: 'Sonnet (smart)' },
-  { id: 'claude-opus-4-8', label: 'Opus (powerful)' }
+  { id: 'claude-haiku-4-5-20251001', label: 'Haiku' },
+  { id: 'mistral-small-latest', label: 'Mistral Small' },
+  { id: 'claude-sonnet-4-6', label: 'Sonnet' },
+  { id: 'claude-opus-4-8', label: 'Opus' }
 ];
 const ASSISTANT_LANGS = [
   { id: 'auto', label: 'Auto' },

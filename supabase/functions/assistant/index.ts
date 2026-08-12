@@ -1,20 +1,17 @@
 // Supabase Edge Function: `assistant`
 // ============================================================================
-// AI assistant for the flashcards app (Phase 2).
+// AI assistant for the flashcards app.
 //
-// - Verifies the caller's Supabase auth JWT (only logged-in users).
-// - Loads the subject's knowledge base (RLS-scoped to the caller) from the
-//   `records` store (store = 'knowledge') + the extracted text in Storage.
-// - Asks Claude to answer PRIMARILY from those materials, with prompt caching
-//   and citations, and streams the answer back to the browser as SSE.
+// Supports Claude (via Anthropic SDK) and Mistral (via OpenAI-compatible API).
+// Routes based on the model prefix: "mistral-*" → Mistral, else → Claude.
 //
 // Secrets / env (set via `supabase secrets set` — never commit these):
 //   ANTHROPIC_API_KEY   your Anthropic API key
+//   MISTRAL_API_KEY     your Mistral API key
 // Auto-injected by Supabase:
 //   SUPABASE_URL, SUPABASE_ANON_KEY
 //
 // Deploy:  supabase functions deploy assistant
-// Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import Anthropic from "npm:@anthropic-ai/sdk@0.65.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -22,9 +19,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const KNOWLEDGE_STORE = "knowledge";
 const KNOWLEDGE_BUCKET = "knowledge";
 
-// Model allow-list. Default = Sonnet (cheaper); Opus for hard questions.
-const ALLOWED_MODELS = new Set(["claude-sonnet-4-6", "claude-opus-4-8"]);
-const DEFAULT_MODEL = "claude-sonnet-4-6";
+const ALLOWED_MODELS = new Set([
+  "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-opus-4-8",
+  "mistral-small-latest",
+]);
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 
 const BASE_SYSTEM = [
   "You are a helpful study assistant inside a flashcards app.",
@@ -36,9 +37,8 @@ const BASE_SYSTEM = [
   "When the user asks you to create, generate, make or write flashcards/cards/quiz questions, call the `create_flashcards` tool instead of answering in prose. Base the cards PRIMARILY on the provided materials. If the user does not say how many, create about 5-8. Use `qa` for open questions and `mcq` (with 3-4 plausible options, exactly the correct one(s) flagged) for multiple choice. Keep each prompt/answer focused on a single fact. Do NOT call the tool for normal questions.",
 ].join(" ");
 
-// Structured-output tool for card creation. The frontend fills in ids, topic,
-// alignment and option order; the model only provides the didactic content.
-const CREATE_CARDS_TOOL = {
+// Structured-output tool for card creation (Anthropic format).
+const CREATE_CARDS_TOOL_ANTHROPIC = {
   name: "create_flashcards",
   description:
     "Create flashcards for the user's subject, grounded primarily in the provided lecture materials. Call this only when the user asks to generate/make/create cards.",
@@ -95,8 +95,16 @@ const CREATE_CARDS_TOOL = {
   },
 } as const;
 
-// Output-language control. `auto` = language of the materials / the user's
-// question (the default); `de`/`en` force a specific language.
+// OpenAI-compatible tool format for Mistral.
+const CREATE_CARDS_TOOL_OPENAI = {
+  type: "function",
+  function: {
+    name: CREATE_CARDS_TOOL_ANTHROPIC.name,
+    description: CREATE_CARDS_TOOL_ANTHROPIC.description,
+    parameters: CREATE_CARDS_TOOL_ANTHROPIC.input_schema,
+  },
+};
+
 const LANGUAGE_RULE: Record<string, string> = {
   auto:
     "Answer in the same language as the lecture materials and the user's question — match that language, do not translate.",
@@ -119,25 +127,18 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-/** Parse an `sb://knowledge/<path>` reference into its storage object path. */
 function storagePathFromRef(ref: string): string | null {
   const prefix = `sb://${KNOWLEDGE_BUCKET}/`;
   const value = String(ref || "");
   return value.startsWith(prefix) ? value.slice(prefix.length) : null;
 }
 
-const TEMPLATE_SUBJECT_NAME = "template"; // matched case-insensitively
+const TEMPLATE_SUBJECT_NAME = "template";
 const TEMPLATE_MAX_CARDS = 60;
 const TEMPLATE_MAX_CHARS = 12000;
 
-/**
- * Loads the user's own cards from a subject literally named "Template" and
- * renders them as few-shot style examples for card creation. RLS scopes every
- * read to the caller. Returns "" when there is no such subject / no cards.
- */
 async function loadTemplateSystem(supabase: any): Promise<string> {
   try {
-    // 1. Find the subject named "Template" (a user has only a handful of subjects).
     const { data: subs } = await supabase
       .from("records")
       .select("record_key,payload")
@@ -149,7 +150,6 @@ async function loadTemplateSystem(supabase: any): Promise<string> {
     const templateSubjectId = String(tplSubject?.payload?.id || tplSubject?.record_key || "").trim();
     if (!templateSubjectId) return "";
 
-    // 2. Topics of that subject.
     const { data: topics } = await supabase
       .from("records")
       .select("payload")
@@ -160,7 +160,6 @@ async function loadTemplateSystem(supabase: any): Promise<string> {
     ];
     if (!topicIds.length) return "";
 
-    // 3. Cards in those topics (one query via an OR over topicId).
     const orFilter = topicIds.map((id) => `payload->>topicId.eq.${id}`).join(",");
     const { data: cardRows } = await supabase
       .from("records")
@@ -191,7 +190,6 @@ async function loadTemplateSystem(supabase: any): Promise<string> {
 
     let payload = JSON.stringify(examples);
     if (payload.length > TEMPLATE_MAX_CHARS) {
-      // Trim example count until it fits the budget.
       while (examples.length > 1 && JSON.stringify(examples).length > TEMPLATE_MAX_CHARS) {
         examples.pop();
       }
@@ -210,6 +208,107 @@ async function loadTemplateSystem(supabase: any): Promise<string> {
   }
 }
 
+// ---- Mistral streaming call (OpenAI-compatible endpoint) ----
+const MISTRAL_MAX_DOC_CHARS = 40000;
+
+async function streamMistral(params: {
+  apiKey: string;
+  model: string;
+  systemText: string;
+  templateSystem: string;
+  documents: { title: string; text: string }[];
+  conversation: { role: string; content: string }[];
+  send: (event: unknown) => void;
+}): Promise<void> {
+  const { apiKey, model, systemText, templateSystem, documents, conversation, send } = params;
+
+  let docsText = "";
+  if (documents.length > 0) {
+    const raw = documents.map((d) => `=== ${d.title} ===\n${d.text}`).join("\n\n");
+    docsText = "\n\nUser's lecture materials:\n\n" + (raw.length > MISTRAL_MAX_DOC_CHARS ? raw.slice(0, MISTRAL_MAX_DOC_CHARS) + "\n[…truncated]" : raw);
+  } else {
+    docsText = "\n\nNo lecture materials have been added for this subject yet.";
+  }
+
+  const systemContent = [systemText, templateSystem || null, docsText].filter(Boolean).join("\n\n");
+
+  const messages = [
+    { role: "system", content: systemContent },
+    ...conversation,
+  ];
+
+  const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      tools: [CREATE_CARDS_TOOL_OPENAI],
+      tool_choice: "auto",
+      max_tokens: 4096,
+      stream: true,
+    }),
+  });
+
+  if (!res.ok || !res.body) {
+    const errText = await res.text().catch(() => "");
+    send({ type: "error", message: `Mistral error ${res.status}: ${errText}` });
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let toolCallArgs = "";
+  let toolCallName = "";
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const data = line.slice(6).trim();
+      if (data === "[DONE]") continue;
+      try {
+        const chunk = JSON.parse(data);
+        const delta = chunk.choices?.[0]?.delta;
+        if (delta?.content) {
+          send({ type: "delta", text: delta.content });
+        }
+        if (Array.isArray(delta?.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            if (tc.function?.name) toolCallName = tc.function.name;
+            if (tc.function?.arguments) toolCallArgs += tc.function.arguments;
+          }
+        }
+      } catch {
+        // ignore malformed chunk
+      }
+    }
+  }
+
+  if (toolCallName === "create_flashcards" && toolCallArgs) {
+    try {
+      const parsed = JSON.parse(toolCallArgs);
+      const cards = parsed?.cards;
+      if (Array.isArray(cards) && cards.length) {
+        send({ type: "cards", cards });
+      }
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  send({ type: "done", stop_reason: "end_turn", usage: {}, citations: [] });
+}
+
+// ---- Main handler ----
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
@@ -219,11 +318,8 @@ Deno.serve(async (req: Request) => {
   }
 
   const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!anthropicKey) {
-    return json({ error: "server_misconfigured", detail: "ANTHROPIC_API_KEY missing" }, 500);
-  }
+  const mistralKey = Deno.env.get("MISTRAL_API_KEY");
 
-  // ---- Auth: verify the caller's Supabase JWT and scope all reads by RLS ----
   const authHeader = req.headers.get("Authorization") || "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
     return json({ error: "unauthorized" }, 401);
@@ -240,7 +336,6 @@ Deno.serve(async (req: Request) => {
     return json({ error: "unauthorized" }, 401);
   }
 
-  // ---- Request body ----
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -252,15 +347,18 @@ Deno.serve(async (req: Request) => {
   const model = ALLOWED_MODELS.has(String(body.model)) ? String(body.model) : DEFAULT_MODEL;
   const language = ALLOWED_LANGUAGES.has(String(body.language)) ? String(body.language) : "auto";
   const rawMessages = Array.isArray(body.messages) ? body.messages : [];
-  if (!subjectId) return json({ error: "missing_subject" }, 400);
+
+  const isMistral = model.startsWith("mistral-");
+  if (isMistral && !mistralKey) {
+    return json({ error: "server_misconfigured", detail: "MISTRAL_API_KEY missing" }, 500);
+  }
+  if (!isMistral && !anthropicKey) {
+    return json({ error: "server_misconfigured", detail: "ANTHROPIC_API_KEY missing" }, 500);
+  }
 
   const systemText = `${BASE_SYSTEM} ${LANGUAGE_RULE[language]}`;
-
-  // Card-style template: the user's own cards in a subject named "Template".
-  // Loaded (RLS-scoped) and passed to the model as few-shot style examples.
   const templateSystem = await loadTemplateSystem(supabase);
 
-  // Only accept plain user/assistant text turns from the client.
   const conversation = rawMessages
     .map((m: any) => ({
       role: m?.role === "assistant" ? "assistant" : "user",
@@ -270,96 +368,33 @@ Deno.serve(async (req: Request) => {
     .slice(-20);
   if (!conversation.length) return json({ error: "empty_messages" }, 400);
 
-  // ---- Load the subject's knowledge base (RLS-scoped to this user) ----
-  const { data: rows, error: recErr } = await supabase
-    .from("records")
-    .select("record_key,payload")
-    .eq("store", KNOWLEDGE_STORE)
-    .eq("payload->>subjectId", subjectId);
-  if (recErr) {
-    return json({ error: "knowledge_read_failed", detail: recErr.message }, 500);
-  }
-
+  // Load knowledge base (empty subjectId = review session = no materials, which is fine).
   const documents: { title: string; text: string }[] = [];
-  for (const row of rows || []) {
-    const payload = (row as any)?.payload || {};
-    let text = String(payload.text || "");
-    if (!text && payload.textRef) {
-      const path = storagePathFromRef(String(payload.textRef));
-      if (path) {
-        const dl = await supabase.storage.from(KNOWLEDGE_BUCKET).download(path);
-        if (!dl.error && dl.data) text = await dl.data.text();
+  if (subjectId) {
+    const { data: rows, error: recErr } = await supabase
+      .from("records")
+      .select("record_key,payload")
+      .eq("store", KNOWLEDGE_STORE)
+      .eq("payload->>subjectId", subjectId);
+    if (recErr) {
+      return json({ error: "knowledge_read_failed", detail: recErr.message }, 500);
+    }
+    for (const row of rows || []) {
+      const payload = (row as any)?.payload || {};
+      let text = String(payload.text || "");
+      if (!text && payload.textRef) {
+        const path = storagePathFromRef(String(payload.textRef));
+        if (path) {
+          const dl = await supabase.storage.from(KNOWLEDGE_BUCKET).download(path);
+          if (!dl.error && dl.data) text = await dl.data.text();
+        }
+      }
+      if (text.trim()) {
+        documents.push({ title: String(payload.filename || "Material"), text });
       }
     }
-    if (text.trim()) {
-      documents.push({ title: String(payload.filename || "Material"), text });
-    }
   }
 
-  // ---- Build the Claude request ----
-  const anthropic = new Anthropic({ apiKey: anthropicKey });
-
-  // Document blocks: cached prefix + citations. cache_control on the last block
-  // caches system + all documents together (prefix match).
-  const docBlocks = documents.map((doc, idx) => {
-    const block: any = {
-      type: "document",
-      source: { type: "text", media_type: "text/plain", data: doc.text },
-      title: doc.title,
-      citations: { enabled: true },
-    };
-    if (idx === documents.length - 1) {
-      block.cache_control = { type: "ephemeral" };
-    }
-    return block;
-  });
-
-  const groundingUser =
-    documents.length > 0
-      ? [
-          ...docBlocks,
-          {
-            type: "text",
-            text:
-              "These are my lecture materials for this subject. Answer my following questions primarily from them and cite the sources.",
-          },
-        ]
-      : [
-          {
-            type: "text",
-            text: "No lecture materials have been added for this subject yet.",
-          },
-        ];
-
-  const messages: any[] = [
-    { role: "user", content: groundingUser },
-    {
-      role: "assistant",
-      content:
-        "Understood. I'll answer primarily from these materials and clearly mark any additions.",
-    },
-    ...conversation,
-  ];
-
-  const systemBlocks: any[] = [
-    { type: "text", text: systemText, cache_control: { type: "ephemeral" } },
-  ];
-  if (templateSystem) {
-    systemBlocks.push({ type: "text", text: templateSystem, cache_control: { type: "ephemeral" } });
-  }
-
-  const createParams: any = {
-    model,
-    max_tokens: 4096,
-    system: systemBlocks,
-    tools: [CREATE_CARDS_TOOL],
-    messages,
-  };
-  if (model === "claude-opus-4-8") {
-    createParams.thinking = { type: "adaptive" };
-  }
-
-  // ---- Stream the answer back as SSE ----
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -368,43 +403,94 @@ Deno.serve(async (req: Request) => {
       };
       try {
         send({ type: "start", model, documentCount: documents.length });
-        const mstream = anthropic.messages.stream(createParams);
-        for await (const ev of mstream) {
-          if (
-            ev.type === "content_block_delta" &&
-            (ev as any).delta?.type === "text_delta"
-          ) {
-            send({ type: "delta", text: (ev as any).delta.text });
-          }
-        }
-        const final = await mstream.finalMessage();
 
-        // Collect citations from the answer's text blocks, and any generated
-        // cards from a `create_flashcards` tool call (structured output).
-        const citations: any[] = [];
-        let generatedCards: any[] | null = null;
-        for (const block of final.content as any[]) {
-          if (block.type === "text" && Array.isArray(block.citations)) {
-            for (const c of block.citations) {
-              citations.push({
-                title: c.document_title ?? null,
-                cited_text: c.cited_text ?? null,
-              });
+        if (isMistral) {
+          await streamMistral({
+            apiKey: mistralKey!,
+            model,
+            systemText,
+            templateSystem,
+            documents,
+            conversation,
+            send,
+          });
+        } else {
+          // ---- Claude path ----
+          const anthropic = new Anthropic({ apiKey: anthropicKey });
+
+          const docBlocks = documents.map((doc, idx) => {
+            const block: any = {
+              type: "document",
+              source: { type: "text", media_type: "text/plain", data: doc.text },
+              title: doc.title,
+              citations: { enabled: true },
+            };
+            if (idx === documents.length - 1) {
+              block.cache_control = { type: "ephemeral" };
             }
-          } else if (block.type === "tool_use" && block.name === "create_flashcards") {
-            const cards = (block.input as any)?.cards;
-            if (Array.isArray(cards)) generatedCards = cards;
+            return block;
+          });
+
+          const groundingUser =
+            documents.length > 0
+              ? [
+                  ...docBlocks,
+                  {
+                    type: "text",
+                    text: "These are my lecture materials for this subject. Answer my following questions primarily from them and cite the sources.",
+                  },
+                ]
+              : [{ type: "text", text: "No lecture materials have been added for this subject yet." }];
+
+          const messages: any[] = [
+            { role: "user", content: groundingUser },
+            { role: "assistant", content: "Understood. I'll answer primarily from these materials and clearly mark any additions." },
+            ...conversation,
+          ];
+
+          const systemBlocks: any[] = [
+            { type: "text", text: systemText, cache_control: { type: "ephemeral" } },
+          ];
+          if (templateSystem) {
+            systemBlocks.push({ type: "text", text: templateSystem, cache_control: { type: "ephemeral" } });
           }
+
+          const createParams: any = {
+            model,
+            max_tokens: 4096,
+            system: systemBlocks,
+            tools: [CREATE_CARDS_TOOL_ANTHROPIC],
+            messages,
+          };
+          if (model === "claude-opus-4-8") {
+            createParams.thinking = { type: "adaptive" };
+          }
+
+          const mstream = anthropic.messages.stream(createParams);
+          for await (const ev of mstream) {
+            if (ev.type === "content_block_delta" && (ev as any).delta?.type === "text_delta") {
+              send({ type: "delta", text: (ev as any).delta.text });
+            }
+          }
+          const final = await mstream.finalMessage();
+
+          const citations: any[] = [];
+          let generatedCards: any[] | null = null;
+          for (const block of final.content as any[]) {
+            if (block.type === "text" && Array.isArray(block.citations)) {
+              for (const c of block.citations) {
+                citations.push({ title: c.document_title ?? null, cited_text: c.cited_text ?? null });
+              }
+            } else if (block.type === "tool_use" && block.name === "create_flashcards") {
+              const cards = (block.input as any)?.cards;
+              if (Array.isArray(cards)) generatedCards = cards;
+            }
+          }
+          if (generatedCards && generatedCards.length) {
+            send({ type: "cards", cards: generatedCards });
+          }
+          send({ type: "done", stop_reason: final.stop_reason, usage: final.usage, citations });
         }
-        if (generatedCards && generatedCards.length) {
-          send({ type: "cards", cards: generatedCards });
-        }
-        send({
-          type: "done",
-          stop_reason: final.stop_reason,
-          usage: final.usage,
-          citations,
-        });
       } catch (err) {
         send({ type: "error", message: String((err as Error)?.message || err) });
       } finally {
