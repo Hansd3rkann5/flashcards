@@ -1685,7 +1685,15 @@ function ensureExplainOverlay() {
 }
 
 function onExplainOverlayKeydown(e) {
-  if (e.key === 'Escape') { e.stopPropagation(); closeExplainOverlay(); }
+  if (e.key === 'Escape') { e.stopPropagation(); closeExplainOverlay(); return; }
+  if (e.key === 'Enter') {
+    e.stopPropagation();
+    const overlay = el('explainOverlay');
+    if (!overlay) return;
+    const cb = overlay._explainOnNext;
+    overlay._explainOnNext = null;
+    closeExplainOverlay(cb);
+  }
 }
 
 /**
