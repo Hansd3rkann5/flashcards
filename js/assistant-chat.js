@@ -114,7 +114,7 @@ function ensureAssistantUi() {
       <div class="assistant-messages" data-role="messages"></div>
     </div>
     <div class="assistant-input">
-      <textarea data-role="input" rows="2" placeholder="Ask something about this subject…"></textarea>
+      <textarea data-role="input" rows="2" placeholder="What's on your mind?"></textarea>
       <button class="btn assistant-send" type="button" data-action="send">Send</button>
     </div>
   `;
