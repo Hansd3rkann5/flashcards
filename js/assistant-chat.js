@@ -7,7 +7,8 @@
 const ASSISTANT_MODEL_STORAGE_KEY = 'flashcards.assistant.model.v1';
 const ASSISTANT_LANG_STORAGE_KEY = 'flashcards.assistant.language.v1';
 const ASSISTANT_MODELS = [
-  { id: 'claude-sonnet-4-6', label: 'Sonnet (fast)' },
+  { id: 'claude-haiku-4-5-20251001', label: 'Haiku (cheap)' },
+  { id: 'claude-sonnet-4-6', label: 'Sonnet (smart)' },
   { id: 'claude-opus-4-8', label: 'Opus (powerful)' }
 ];
 const ASSISTANT_LANGS = [
@@ -18,7 +19,7 @@ const ASSISTANT_LANGS = [
 
 const assistantState = {
   subjectId: '',
-  model: localStorage.getItem(ASSISTANT_MODEL_STORAGE_KEY) || 'claude-sonnet-4-6',
+  model: localStorage.getItem(ASSISTANT_MODEL_STORAGE_KEY) || 'claude-haiku-4-5-20251001',
   language: localStorage.getItem(ASSISTANT_LANG_STORAGE_KEY) || 'auto',
   msgs: [],          // [{ role, apiContent, uiText, chips }]
   streaming: false
@@ -658,9 +659,9 @@ async function sendAssistantTurn() {
   let apiContent = raw;
   const ctx = getStudySessionContext();
   if (ctx?.card && (ctx.subjectId === subjectId || contextId === '__review__')) {
-    const q = assistantStripText(ctx.card.prompt);
-    const a = assistantStripText(ctx.card.answer);
-    apiContent = `Context – current flashcard:\nQuestion: ${q}\nAnswer: ${a}\n\nMy question: ${raw}`;
+    const q = assistantStripText(ctx.card.prompt, 200);
+    const a = assistantStripText(ctx.card.answer, 200);
+    apiContent = `Card: Q: ${q} / A: ${a}\n${raw}`;
     chips.push('📎 Current card');
   }
 
@@ -681,7 +682,8 @@ async function sendAssistantTurn() {
   const apiMessages = assistantState.msgs
     .filter(m => (m.role === 'assistant' ? m.apiContent : m.apiContent).trim() !== '' || m.role === 'user')
     .map(m => ({ role: m.role, content: m.apiContent }))
-    .filter(m => m.content.trim() !== '');
+    .filter(m => m.content.trim() !== '')
+    .slice(-6);
 
   try {
     await callAssistantStream({
