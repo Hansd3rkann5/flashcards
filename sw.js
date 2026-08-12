@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'flashcards-static-v33';
-const RUNTIME_CACHE = 'flashcards-runtime-v33';
-const API_CACHE = 'flashcards-api-v33';
+const STATIC_CACHE = 'flashcards-static-v34';
+const RUNTIME_CACHE = 'flashcards-runtime-v34';
+const API_CACHE = 'flashcards-api-v34';
 
 const APP_SHELL = [
   './',

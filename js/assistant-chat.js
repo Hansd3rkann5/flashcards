@@ -43,7 +43,7 @@ function getStudySessionContext() {
     if (typeof session !== 'undefined' && session?.active && Array.isArray(session.activeQueue) && session.activeQueue.length) {
       const card = session.activeQueue[0] || null;
       const subjectId = String(selectedSubject?.id || '').trim();
-      if (subjectId) return { subjectId, card };
+      return { subjectId, card };
     }
   } catch (_) { /* ignore */ }
   return null;
@@ -195,7 +195,8 @@ function openAssistantPanel() {
     return;
   }
   const subjectId = String(selectedSubject?.id || '').trim();
-  if (!subjectId) {
+  const inSession = typeof session !== 'undefined' && session?.active === true;
+  if (!subjectId && !inSession) {
     alert('Open a subject first to use the assistant.');
     return;
   }
@@ -203,13 +204,19 @@ function openAssistantPanel() {
   const panel = el('assistantPanel');
   const backdrop = el('assistantBackdrop');
 
-  // Subject is always the currently open subject; switching subjects resets chat.
-  if (subjectId !== assistantState.subjectId) {
-    assistantState.subjectId = subjectId;
+  // Use subject if available, otherwise use a review-session sentinel so chat
+  // is not accidentally merged with a later subject's history.
+  const contextId = subjectId || '__review__';
+  if (contextId !== assistantState.subjectId) {
+    assistantState.subjectId = contextId;
     assistantState.msgs = [];
   }
   const nameEl = panel.querySelector('[data-role="subject-name"]');
-  if (nameEl) nameEl.textContent = String(selectedSubject?.name || '').trim();
+  if (nameEl) {
+    nameEl.textContent = subjectId
+      ? String(selectedSubject?.name || '').trim()
+      : 'Daily Review';
+  }
 
   panel.removeAttribute('hidden');
   backdrop.classList.add('visible');
@@ -638,15 +645,18 @@ async function sendAssistantTurn() {
   const input = panel.querySelector('[data-role="input"]');
   const raw = String(input?.value || '').trim();
   if (!raw) return;
-  const subjectId = String(assistantState.subjectId || '').trim();
-  if (!subjectId) { alert('Please select a subject first.'); return; }
+  const contextId = String(assistantState.subjectId || '').trim();
+  if (!contextId) { alert('Please select a subject first.'); return; }
+  // Strip the review sentinel before sending to the API; Edge Function treats
+  // empty subjectId as "no knowledge base" which is correct for review sessions.
+  const subjectId = contextId === '__review__' ? '' : contextId;
 
   // In a study session, always include the current card as context.
   // In the subject panel (no active session) there is no card to include.
   const chips = [];
   let apiContent = raw;
   const ctx = getStudySessionContext();
-  if (ctx?.card && ctx.subjectId === subjectId) {
+  if (ctx?.card && (ctx.subjectId === subjectId || contextId === '__review__')) {
     const q = assistantStripText(ctx.card.prompt);
     const a = assistantStripText(ctx.card.answer);
     apiContent = `Context – current flashcard:\nQuestion: ${q}\nAnswer: ${a}\n\nMy question: ${raw}`;
@@ -767,7 +777,8 @@ function updateAssistantFabVisibility() {
   const online = typeof isSupabaseBackendEnabled !== 'function' || isSupabaseBackendEnabled();
   const view = typeof getCurrentView === 'function' ? Number(getCurrentView()) : 0;
   const hasSubject = !!String(selectedSubject?.id || '').trim();
-  fab.style.display = (online && view >= 1 && hasSubject) ? 'flex' : 'none';
+  const inSession = typeof session !== 'undefined' && session?.active === true;
+  fab.style.display = (online && view >= 1 && (hasSubject || inSession)) ? 'flex' : 'none';
 }
 
 // Create the FAB once the DOM is ready (only in Supabase/online mode) and keep
