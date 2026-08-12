@@ -875,6 +875,7 @@
    overrides for the chat panel and FAB.
    ========================================================================== */
 @media (max-width: 640px) {
+
   /* Inset floating modal: a clear margin to every screen edge so the app
      behind stays visible through the blurred backdrop. Tune via the variable. */
   .assistant-panel {
@@ -889,6 +890,7 @@
     overflow: hidden;
     box-shadow: 0 0 36px 2px rgba(232, 95, 130, 0.6), 0 30px 80px rgba(0, 0, 0, 0.55);
   }
+
   /* FAB sits 7px from the bottom/right edges — no safe-area inset on phone. */
   .assistant-fab {
     right: 7px;
@@ -896,6 +898,23 @@
   }
 
   .assistant-input {
-  padding: 12px 18px 12px;
+    padding: 12px 18px 12px;
+  }
+
+  .dialog.modal {
+    padding: var(--space-3);
+  }
+
+  .closeEditCardBtn {
+    right: calc(var(--space-3));
+  }
+
+  #addTopicTitle {
+    margin-right: 0;
+  }
+
+  .topic-input-wrap {
+    width: 83%;
+    margin-block: 0px;
   }
 }

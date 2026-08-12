@@ -666,7 +666,6 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
   }
   const cols = total >= 2 ? 2 : 1;
   optionsWrap.style.setProperty('--mcq-grid-cols', String(cols));
-  applyEqualMcqOptionTileSize(optionsWrap);
 }
 
 /**
