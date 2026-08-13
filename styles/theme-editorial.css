@@ -51,7 +51,7 @@ body.theme-editorial {
 
   /* semantic states — deliberately desaturated so they read as warm/cool
      grays, not saturated colour, staying inside the grayscale look */
-  --success: #9cdd60;       /* correct — muted sage          */
+  --success: #64dd60;       /* correct — muted sage          */
   --danger: #e37a57;        /* wrong    — muted clay          */
   --warn: #e1c124;          /* caution  — muted sand          */
 
@@ -221,6 +221,7 @@ html.theme-editorial .face {
 
 html.theme-editorial .face-content {
   margin-bottom: var(--space-2);
+  border: 1px solid var(--edi-line) !important;
 }
 
 /* SUBJECT IDENTITY: surface each subject's own accent colour as the top band
@@ -350,20 +351,20 @@ html.theme-editorial .btn.traffic[data-grade="wrong"] {
 /* hover: subtle tint in the grade colour, keep coloured text + border */
 html.theme-editorial .btn.traffic.green:hover,
 html.theme-editorial .btn.traffic[data-grade="correct"]:hover {
-  background: rgba(159, 176, 143, 0.16) !important;
-  color: var(--success) !important;
+  color: rgba(159, 176, 143, 0.16) !important;
+  background: var(--success) !important;
   border-color: var(--success) !important;
 }
 html.theme-editorial .btn.traffic.yellow:hover,
 html.theme-editorial .btn.traffic[data-grade="partial"]:hover {
-  background: rgba(203, 179, 137, 0.16) !important;
-  color: var(--warn) !important;
+  color: rgba(203, 179, 137, 0.16) !important;
+  background: var(--warn) !important;
   border-color: var(--warn) !important;
 }
 html.theme-editorial .btn.traffic.red:hover,
 html.theme-editorial .btn.traffic[data-grade="wrong"]:hover {
-  background: rgba(199, 138, 118, 0.16) !important;
-  color: var(--danger) !important;
+  color: rgba(199, 138, 118, 0.16) !important;
+  background: var(--danger) !important;
   border-color: var(--danger) !important;
 }
 
