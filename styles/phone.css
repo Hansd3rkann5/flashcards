@@ -8,6 +8,12 @@
   .auth-actions {
     grid-template-columns: 1fr;
   }
+
+  .face .rich-content .md-table-cell,
+  .back .rich-content .md-table-cell {
+    font-size: clamp(0.68rem, 2.6vw, 0.88rem);
+    padding: 4px 7px;
+  }
 }
 
 @media (max-width: 430px) {

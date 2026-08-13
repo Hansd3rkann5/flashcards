@@ -561,7 +561,7 @@ let overviewTableFitScheduled = false;
  */
 function fitOverviewTables() {
   const wraps = document.querySelectorAll(
-    '.card-tile .rich-content .md-table-wrap, .topic-search-result .rich-content .md-table-wrap'
+    '.card-tile .rich-content .md-table-wrap, .topic-search-result .rich-content .md-table-wrap, .face .rich-content .md-table-wrap, .back .rich-content .md-table-wrap'
   );
   wraps.forEach(wrap => {
     const fit = wrap.querySelector('.md-table-fit');

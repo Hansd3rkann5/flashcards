@@ -47,14 +47,28 @@ function assistantStripText(value, maxLen = 600) {
 }
 
 /**
+ * @function resolveCardSubjectId
+ * @description Resolves the subject ID for a card via topicDirectoryById.
+ */
+function resolveCardSubjectId(card) {
+  try {
+    const topicId = String(card?.topicId || '').trim();
+    if (!topicId) return '';
+    const topic = typeof topicDirectoryById !== 'undefined' ? topicDirectoryById.get(topicId) : null;
+    return String(topic?.subjectId || '').trim();
+  } catch (_) { return ''; }
+}
+
+/**
  * @function getStudySessionContext
  * @description Returns { subjectId, card } when a study session is active.
+ * In review mode (no selectedSubject), resolves subjectId from the card's topic.
  */
 function getStudySessionContext() {
   try {
     if (typeof session !== 'undefined' && session?.active && Array.isArray(session.activeQueue) && session.activeQueue.length) {
       const card = session.activeQueue[0] || null;
-      const subjectId = String(selectedSubject?.id || '').trim();
+      const subjectId = String(selectedSubject?.id || '').trim() || resolveCardSubjectId(card);
       return { subjectId, card };
     }
   } catch (_) { /* ignore */ }
@@ -221,18 +235,39 @@ function openAssistantPanel() {
   const panel = el('assistantPanel');
   const backdrop = el('assistantBackdrop');
 
-  // Use subject if available, otherwise use a review-session sentinel so chat
-  // is not accidentally merged with a later subject's history.
-  const contextId = subjectId || '__review__';
+  // In review mode, detect the current card's subject so each subject gets its
+  // own separate thread. Context key: plain subjectId, or __review__:<subjectId>,
+  // or __review__ if no subject can be resolved.
+  let contextId = subjectId;
+  let headerSubjectName = String(selectedSubject?.name || '').trim();
+  let isReview = false;
+  if (!contextId && inSession) {
+    isReview = true;
+    const ctx = getStudySessionContext();
+    const reviewSubjectId = ctx?.subjectId || '';
+    if (reviewSubjectId) {
+      contextId = `__review__:${reviewSubjectId}`;
+      const subj = typeof subjectDirectoryById !== 'undefined'
+        ? subjectDirectoryById.get(reviewSubjectId) : null;
+      headerSubjectName = String(subj?.name || '').trim();
+    } else {
+      contextId = '__review__';
+    }
+  }
+
   if (contextId !== assistantState.subjectId) {
     assistantState.subjectId = contextId;
     assistantState.msgs = [];
   }
   const nameEl = panel.querySelector('[data-role="subject-name"]');
   if (nameEl) {
-    nameEl.textContent = subjectId
-      ? String(selectedSubject?.name || '').trim()
-      : 'Daily Review';
+    if (!isReview) {
+      nameEl.textContent = headerSubjectName;
+    } else if (headerSubjectName) {
+      nameEl.textContent = `${headerSubjectName} — Daily Review`;
+    } else {
+      nameEl.textContent = 'Daily Review';
+    }
   }
 
   el('assistantFab')?.classList.remove('assistant-fab--has-response');
@@ -665,16 +700,23 @@ async function sendAssistantTurn() {
   if (!raw) return;
   const contextId = String(assistantState.subjectId || '').trim();
   if (!contextId) { alert('Please select a subject first.'); return; }
-  // Strip the review sentinel before sending to the API; Edge Function treats
-  // empty subjectId as "no knowledge base" which is correct for review sessions.
-  const subjectId = contextId === '__review__' ? '' : contextId;
+  // Parse context key: __review__:<subjectId> → real subjectId with docs loaded;
+  // __review__ → empty (no knowledge base); plain id → use directly.
+  let subjectId;
+  if (contextId.startsWith('__review__:')) {
+    subjectId = contextId.slice('__review__:'.length);
+  } else if (contextId === '__review__') {
+    subjectId = '';
+  } else {
+    subjectId = contextId;
+  }
 
   // In a study session, always include the current card as context.
   // In the subject panel (no active session) there is no card to include.
   const chips = [];
   let apiContent = raw;
   const ctx = getStudySessionContext();
-  if (ctx?.card && (ctx.subjectId === subjectId || contextId === '__review__')) {
+  if (ctx?.card && (ctx.subjectId === subjectId || contextId.startsWith('__review__'))) {
     const q = assistantStripText(ctx.card.prompt, 200);
     const a = assistantStripText(ctx.card.answer, 200);
     apiContent = `Card: Q: ${q} / A: ${a}\n${raw}`;

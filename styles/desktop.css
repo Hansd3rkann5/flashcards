@@ -8108,7 +8108,7 @@ body.assistant-open .assistant-fab {
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 1.2rem;
+  font-size: clamp(0.93rem, 1.5vw, 1.15rem);
 }
 
 /* "Assistant is thinking" indicator shown until the first token arrives */
@@ -8354,7 +8354,7 @@ body.assistant-open .assistant-fab {
   border-radius: 12px;
   padding: 10px 12px;
   font: inherit;
-  font-size: 1.2rem;
+  font-size: clamp(0.93rem, 1.5vw, 1.15rem);
   min-height: 22px;
   max-height: 140px;
 }
