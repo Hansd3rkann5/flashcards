@@ -205,11 +205,15 @@ html.theme-editorial .deck-tile,
 html.theme-editorial .header-tile,
 html.theme-editorial .deck-header-tile,
 html.theme-editorial .review-header-tile,
-html.theme-editorial .card-tile,
 html.theme-editorial .face,
 html.theme-editorial .session-card {
   border-top: 6px solid var(--subject-accent, var(--accent)) !important;
 }
+
+html.theme-editorial .card-tile {
+  border-top: 4px solid var(--accent) !important;
+}
+
 
 html.theme-editorial .face {
   padding-top: calc(2*var(--space-6));
@@ -242,10 +246,15 @@ html.theme-editorial .subject-tile.selected {
 }
 @media (hover: hover) and (pointer: fine) {
   html.theme-editorial .tile:hover,
-  html.theme-editorial .topic-tile:hover,
   html.theme-editorial .card-tile:hover {
     background: var(--accent) !important;
     border-color: var(--accent-glow-soft) !important;
+  }
+  /* topic tiles: very soft grey hover — stays readable, just barely lifts
+     off the panel background instead of turning silver/white. */
+  html.theme-editorial .topic-tile:hover {
+    background: var(--edi-raised-2) !important;
+    border-color: var(--edi-line-strong) !important;
   }
   /* subject tiles: softly take on their accent colour as bg (not silver),
      keeping the accent border. color-mix tints the graphite surface. */
