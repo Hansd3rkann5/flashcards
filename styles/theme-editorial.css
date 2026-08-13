@@ -426,6 +426,17 @@ html.theme-editorial .card-tile-mcq-option {
   color: var(--text) !important;
   box-shadow: none !important;
 }
+/* Dynamic (content-based) option heights: the study session runs a JS
+   "equal height" pass (--mcq-equal-height) that stretches every option to the
+   tallest one. In the serif editorial type that wastes space — single-line
+   options end up as tall as wrapped ones. Override it so each option sizes to
+   its own content, keeping only a comfortable minimum tap height. */
+html.theme-editorial .mcq-options .mcq-option,
+html.theme-editorial .mcq-options.two-row-grid .mcq-option {
+  height: auto !important;
+  min-height: var(--mcq-option-min-height) !important;
+}
+
 html.theme-editorial .mcq-option:hover:not(:disabled) {
   border-color: var(--text) !important;
 }
