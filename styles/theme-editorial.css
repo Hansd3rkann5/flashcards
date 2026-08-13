@@ -437,6 +437,21 @@ html.theme-editorial .mcq-options.two-row-grid .mcq-option {
   min-height: var(--mcq-option-min-height) !important;
 }
 
+/* Keep the question readable: give its grid row a floor so a long list of
+   options can no longer squeeze it away to nothing. */
+html.theme-editorial .flashcard.mcq-mode .face-content {
+  grid-template-rows: minmax(30%, 1fr) minmax(0, auto) !important;
+}
+/* Short answers → 2-column grid (e.g. 6 short options become a tidy 2×3),
+   so they occupy far fewer rows and leave the question room to breathe.
+   The `mcq-short-options` flag is set by applyMcqOptionsGridLayout in JS. */
+html.theme-editorial .mcq-options.two-row-grid.mcq-short-options {
+  grid-template-columns: 1fr 1fr !important;
+}
+html.theme-editorial .mcq-options.two-row-grid.mcq-short-options .mcq-option {
+  max-width: none !important;
+}
+
 html.theme-editorial .mcq-option:hover:not(:disabled) {
   border-color: var(--text) !important;
 }

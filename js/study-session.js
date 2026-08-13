@@ -662,8 +662,22 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
   optionsWrap.classList.toggle('two-row-grid', shouldUseGrid);
   if (!shouldUseGrid) {
     optionsWrap.style.removeProperty('--mcq-grid-cols');
+    optionsWrap.classList.remove('mcq-short-options');
     return;
   }
+  // Short-answer detection: when there are several options and every one is a
+  // short label, flag it so the layout can use a multi-column (e.g. 2×N) grid
+  // instead of a tall single column that pushes the question out of view.
+  const textNodes = Array.from(
+    optionsWrap.querySelectorAll('.mcq-option .mcq-text, .card-tile-mcq-option .mcq-text')
+  );
+  const measured = textNodes.length
+    ? textNodes
+    : Array.from(optionsWrap.querySelectorAll('.mcq-option, .card-tile-mcq-option'));
+  const allShort = measured.length > 0 && measured.every(
+    node => String(node.textContent || '').trim().length <= 28
+  );
+  optionsWrap.classList.toggle('mcq-short-options', allShort && total >= 4);
   const cols = total >= 2 ? 2 : 1;
   optionsWrap.style.setProperty('--mcq-grid-cols', String(cols));
   // On phone (≤520 px) let each option take its natural height.
