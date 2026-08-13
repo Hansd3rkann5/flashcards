@@ -676,6 +676,10 @@ html.theme-editorial .assistant-send {
   border-radius: var(--radius) !important;
 }
 
+#sessionCompleteDialog {
+  padding-bottom: var(--space-6) !important;
+}
+
 /* ---------------------------------------------------------------------------
    16. FULL SWEEP  — remaining cool (blue/teal/purple) feature families
    found by scanning desktop.css. Broad, safe prefix sweeps flatten blue
