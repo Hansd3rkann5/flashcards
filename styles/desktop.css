@@ -41,6 +41,8 @@
   --mcq-option-pad-y: clamp(9px, 1.3vw, 15px);
   --mcq-option-pad-x: clamp(10px, 1.7vw, 18px);
   --mcq-option-radius: clamp(14px, 1.3vw, 20px);
+  --mcq-scale-rest: 0.96;
+  --mcq-scale-active: 1;
   --mcq-option-gap: clamp(6px, 1.2vw, 12px);
   --mcq-options-padding: clamp(6px, 1.7vw, 14px);
   --mcq-check-min-width: clamp(112px, 26vw, 160px);
@@ -2855,12 +2857,18 @@ textarea:focus-visible {
   background: #121b31;
   color: white;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  /* Scale interaction: rest slightly shrunk; pop when selected; after check
+     correct answers stay popped and wrong ones shrink back (see .selected /
+     .correct / .wrong below). */
+  transform: scale(var(--mcq-scale-rest));
+  transform-origin: center;
+  transition: transform 0.18s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .mcq-option.selected {
   border-color: #22c55e;
   box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.6), 0 0 14px rgba(34, 197, 94, 0.5);
+  transform: scale(var(--mcq-scale-active));
 }
 
 .mcq-option .mcq-text {
@@ -2873,11 +2881,13 @@ textarea:focus-visible {
 .mcq-option.correct {
   background: rgba(16, 82, 56, 0.35);
   border-color: #1b7a57;
+  transform: scale(var(--mcq-scale-active));
 }
 
 .mcq-option.wrong {
   background: rgba(110, 26, 16, 0.35);
   border-color: #9a2b1c;
+  transform: scale(var(--mcq-scale-rest));
 }
 
 .mcq-options {
@@ -2900,6 +2910,16 @@ textarea:focus-visible {
   justify-items: center;
   align-content: start;
   width: 100%;
+}
+
+/* Short answers → 2-column grid (e.g. 6 short options become a tidy 2×3), so
+   they occupy far fewer rows and leave the question room to breathe. The
+   `mcq-short-options` flag is set by applyMcqOptionsGridLayout in JS. */
+.mcq-options.two-row-grid.mcq-short-options {
+  grid-template-columns: 1fr 1fr;
+}
+.mcq-options.two-row-grid.mcq-short-options .mcq-option {
+  max-width: none;
 }
 
 .mcq-options.two-row-grid .mcq-option {
@@ -3100,12 +3120,10 @@ textarea:focus-visible {
   /* height: calc(100% - (2 * var(--space-4))); */
   box-sizing: border-box;
   display: grid;
-  /* The question row stays at 50% while everything fits, and shrinks
-     only as far as needed so the last answer option (and the Check
-     button) stay visible. The answer row is at least 50% but grows to
-     its content height (up to the full face), stealing space from the
-     question row only when the options need more than half. */
-  grid-template-rows: minmax(0, 1fr) minmax(50%, auto);
+  /* The question row keeps a minimum height (30%) so a long list of options
+     can never squeeze it away to nothing. The answer row sizes to its content
+     and takes whatever space is left above that floor. */
+  grid-template-rows: minmax(30%, 1fr) minmax(0, auto);
   gap: 10px;
   align-items: stretch;
   justify-items: stretch !important;

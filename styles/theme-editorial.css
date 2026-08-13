@@ -167,6 +167,20 @@ html.theme-editorial .section {
 /* ---------------------------------------------------------------------------
    5. ELEVATION LAYER 2  — cards / tiles / raised surfaces (light gray)
 --------------------------------------------------------------------------- */
+/* face-content keeps a neutral hairline border (NOT the accent used on the
+   surrounding card). Both selectors are listed so it also wins inside
+   .flashcard, where `.flashcard .face-content` would otherwise out-specify a
+   plain `.face-content` rule. */
+html.theme-editorial .face-content,
+html.theme-editorial .flashcard .face-content {
+  margin-bottom: var(--space-2);
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
 html.theme-editorial .tile,
 html.theme-editorial .subject-tile,
 html.theme-editorial .topic-tile,
@@ -178,8 +192,6 @@ html.theme-editorial .review-header-tile,
 html.theme-editorial .deck-sticky-stack,
 html.theme-editorial .sidebar-meta,
 html.theme-editorial .face,
-html.theme-editorial .face-content,
-html.theme-editorial .flashcard .face-content,
 html.theme-editorial .session-card,
 html.theme-editorial #settingsDialog .settings-card,
 html.theme-editorial .settings-card,
@@ -207,7 +219,7 @@ html.theme-editorial .deck-header-tile,
 html.theme-editorial .review-header-tile,
 html.theme-editorial .face,
 html.theme-editorial .session-card {
-  border-top: 6px solid var(--subject-accent, var(--accent)) !important;
+  border-top: 6px solid var(--accent)          !important;
 }
 
 html.theme-editorial .card-tile {
@@ -219,10 +231,7 @@ html.theme-editorial .face {
   padding-top: calc(2*var(--space-6));
 }
 
-html.theme-editorial .face-content {
-  margin-bottom: var(--space-2);
-  border: 1px solid var(--edi-line) !important;
-}
+
 
 /* SUBJECT IDENTITY: surface each subject's own accent colour as the top band
    of its tile (the accent is injected inline as --subject-accent per subject,
@@ -435,21 +444,6 @@ html.theme-editorial .mcq-options .mcq-option,
 html.theme-editorial .mcq-options.two-row-grid .mcq-option {
   height: auto !important;
   min-height: var(--mcq-option-min-height) !important;
-}
-
-/* Keep the question readable: give its grid row a floor so a long list of
-   options can no longer squeeze it away to nothing. */
-html.theme-editorial .flashcard.mcq-mode .face-content {
-  grid-template-rows: minmax(30%, 1fr) minmax(0, auto) !important;
-}
-/* Short answers → 2-column grid (e.g. 6 short options become a tidy 2×3),
-   so they occupy far fewer rows and leave the question room to breathe.
-   The `mcq-short-options` flag is set by applyMcqOptionsGridLayout in JS. */
-html.theme-editorial .mcq-options.two-row-grid.mcq-short-options {
-  grid-template-columns: 1fr 1fr !important;
-}
-html.theme-editorial .mcq-options.two-row-grid.mcq-short-options .mcq-option {
-  max-width: none !important;
 }
 
 html.theme-editorial .mcq-option:hover:not(:disabled) {
@@ -695,12 +689,10 @@ html.theme-editorial .assistant-input textarea {
   border-radius: var(--radius) !important;
   color: var(--text) !important;
 }
-html.theme-editorial .assistant-send {
-  background: var(--text) !important;
-  background-image: none !important;
-  color: var(--bg) !important;
-  border-radius: var(--radius) !important;
-}
+/* .assistant-send also carries the .btn class, so it inherits the standard
+   editorial button behaviour: transparent + chalk text by default, white fill
+   + dark text on hover. No special rule needed here (only the purple base
+   background is overridden by the generic .btn rule). */
 
 #sessionCompleteDialog {
   padding-bottom: var(--space-6) !important;
@@ -1072,4 +1064,14 @@ html.theme-editorial .assistant-fab-card {
   background-image: linear-gradient(165deg, #5f6360 6%, #a9ada8 52%, #f4f5f2 100%) !important;
   border-color: rgba(0, 0, 0, 0.20) !important;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   21. MOBILE  — panels go edge-to-edge (drop the inner padding). Safe-area
+   insets are kept so content still clears the notch / home indicator.
+--------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  html.theme-editorial .panel {
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) !important;
+  }
 }
