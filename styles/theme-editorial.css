@@ -1,0 +1,1001 @@
+/* =========================================================================
+   EDITORIAL — second design language ("Graphite")
+   -------------------------------------------------------------------------
+   A dark, grayscale, print/editorial reskin inspired by the natural-polymers
+   flashcard mock-up: serif body (Newsreader), grotesque headlines
+   (Bricolage Grotesque), monospaced labels (JetBrains Mono), hairline rules,
+   sharp corners and a near-monochrome graphite palette (no blue).
+
+   Fully isolated: every rule is scoped under `html.theme-editorial` /
+   `body.theme-editorial`, so this file is inert until the design is selected
+   in Settings. Nothing here touches the default (blue) design.
+
+   The default stylesheet hardcodes hundreds of blue gradients / borders that
+   do not read design tokens, so this file deliberately uses `!important`
+   background/border/radius resets on the structural class families to
+   guarantee they are flattened to graphite. Edit the palette + the three
+   elevation grays in section 1 and it propagates across the whole app.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. PALETTE + DESIGN TOKENS  (single source of truth — edit here)
+   Three distinct elevation grays give the app real depth:
+     --bg       (darkest)  = app background
+     --panel    (mid)      = panels / sidebar / sections
+     --edi-raised (light)  = cards / tiles / raised surfaces
+--------------------------------------------------------------------------- */
+html.theme-editorial,
+body.theme-editorial {
+  /* elevation grays (neutral, no blue tint) */
+  --bg: #141516;            /* app background — darkest      */
+  --panel: #1e2123;         /* panels / sidebar / sections   */
+  --panel-light: #262a2d;   /* raised surfaces               */
+  --edi-raised: #262a2d;    /* cards / tiles — lightest layer */
+  --edi-raised-2: #2f3336;  /* hover / selected              */
+
+  /* ink */
+  --text: #e9ebe8;          /* chalk text                    */
+  --muted: #9aa09c;         /* secondary / labels            */
+
+  /* primary accent = silver "ink" (active / tags / highlights) */
+  --accent: #c7cbc6;
+  --accent-glow: rgba(199, 203, 198, 0.16);
+  --accent-ring: rgba(199, 203, 198, 0.55);
+  --accent-glow-strong: rgba(199, 203, 198, 0.30);
+  --accent-glow-soft: rgba(199, 203, 198, 0.14);
+  --panel-accent: rgba(199, 203, 198, 0.10);
+  --tile-accent-bg: rgba(199, 203, 198, 0.10);
+  --subject-accent: #c7cbc6;
+  --subject-accent-bg: rgba(199, 203, 198, 0.10);
+  --face-accent: rgba(199, 203, 198, 0.10);
+
+  /* semantic states — deliberately desaturated so they read as warm/cool
+     grays, not saturated colour, staying inside the grayscale look */
+  --success: #9cdd60;       /* correct — muted sage          */
+  --danger: #e37a57;        /* wrong    — muted clay          */
+  --warn: #e1c124;          /* caution  — muted sand          */
+
+  /* flat editorial button: solid graphite instead of the neon gradient */
+  --button: #33383b;
+
+  /* sharp corners + flat, print-like elevation */
+  --radius: 4px;
+  --shadow: none;
+
+  /* tighten the rounded MCQ / cloze / tile tokens */
+  --mcq-option-radius: 4px;
+  --card-tile-mcq-radius: 3px;
+
+  /* hairline rule colours used by the component blocks below */
+  --edi-line: rgba(233, 235, 232, 0.12);
+  --edi-line-strong: rgba(233, 235, 232, 0.28);
+
+  /* type families */
+  --edi-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --edi-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  --edi-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------------------------------------------------------------------------
+   2. TYPOGRAPHY  — serif body, grotesque display, mono labels
+--------------------------------------------------------------------------- */
+body.theme-editorial,
+html.theme-editorial body {
+  font-family: var(--edi-serif);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0;
+}
+
+html.theme-editorial h1,
+html.theme-editorial h2,
+html.theme-editorial h3,
+html.theme-editorial h4,
+html.theme-editorial .settings-card-title,
+html.theme-editorial .panel-title,
+html.theme-editorial .section-title,
+html.theme-editorial .deck-header-title,
+html.theme-editorial .review-header-title,
+html.theme-editorial .home-title {
+  font-family: var(--edi-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+}
+
+html.theme-editorial .tiny,
+html.theme-editorial .eyebrow,
+html.theme-editorial .kbd,
+html.theme-editorial .badge,
+html.theme-editorial .chip,
+html.theme-editorial .pill,
+html.theme-editorial .counter,
+html.theme-editorial .card-meta,
+html.theme-editorial .card-tile-meta,
+html.theme-editorial .settings-toggle-hint,
+html.theme-editorial .meta,
+html.theme-editorial .tag,
+html.theme-editorial .mono {
+  font-family: var(--edi-mono);
+  letter-spacing: 0.06em;
+}
+
+html.theme-editorial .btn,
+html.theme-editorial button.act,
+html.theme-editorial .sidebar button {
+  font-family: var(--edi-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ---------------------------------------------------------------------------
+   3. APP BACKGROUND  — flat graphite, kill the blue radial backdrop
+--------------------------------------------------------------------------- */
+html.theme-editorial body {
+  background: var(--bg) !important;
+}
+html.theme-editorial body::before,
+html.theme-editorial body::after {
+  background-image: none !important;
+  background-color: var(--bg) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   4. ELEVATION LAYER 1  — panels / sidebar / sections (mid gray)
+--------------------------------------------------------------------------- */
+html.theme-editorial .sidebar,
+html.theme-editorial .sidebar-subjects,
+html.theme-editorial .section,
+html.theme-editorial .panel > .section,
+html.theme-editorial .topic-list,
+html.theme-editorial .card-grid,
+html.theme-editorial .mcq-options,
+html.theme-editorial .mcq-answer-zone,
+html.theme-editorial #settingsDialog .settings-layout,
+html.theme-editorial #editorPanel .editor-list,
+html.theme-editorial #editorPanel .editor-panel.editor-main,
+html.theme-editorial #editorPanel .editor-sidebar {
+  background: var(--panel) !important;
+  background-image: none !important;
+  border-color: var(--edi-line) !important;
+  box-shadow: none !important;
+}
+html.theme-editorial .section {
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   5. ELEVATION LAYER 2  — cards / tiles / raised surfaces (light gray)
+--------------------------------------------------------------------------- */
+html.theme-editorial .tile,
+html.theme-editorial .subject-tile,
+html.theme-editorial .topic-tile,
+html.theme-editorial .card-tile,
+html.theme-editorial .deck-tile,
+html.theme-editorial .header-tile,
+html.theme-editorial .deck-header-tile,
+html.theme-editorial .review-header-tile,
+html.theme-editorial .deck-sticky-stack,
+html.theme-editorial .sidebar-meta,
+html.theme-editorial .face,
+html.theme-editorial .face-content,
+html.theme-editorial .flashcard .face-content,
+html.theme-editorial .session-card,
+html.theme-editorial #settingsDialog .settings-card,
+html.theme-editorial .settings-card,
+html.theme-editorial dialog.modal,
+html.theme-editorial .auth-card,
+html.theme-editorial .onboarding-card,
+html.theme-editorial .editor-intro-card,
+html.theme-editorial .app-loading-inner,
+html.theme-editorial .content-exchange-user,
+html.theme-editorial .content-exchange-topic,
+html.theme-editorial .recent-storage-image-picker-item {
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+/* the signature heavy top rule on the main study surfaces */
+html.theme-editorial .card-tile,
+html.theme-editorial .face,
+html.theme-editorial .session-card {
+  border-top: 6px solid var(--accent) !important;
+}
+
+html.theme-editorial .face {
+  padding-top: calc(2*var(--space-6));
+}
+
+html.theme-editorial .face-content {
+  margin-bottom: var(--space-2);
+}
+
+/* SUBJECT IDENTITY: surface each subject's own accent colour as the top band
+   of its tile (the accent is injected inline as --subject-accent per subject,
+   so this stays colourful per-subject while the body stays graphite). */
+html.theme-editorial .subject-tile {
+  border-top: 3px solid var(--subject-accent, var(--accent)) !important;
+}
+
+/* selected / hover raised state → slightly lighter + strong hairline */
+html.theme-editorial .tile.selected,
+html.theme-editorial .subject-tile.selected,
+html.theme-editorial .topic-tile.selected,
+html.theme-editorial .card-tile.selected,
+html.theme-editorial .deck-tile.selected {
+  background: var(--edi-raised-2) !important;
+  border-color: var(--edi-line-strong) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.theme-editorial .tile:hover,
+  html.theme-editorial .subject-tile:hover,
+  html.theme-editorial .topic-tile:hover,
+  html.theme-editorial .card-tile:hover {
+    background: var(--edi-raised-2) !important;
+    border-color: var(--edi-line-strong) !important;
+  }
+}
+
+/* card meta / point weights → mono, muted, letterspaced */
+html.theme-editorial .card-meta,
+html.theme-editorial .card-tile-meta {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+}
+
+/* ---------------------------------------------------------------------------
+   6. BUTTONS  — flat, bordered, editorial (kills #273655 + 14px + inset glow)
+--------------------------------------------------------------------------- */
+html.theme-editorial .btn,
+html.theme-editorial .sidebar button {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid var(--edi-line-strong) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  transition: background .13s ease, border-color .13s ease, color .13s ease;
+}
+html.theme-editorial .btn:hover,
+html.theme-editorial .sidebar button:hover {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+  color: var(--bg) !important;
+}
+/* primary / solid call-to-action → chalk fill, ink label */
+html.theme-editorial .btn.primary,
+html.theme-editorial button.act {
+  background: var(--text) !important;
+  border: 1.5px solid var(--text) !important;
+  color: var(--bg) !important;
+}
+html.theme-editorial .btn.primary:hover,
+html.theme-editorial button.act:hover {
+  filter: brightness(0.9);
+}
+/* destructive → muted clay outline */
+html.theme-editorial .btn.red {
+  background: transparent !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+html.theme-editorial .btn.red:hover {
+  background: var(--danger) !important;
+  color: var(--bg) !important;
+}
+/* app icons inside buttons stay chalk on transparent, ink on hover-fill */
+html.theme-editorial .btn:hover .app-icon,
+html.theme-editorial .sidebar button:hover .app-icon {
+  filter: brightness(0) invert(0);
+}
+
+/* SESSION GRADE ("traffic") buttons — transparent, grade-coloured text +
+   border, with a thicker top rule in the grade colour so all three read
+   consistently (green = sage, yellow = sand, red = clay). */
+html.theme-editorial .btn.traffic {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-style: solid !important;
+  border-width: 3px 1.5px 1.5px !important;   /* thicker top edge */
+  border-radius: var(--radius) !important;
+}
+html.theme-editorial .btn.traffic.green,
+html.theme-editorial .btn.traffic[data-grade="correct"] {
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+html.theme-editorial .btn.traffic.yellow,
+html.theme-editorial .btn.traffic[data-grade="partial"] {
+  color: var(--warn) !important;
+  border-color: var(--warn) !important;
+}
+html.theme-editorial .btn.traffic.red,
+html.theme-editorial .btn.traffic[data-grade="wrong"] {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+/* hover: subtle tint in the grade colour, keep coloured text + border */
+html.theme-editorial .btn.traffic.green:hover,
+html.theme-editorial .btn.traffic[data-grade="correct"]:hover {
+  background: rgba(159, 176, 143, 0.16) !important;
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+html.theme-editorial .btn.traffic.yellow:hover,
+html.theme-editorial .btn.traffic[data-grade="partial"]:hover {
+  background: rgba(203, 179, 137, 0.16) !important;
+  color: var(--warn) !important;
+  border-color: var(--warn) !important;
+}
+html.theme-editorial .btn.traffic.red:hover,
+html.theme-editorial .btn.traffic[data-grade="wrong"]:hover {
+  background: rgba(199, 138, 118, 0.16) !important;
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   7. HEADERS  — hairline rules, flat graphite (no blue gradients)
+--------------------------------------------------------------------------- */
+html.theme-editorial .sidebar-header,
+html.theme-editorial .sidebar-subjects-header,
+html.theme-editorial .app-panel-header,
+html.theme-editorial .panel-header,
+html.theme-editorial .editor-header,
+html.theme-editorial .mcq-primary-header,
+html.theme-editorial .mcq-row-header,
+html.theme-editorial .subject-progress-header,
+html.theme-editorial .review-progress-header,
+html.theme-editorial .content-exchange-panel-header {
+  background: transparent !important;
+  background-image: none !important;
+  border-bottom: 1.5px solid var(--edi-line-strong) !important;
+  box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   8. CHIPS / FILTERS / TAGS / PILLS  — mono uppercase, hairline, square
+--------------------------------------------------------------------------- */
+html.theme-editorial .chip,
+html.theme-editorial .pill,
+html.theme-editorial .filter-chip {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  color: var(--muted) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+html.theme-editorial .chip:hover,
+html.theme-editorial .filter-chip:hover {
+  border-color: var(--text) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .chip.active,
+html.theme-editorial .chip[aria-pressed="true"],
+html.theme-editorial .filter-chip.active {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   9. MCQ OPTIONS  — hairline boxes; grayscale-forward correctness signalling
+--------------------------------------------------------------------------- */
+html.theme-editorial .mcq-option,
+html.theme-editorial .card-tile-mcq-option {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--mcq-option-radius) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+}
+html.theme-editorial .mcq-option:hover:not(:disabled) {
+  border-color: var(--text) !important;
+}
+html.theme-editorial .mcq-option.selected {
+  border-color: var(--text) !important;
+  background: var(--panel-accent) !important;
+}
+html.theme-editorial .mcq-option.correct,
+html.theme-editorial .card-tile-mcq-option.is-correct {
+  border-color: var(--success) !important;
+  background: rgba(159, 176, 143, 0.14) !important;
+}
+html.theme-editorial .mcq-option.wrong {
+  border-color: var(--danger) !important;
+  background: rgba(199, 138, 118, 0.14) !important;
+}
+html.theme-editorial .mcq-option.missed {
+  border-color: var(--success) !important;
+  border-style: dashed !important;
+  background: transparent !important;
+}
+
+/* ---------------------------------------------------------------------------
+   10. CLOZE / GAP-TEXT  — mono chips inside serif prose
+--------------------------------------------------------------------------- */
+html.theme-editorial .cloze-blank,
+html.theme-editorial .bopt {
+  font-family: var(--edi-mono);
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  background: var(--bg) !important;
+  color: var(--muted) !important;
+}
+html.theme-editorial .bopt.sel,
+html.theme-editorial .cloze-blank.selected {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+  color: var(--bg) !important;
+}
+html.theme-editorial .bopt.right {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+  color: var(--bg) !important;
+}
+html.theme-editorial .bopt.wrong {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+  color: var(--bg) !important;
+  text-decoration: line-through;
+}
+
+/* ---------------------------------------------------------------------------
+   11. INPUTS / SELECTS / TEXTAREAS  — hairline outline, sharp corners
+--------------------------------------------------------------------------- */
+html.theme-editorial input,
+html.theme-editorial textarea,
+html.theme-editorial select,
+html.theme-editorial .input {
+  background: var(--bg) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+  font-family: var(--edi-serif);
+}
+html.theme-editorial input:focus,
+html.theme-editorial textarea:focus,
+html.theme-editorial select:focus,
+html.theme-editorial .input:focus {
+  border-color: var(--edi-line-strong) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   12. DIVIDERS / SEPARATORS / MISC BLUE  — hairlines
+--------------------------------------------------------------------------- */
+html.theme-editorial hr,
+html.theme-editorial .divider,
+html.theme-editorial .qa-editor-separator {
+  background: var(--edi-line) !important;
+  background-image: none !important;
+  border: none !important;
+  border-top: 1px solid var(--edi-line) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   14. REMAINING BLUE SPOTS  — targeted neutralisation
+--------------------------------------------------------------------------- */
+
+/* all separators (were solid #2a3f66 blue) → hairline */
+html.theme-editorial .card-tile-separator,
+html.theme-editorial .mcq-answer-zone .card-tile-separator,
+html.theme-editorial .editor-separator,
+html.theme-editorial .deck-separator-row {
+  background: var(--edi-line) !important;
+  background-image: none !important;
+  border: none !important;
+}
+
+/* study-selection section + cards (border #30476f, blue bg) */
+html.theme-editorial .study-selection,
+html.theme-editorial .study-selection-grid {
+  background: transparent !important;
+  background-image: none !important;
+}
+html.theme-editorial .study-selection-card {
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+}
+
+/* subject progress panel + topic bulk actions (blue borders/bg) */
+html.theme-editorial .subject-progress-panel,
+html.theme-editorial .review-progress-panel {
+  background: var(--panel) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+}
+html.theme-editorial .topic-bulk-actions,
+html.theme-editorial .deck-bulk-actions {
+  background: var(--panel) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+}
+
+/* topicListTotalCards — just the blue rim */
+html.theme-editorial .topic-list-total-cards {
+  border: 1px solid var(--edi-line) !important;
+  color: var(--muted) !important;
+}
+
+/* tile / card-tile context menus (were blue) */
+html.theme-editorial .tile-menu,
+html.theme-editorial .card-tile-menu,
+html.theme-editorial .subject-tile-menu {
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line-strong) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* tables rendered inside cards (md-table) */
+html.theme-editorial .rich-content .md-table {
+  background: var(--bg) !important;
+  border: 1px solid var(--edi-line) !important;
+}
+html.theme-editorial .rich-content .md-table-cell {
+  border: 1px solid var(--edi-line) !important;
+}
+html.theme-editorial .rich-content .md-table thead .md-table-cell {
+  background: var(--panel-light) !important;
+  color: var(--text) !important;
+}
+
+/* card-tile MCQ order badge — was blue + round → graphite + square */
+html.theme-editorial .card-tile-mcq-order-badge,
+html.theme-editorial .mcq-order-badge {
+  background: var(--edi-raised-2) !important;
+  border: 1px solid var(--edi-line-strong) !important;
+  border-radius: 3px !important;
+  color: var(--text) !important;
+}
+
+/* front topic pill + card corner label + mcq key hint (blue chips) */
+html.theme-editorial .face-topic-pill,
+html.theme-editorial .card-corner-label,
+html.theme-editorial .mcq-key-hint {
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line-strong) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .card-corner-label {
+  border-radius: var(--radius) !important;
+}
+html.theme-editorial .mcq-key-hint {
+  color: var(--muted) !important;
+}
+
+/* progress pill-dots: neutralise the blue default to light gray; keep state
+   dots but in the desaturated palette so nothing reads neon-blue/green/red */
+html.theme-editorial .pill-dot {
+  background: var(--panel-light) !important;
+  border: 1px solid var(--muted) !important;
+}
+html.theme-editorial .pill-dot.current {
+  border-color: var(--text) !important;
+}
+html.theme-editorial .pill-dot.correct,
+html.theme-editorial .pill-dot.mastered,
+html.theme-editorial .pill-dot.near-master,
+html.theme-editorial .pill-dot.review-ready {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+html.theme-editorial .pill-dot.partial {
+  background: var(--warn) !important;
+  border-color: var(--warn) !important;
+}
+html.theme-editorial .pill-dot.wrong {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+/* AI assistant: FAB, panel, message bubbles, input, send (were purple/teal/pink) */
+html.theme-editorial .assistant-fab {
+  background: var(--text) !important;
+  background-image: none !important;
+  color: var(--bg) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+html.theme-editorial .assistant-panel {
+  background: var(--panel) !important;
+  background-image: none !important;
+  border: 1px solid var(--edi-line-strong) !important;
+}
+html.theme-editorial .assistant-msg-user .assistant-msg-body {
+  background: var(--edi-raised-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--edi-line-strong) !important;
+}
+html.theme-editorial .assistant-msg-ai .assistant-msg-body {
+  background: var(--edi-raised) !important;
+  border: 1px solid var(--edi-line) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .assistant-input {
+  border-top: 1px solid var(--edi-line-strong) !important;
+  background: var(--panel) !important;
+}
+html.theme-editorial .assistant-input textarea {
+  background: var(--bg) !important;
+  border: 1px solid var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .assistant-send {
+  background: var(--text) !important;
+  background-image: none !important;
+  color: var(--bg) !important;
+  border-radius: var(--radius) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   16. FULL SWEEP  — remaining cool (blue/teal/purple) feature families
+   found by scanning desktop.css. Broad, safe prefix sweeps flatten blue
+   borders + light-blue text; explicit rules handle surfaces, buttons,
+   sliders and semantic (correct/wrong) colours.
+--------------------------------------------------------------------------- */
+
+/* 16a. BROAD SWEEP — blue rims → hairline, light-blue text → chalk.
+   Safe because it only touches border-colour + text colour. Semantic
+   progress families are excluded and handled in 16f. */
+html.theme-editorial [class*="daily-review"],
+html.theme-editorial [class*="daily-overview"],
+html.theme-editorial [class*="review-analytics"],
+html.theme-editorial [class*="review-selection"],
+html.theme-editorial [class*="review-progress"],
+html.theme-editorial [class*="progress-check"],
+html.theme-editorial [class*="content-exchange"],
+html.theme-editorial [class*="image-preview"],
+html.theme-editorial [class*="image-remove"],
+html.theme-editorial [class*="recent-storage-image-picker"],
+html.theme-editorial [class*="table-builder"],
+html.theme-editorial [class*="knowledge-"],
+html.theme-editorial [class*="assistant-"],
+html.theme-editorial [class*="explain-"],
+html.theme-editorial [class*="mcq-"],
+html.theme-editorial [class*="card-menu"],
+html.theme-editorial [class*="tile-menu"],
+html.theme-editorial [class*="inline-color"],
+html.theme-editorial [class*="editor-intro"],
+html.theme-editorial [class*="onboarding-"],
+html.theme-editorial [class*="session-scale-debug"],
+html.theme-editorial [class*="session-filter"],
+html.theme-editorial [class*="session-complete"],
+html.theme-editorial [class*="home-pull-refresh"],
+html.theme-editorial [class*="migration-log"] {
+  border-color: var(--edi-line) !important;
+}
+html.theme-editorial [class*="daily-review"],
+html.theme-editorial [class*="daily-overview"],
+html.theme-editorial [class*="review-analytics"],
+html.theme-editorial [class*="progress-check"],
+html.theme-editorial [class*="content-exchange"],
+html.theme-editorial [class*="knowledge-"],
+html.theme-editorial [class*="assistant-"],
+html.theme-editorial [class*="editor-intro"],
+html.theme-editorial [class*="onboarding-"],
+html.theme-editorial [class*="session-scale-debug"] {
+  color: var(--text) !important;
+}
+
+/* 16b. SURFACES — blue/teal boxes → graphite raised + hairline + sharp */
+html.theme-editorial .daily-overview-progress-card,
+html.theme-editorial .daily-overview-stat-card,
+html.theme-editorial .daily-overview-segment-bar,
+html.theme-editorial .review-analytics-card,
+html.theme-editorial .review-analytics-pie,
+html.theme-editorial .review-analytics-pie-center,
+html.theme-editorial .review-analytics-bar-track,
+html.theme-editorial .review-selection-debug-output,
+html.theme-editorial .progress-check-table-wrap,
+html.theme-editorial .progress-check-header-menu,
+html.theme-editorial .progress-check-table th,
+html.theme-editorial .progress-check-table td,
+html.theme-editorial .table-builder-grid,
+html.theme-editorial .table-builder-sheet td,
+html.theme-editorial .table-builder-sheet th,
+html.theme-editorial .content-exchange-card-row,
+html.theme-editorial .content-exchange-card-tile,
+html.theme-editorial .content-exchange-tree,
+html.theme-editorial .content-exchange-log-output,
+html.theme-editorial .image-preview,
+html.theme-editorial .image-preview-wrap,
+html.theme-editorial .image-preview-drop-tile,
+html.theme-editorial .image-preview-stack,
+html.theme-editorial .image-preview.has-image,
+html.theme-editorial .recent-storage-image-picker-panel,
+html.theme-editorial .recent-storage-image-picker-grid,
+html.theme-editorial .recent-storage-image-picker-thumb,
+html.theme-editorial .knowledge-dialog,
+html.theme-editorial .knowledge-item,
+html.theme-editorial .knowledge-priority-select,
+html.theme-editorial .card-menu,
+html.theme-editorial .tile-menu-list,
+html.theme-editorial .card-row,
+html.theme-editorial .card-thumb,
+html.theme-editorial .card-select-control,
+html.theme-editorial .inline-color-menu,
+html.theme-editorial .live-preview,
+html.theme-editorial .formula-preview,
+html.theme-editorial .toolbar-btn,
+html.theme-editorial .palette button,
+html.theme-editorial .assistant-card-item,
+html.theme-editorial .assistant-cards,
+html.theme-editorial .assistant-cards-topic,
+html.theme-editorial .assistant-tpl-note,
+html.theme-editorial .assistant-head,
+html.theme-editorial .assistant-citation,
+html.theme-editorial .assistant-ctl select,
+html.theme-editorial .explain-panel,
+html.theme-editorial .explain-head,
+html.theme-editorial .explain-footer,
+html.theme-editorial .mcq-badge,
+html.theme-editorial .mcq-row,
+html.theme-editorial .mcq-primary-row,
+html.theme-editorial .mcq-order-select,
+html.theme-editorial .session-complete-stat,
+html.theme-editorial .session-filter-option,
+html.theme-editorial .session-card-image,
+html.theme-editorial .session-scale-debug-panel,
+html.theme-editorial .session-scale-debug-info,
+html.theme-editorial .face-score-pill,
+html.theme-editorial .study-topic-pill,
+html.theme-editorial .topic-search-sticky-head,
+html.theme-editorial .migration-log-output,
+html.theme-editorial .home-pull-refresh-track,
+html.theme-editorial .progress-state-chip,
+html.theme-editorial .counter-value,
+html.theme-editorial .back {
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border-color: var(--edi-line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+}
+html.theme-editorial .assistant-typing-dot {
+  background: var(--muted) !important;
+}
+
+/* 16c. ACCENT ACTION BUTTONS — purple/cyan/blue/gradient → editorial */
+html.theme-editorial .mcq-check-btn,
+html.theme-editorial .knowledge-upload-btn,
+html.theme-editorial .exchange-import-selected-btn,
+html.theme-editorial .explain-next-btn,
+html.theme-editorial .start-daily-review-btn,
+html.theme-editorial .archive-tree-action-restore,
+html.theme-editorial .card-menu-item-duplicate {
+  background: var(--text) !important;
+  background-image: none !important;
+  border: 1.5px solid var(--text) !important;
+  color: var(--bg) !important;
+  border-radius: var(--radius) !important;
+}
+html.theme-editorial .start-daily-review-btn:hover,
+html.theme-editorial .explain-next-btn:hover {
+  filter: brightness(0.9);
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+html.theme-editorial .start-daily-review-btn:disabled {
+  background: var(--panel-light) !important;
+  border-color: var(--edi-line) !important;
+  color: var(--muted) !important;
+}
+html.theme-editorial .mcq-explain-btn {
+  background: transparent !important;
+  border: 1px solid var(--edi-line-strong) !important;
+  color: var(--text) !important;
+}
+
+/* 16d. RANGE SLIDERS — blue thumbs/tracks → chalk / hairline */
+html.theme-editorial input[type="range"]::-webkit-slider-thumb,
+html.theme-editorial .daily-review-date-slider-wrap input[type="range"]::-webkit-slider-thumb,
+html.theme-editorial .daily-review-range-start::-webkit-slider-thumb,
+html.theme-editorial .daily-review-range-end::-webkit-slider-thumb {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+}
+html.theme-editorial input[type="range"]::-moz-range-thumb,
+html.theme-editorial .daily-review-date-slider-wrap input[type="range"]::-moz-range-thumb,
+html.theme-editorial .daily-review-range-start::-moz-range-thumb,
+html.theme-editorial .daily-review-range-end::-moz-range-thumb {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+}
+html.theme-editorial .daily-review-date-slider-wrap::before,
+html.theme-editorial .daily-review-date-slider-wrap::after {
+  background: var(--edi-line-strong) !important;
+}
+
+/* 16e. TEAL / CYAN "active / checked / selected" accents → silver ink */
+html.theme-editorial .select-cards-btn.active,
+html.theme-editorial .topic-all-btn.active {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+  color: var(--bg) !important;
+}
+html.theme-editorial .session-filter-option input[type="checkbox"]:checked,
+html.theme-editorial .subject-review-info-icon:focus-visible {
+  accent-color: var(--text) !important;
+  border-color: var(--text) !important;
+  outline-color: var(--accent-ring) !important;
+}
+html.theme-editorial .daily-review-subject-group,
+html.theme-editorial .daily-review-subject-group.is-expanded {
+  border-color: var(--edi-line) !important;
+}
+
+/* 16f. SEMANTIC colours → desaturated palette (correct/wrong/neutral) */
+html.theme-editorial .topic-progress-correct,
+html.theme-editorial .topic-progress-mastered,
+html.theme-editorial .topic-progress-legend-correct,
+html.theme-editorial .topic-progress-legend-mastered,
+html.theme-editorial .progress-state-correct,
+html.theme-editorial .progress-state-mastered,
+html.theme-editorial .mcq-badge.correct,
+html.theme-editorial .mcq-row.correct,
+html.theme-editorial .mcq-primary-row.mcq-primary.correct,
+html.theme-editorial .assistant-opt.correct,
+html.theme-editorial .assistant-cards-done,
+html.theme-editorial .assistant-tpl-note.ok,
+html.theme-editorial .auth-message.success,
+html.theme-editorial .onboarding-name-message.success,
+html.theme-editorial .flashcard.swipe-correct .swipe-glow,
+html.theme-editorial .flashcard.swipe-correct .swipe-badge,
+html.theme-editorial .flashcard.swipe-correct .face::after {
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+  background-color: rgba(159, 176, 143, 0.16) !important;
+}
+html.theme-editorial .topic-progress-notanswered,
+html.theme-editorial .topic-progress-legend-notanswered,
+html.theme-editorial .progress-state-not-answered,
+html.theme-editorial .progress-state-in-progress {
+  color: var(--muted) !important;
+  border-color: var(--muted) !important;
+  background-color: var(--panel-light) !important;
+}
+html.theme-editorial .flashcard.swipe-wrong .swipe-glow,
+html.theme-editorial .flashcard.swipe-wrong .swipe-badge {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+  background-color: rgba(199, 138, 118, 0.16) !important;
+}
+
+/* progress "glow" rings on card tiles → neutral / desaturated */
+html.theme-editorial .card-tile-overview.card-progress-glow-correct,
+html.theme-editorial .card-tile-overview.card-progress-glow-mastered {
+  box-shadow: 0 0 0 1px var(--success) inset !important;
+}
+html.theme-editorial .card-tile-overview.card-progress-glow-in-progress {
+  box-shadow: 0 0 0 1px var(--edi-line-strong) inset !important;
+}
+
+/* sidebar toggle + misc leftover blue backgrounds */
+html.theme-editorial .sidebar-toggle,
+html.theme-editorial body.sidebar-open .sidebar-toggle {
+  background: var(--panel-light) !important;
+  background-image: none !important;
+  border-color: var(--edi-line-strong) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .sidebar-meta-line {
+  color: var(--muted) !important;
+}
+html.theme-editorial textarea:focus-visible,
+html.theme-editorial select:focus-visible {
+  border-color: var(--edi-line-strong) !important;
+  outline-color: var(--accent-ring) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   18. EDGE CASES  — deep / id selectors the sweeps didn't reach
+--------------------------------------------------------------------------- */
+
+/* surfaces + containers (blue bg/border) → graphite */
+html.theme-editorial #dailyReviewHomePanel .daily-review-start-controls,
+html.theme-editorial #moveCardsDialog .grid.two > div,
+html.theme-editorial #progressCheckValueSearch,
+html.theme-editorial #sessionSizeValue .session-size-loader,
+html.theme-editorial .app-loader-card,
+html.theme-editorial .app-loading-import .app-loading-inner,
+html.theme-editorial .editor-shell .editor-list,
+html.theme-editorial .session-image-lightbox img,
+html.theme-editorial .topic-search-result .card-tile.card-tile-search,
+html.theme-editorial .topic-search-result-topic,
+html.theme-editorial .assistant-fab-card,
+html.theme-editorial .progress-check-table th.active-filter .progress-check-header-btn {
+  background: var(--edi-raised) !important;
+  background-image: none !important;
+  border-color: var(--edi-line) !important;
+  box-shadow: none !important;
+}
+
+/* debug loader button → editorial */
+html.theme-editorial #dailyReviewHomePanel .daily-review-start-controls .debug-loader-btn {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid var(--edi-line-strong) !important;
+  color: var(--text) !important;
+}
+
+/* light-blue text → chalk / muted */
+html.theme-editorial #moveCardsDialog .grid.two > div label,
+html.theme-editorial #moveCardsSelectionInfo,
+html.theme-editorial #settingsDialog .settings-intro,
+html.theme-editorial #settingsDialog .settings-toggle-row,
+html.theme-editorial .app-loading-label,
+html.theme-editorial .session-quit-confirm-dialog .session-quit-confirm-message,
+html.theme-editorial .daily-review-date-tick.in-range {
+  color: var(--text) !important;
+}
+html.theme-editorial #settingsDialog .settings-card-account {
+  border-color: var(--edi-line) !important;
+}
+
+/* teal / blue "selected / active / admin" accents → silver ink */
+html.theme-editorial .content-exchange-user.is-admin-editing .exchange-admin-edit-btn,
+html.theme-editorial .table-builder-sheet td.is-selected,
+html.theme-editorial .mcq-options.require-order .mcq-option.selected {
+  background: var(--panel-accent) !important;
+  border-color: var(--text) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .mcq-options.require-order .mcq-option.selected::after {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+  border-color: var(--text) !important;
+}
+
+/* semantic green / teal glows → desaturated */
+html.theme-editorial .innerGlowMastered,
+html.theme-editorial #homePanel.pull-refresh-armed .home-pull-refresh {
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+html.theme-editorial .tile-shatter-piece {
+  background: var(--muted) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   19. TOGGLES  — grayscale track + knob (kills #273655 / green checked state)
+--------------------------------------------------------------------------- */
+html.theme-editorial .toggle-slider {
+  background: var(--panel-light) !important;
+  border: 1px solid var(--edi-line-strong) !important;
+}
+html.theme-editorial .toggle-slider::after {
+  background: var(--muted) !important;
+}
+html.theme-editorial .toggle input:checked + .toggle-slider {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+}
+html.theme-editorial .toggle input:checked + .toggle-slider::after {
+  background: var(--bg) !important;
+}
+
+/* accessible focus ring consistent across the theme */
+html.theme-editorial :focus-visible {
+  outline: 2px solid var(--accent-ring) !important;
+  outline-offset: 2px;
+}

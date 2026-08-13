@@ -358,6 +358,68 @@ function applyOledBlackTheme(enabled = false) {
   }
 }
 
+const DESIGN_STORAGE_KEY = 'flashcards.ui.design.v1';
+const EDITORIAL_THEME_COLOR = '#17191a';
+
+/**
+ * @function readDesignPreference
+ * @description Reads the selected design language ('default' | 'editorial') from localStorage.
+ */
+
+function readDesignPreference() {
+  if (typeof window === 'undefined' || !window.localStorage) return 'default';
+  try {
+    const raw = String(window.localStorage.getItem(DESIGN_STORAGE_KEY) || '').trim().toLowerCase();
+    return raw === 'editorial' ? 'editorial' : 'default';
+  } catch (_) {
+    return 'default';
+  }
+}
+
+/**
+ * @function saveDesignPreference
+ * @description Persists the selected design language in localStorage.
+ */
+
+function saveDesignPreference(design = 'default') {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(DESIGN_STORAGE_KEY, design === 'editorial' ? 'editorial' : 'default');
+  } catch (_) {
+    // Ignore storage write failures.
+  }
+}
+
+/**
+ * @function applyDesign
+ * @description Applies the chosen design language by toggling the `theme-editorial`
+ * root class. OLED Black is a sub-option of the default design, so it is suspended
+ * (and its toggle disabled) while the editorial design is active, then restored.
+ */
+
+function applyDesign(design = 'default') {
+  const isEditorial = design === 'editorial';
+  document.documentElement.classList.toggle('theme-editorial', isEditorial);
+  document.body?.classList.toggle('theme-editorial', isEditorial);
+
+  if (isEditorial) {
+    // Suspend OLED black visually; its stored preference is left untouched.
+    document.documentElement.classList.remove('oled-black');
+    document.body?.classList.remove('oled-black');
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', EDITORIAL_THEME_COLOR);
+  } else {
+    // Restore the default design, honouring any saved OLED-black preference.
+    applyOledBlackTheme(readOledBlackPreference());
+  }
+
+  // OLED Black only applies to the default design — dim + disable it otherwise.
+  const oledRow = document.getElementById('oledBlackRow');
+  if (oledRow) oledRow.style.opacity = isEditorial ? '0.4' : '';
+  const oledInput = document.getElementById('oledBlackToggle');
+  if (oledInput) oledInput.disabled = isEditorial;
+}
+
 /**
  * @function shouldShowOnboardingTutorial
  * @description Returns true when onboarding should be shown for the authenticated user.
@@ -963,7 +1025,7 @@ async function ensureAuthenticatedSession() {
 
 async function boot() {
   if (isComponentsOnlyFrontendMode()) return;
-  applyOledBlackTheme(readOledBlackPreference());
+  applyDesign(readDesignPreference());
   void registerOfflineServiceWorker();
   updateRuntimeHostHint();
   updateSidebarMetaInfo();
@@ -1017,7 +1079,8 @@ async function boot() {
     if (!oledBlackToggle) return;
     const enabled = readOledBlackPreference();
     oledBlackToggle.checked = enabled;
-    applyOledBlackTheme(enabled);
+    // OLED Black only applies to the default design; the editorial design suspends it.
+    if (readDesignPreference() !== 'editorial') applyOledBlackTheme(enabled);
   };
   if (oledBlackToggle) {
     oledBlackToggle.onchange = () => {
@@ -1026,6 +1089,16 @@ async function boot() {
       applyOledBlackTheme(enabled);
     };
     syncOledBlackToggle();
+  }
+  const designSelect = el('designSelect');
+  if (designSelect) {
+    designSelect.value = readDesignPreference();
+    designSelect.onchange = () => {
+      const design = designSelect.value === 'editorial' ? 'editorial' : 'default';
+      saveDesignPreference(design);
+      applyDesign(design);
+      syncOledBlackToggle();
+    };
   }
   const fsrsDueOnlyToggle = el('fsrsDueOnlyToggle');
   const syncFsrsDueOnlyToggle = async () => {

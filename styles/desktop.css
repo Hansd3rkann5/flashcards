@@ -2974,7 +2974,7 @@ textarea:focus-visible {
 
 .explain-panel {
   position: relative;
-  width: min(560px, 100%);
+  width: min(720px, 100%);
   max-height: 100%;
   display: flex;
   flex-direction: column;
@@ -3004,7 +3004,7 @@ textarea:focus-visible {
 
 .explain-title {
   font-weight: 700;
-  font-size: 1.02rem;
+  font-size: 1.18rem;
 }
 
 .explain-close {
@@ -3042,7 +3042,7 @@ textarea:focus-visible {
 
 .explain-body {
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: 1.2rem;
 }
 
 .explain-body.hidden {
@@ -4120,6 +4120,7 @@ body.session-image-open {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .qa-editor-separator {
@@ -5010,11 +5011,14 @@ dialog.modal {
   border: 1px solid #30476f;
   border-radius: 16px;
   padding: var(--space-6);
+  padding-bottom: 0px;
   max-width: 1000px;
   width: min(640px, calc(100vw - (2 * var(--space-6))));
   max-height: calc(100dvh - (2 * var(--space-4)));
   box-sizing: border-box;
 }
+
+
 
 dialog.modal[open] {
   position: fixed;

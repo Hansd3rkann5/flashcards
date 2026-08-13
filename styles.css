@@ -7,3 +7,8 @@
 @import url('./styles/desktop.css');
 @import url('./styles/tablet.css');
 @import url('./styles/phone.css');
+
+/* Alternative design language ("Editorial / Graphite"). Scoped under
+ * html.theme-editorial, so it stays inert until selected in Settings.
+ * Imported last so its rules win the cascade at equal specificity. */
+@import url('./styles/theme-editorial.css');
