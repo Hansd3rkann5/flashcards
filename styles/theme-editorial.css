@@ -1067,11 +1067,11 @@ html.theme-editorial .assistant-fab-card {
 }
 
 /* ---------------------------------------------------------------------------
-   21. MOBILE  — panels go edge-to-edge (drop the inner padding). Safe-area
-   insets are kept so content still clears the notch / home indicator.
+   21. MOBILE  — panels go edge-to-edge (drop the inner padding). Only the top
+   keeps a safe-area inset so content clears the notch; sides + bottom are 0.
 --------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   html.theme-editorial .panel {
-    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) !important;
+    padding: env(safe-area-inset-top, 0px) 0 0 !important;
   }
 }
