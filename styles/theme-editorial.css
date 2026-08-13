@@ -246,14 +246,14 @@ html.theme-editorial .subject-tile.selected {
   border-color: var(--subject-accent, var(--accent)) !important;
 }
 @media (hover: hover) and (pointer: fine) {
-  html.theme-editorial .tile:hover,
-  html.theme-editorial .card-tile:hover {
+  html.theme-editorial .tile:hover {
     background: var(--accent) !important;
     border-color: var(--accent-glow-soft) !important;
   }
-  /* topic tiles: very soft grey hover — stays readable, just barely lifts
-     off the panel background instead of turning silver/white. */
-  html.theme-editorial .topic-tile:hover {
+  /* topic + overview card tiles: very soft grey hover — stays readable, just
+     barely lifts off the panel background instead of turning silver/white. */
+  html.theme-editorial .topic-tile:hover,
+  html.theme-editorial .card-tile:hover {
     background: var(--edi-raised-2) !important;
     border-color: var(--edi-line-strong) !important;
   }
@@ -351,19 +351,19 @@ html.theme-editorial .btn.traffic[data-grade="wrong"] {
 /* hover: subtle tint in the grade colour, keep coloured text + border */
 html.theme-editorial .btn.traffic.green:hover,
 html.theme-editorial .btn.traffic[data-grade="correct"]:hover {
-  color: rgba(159, 176, 143, 0.16) !important;
+  color: var(--panel) !important;
   background: var(--success) !important;
   border-color: var(--success) !important;
 }
 html.theme-editorial .btn.traffic.yellow:hover,
 html.theme-editorial .btn.traffic[data-grade="partial"]:hover {
-  color: rgba(203, 179, 137, 0.16) !important;
+  color: var(--panel) !important;
   background: var(--warn) !important;
   border-color: var(--warn) !important;
 }
 html.theme-editorial .btn.traffic.red:hover,
 html.theme-editorial .btn.traffic[data-grade="wrong"]:hover {
-  color: rgba(199, 138, 118, 0.16) !important;
+  color: var(--panel) !important;
   background: var(--danger) !important;
   border-color: var(--danger) !important;
 }
