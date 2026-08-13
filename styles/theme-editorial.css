@@ -198,11 +198,17 @@ html.theme-editorial .recent-storage-image-picker-item {
   box-shadow: none !important;
 }
 
-/* the signature heavy top rule on the main study surfaces */
+/* the signature heavy top rule on ALL tiles / study surfaces */
+html.theme-editorial .tile,
+html.theme-editorial .topic-tile,
+html.theme-editorial .deck-tile,
+html.theme-editorial .header-tile,
+html.theme-editorial .deck-header-tile,
+html.theme-editorial .review-header-tile,
 html.theme-editorial .card-tile,
 html.theme-editorial .face,
 html.theme-editorial .session-card {
-  border-top: 6px solid var(--accent) !important;
+  border-top: 6px solid var(--subject-accent, var(--accent)) !important;
 }
 
 html.theme-editorial .face {
@@ -217,7 +223,8 @@ html.theme-editorial .face-content {
    of its tile (the accent is injected inline as --subject-accent per subject,
    so this stays colourful per-subject while the body stays graphite). */
 html.theme-editorial .subject-tile {
-  border-top: 3px solid var(--subject-accent, var(--accent)) !important;
+  border: 1.5px solid var(--subject-accent, var(--accent)) !important;
+  border-top-width: 4px !important;   /* accent border all around, thicker top */
 }
 
 /* selected / hover raised state → slightly lighter + strong hairline */
@@ -229,13 +236,25 @@ html.theme-editorial .deck-tile.selected {
   background: var(--edi-raised-2) !important;
   border-color: var(--edi-line-strong) !important;
 }
+/* subject tiles keep their accent border even when selected */
+html.theme-editorial .subject-tile.selected {
+  border-color: var(--subject-accent, var(--accent)) !important;
+}
 @media (hover: hover) and (pointer: fine) {
   html.theme-editorial .tile:hover,
-  html.theme-editorial .subject-tile:hover,
   html.theme-editorial .topic-tile:hover,
   html.theme-editorial .card-tile:hover {
-    background: var(--edi-raised-2) !important;
-    border-color: var(--edi-line-strong) !important;
+    background: var(--accent) !important;
+    border-color: var(--accent-glow-soft) !important;
+  }
+  /* subject tiles: softly take on their accent colour as bg (not silver),
+     keeping the accent border. color-mix tints the graphite surface. */
+  html.theme-editorial .subject-tile:hover {
+    background: var(--subject-accent-bg, var(--accent-glow-soft)) !important;
+    background: color-mix(in srgb, var(--subject-accent, var(--accent)) 20%, var(--edi-raised)) !important;
+    background-image: none !important;
+    border-color: var(--subject-accent, var(--accent)) !important;
+    box-shadow: none !important;
   }
 }
 
@@ -998,4 +1017,19 @@ html.theme-editorial .toggle input:checked + .toggle-slider::after {
 html.theme-editorial :focus-visible {
   outline: 2px solid var(--accent-ring) !important;
   outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   20. LOADER + FAB CARD STACK  — grey→white gradient (not flat black)
+   The 3 loading-animation cards and the assistant FAB's mini 3-card stack
+   share these classes. Give them a soft grey-to-white gradient so they read
+   as little "paper" cards instead of solid graphite. (Comes after section 18
+   so this !important background wins over the flat-graphite surface reset.)
+--------------------------------------------------------------------------- */
+html.theme-editorial .app-loader-card,
+html.theme-editorial .assistant-fab-card {
+  background: linear-gradient(165deg, #5f6360 6%, #a9ada8 52%, #f4f5f2 100%) !important;
+  background-image: linear-gradient(165deg, #5f6360 6%, #a9ada8 52%, #f4f5f2 100%) !important;
+  border-color: rgba(0, 0, 0, 0.20) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
 }
