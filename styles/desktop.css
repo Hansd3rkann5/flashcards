@@ -3120,10 +3120,10 @@ textarea:focus-visible {
   /* height: calc(100% - (2 * var(--space-4))); */
   box-sizing: border-box;
   display: grid;
-  /* The question row keeps a minimum height (30%) so a long list of options
+  /* The question row keeps a minimum height (24%) so a long list of options
      can never squeeze it away to nothing. The answer row sizes to its content
      and takes whatever space is left above that floor. */
-  grid-template-rows: minmax(30%, 1fr) minmax(0, auto);
+  grid-template-rows: minmax(24%, 1fr) minmax(0, auto);
   gap: 10px;
   align-items: stretch;
   justify-items: stretch !important;
