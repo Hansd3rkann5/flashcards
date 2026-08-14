@@ -68,7 +68,12 @@ function getStudySessionContext() {
   try {
     if (typeof session !== 'undefined' && session?.active && Array.isArray(session.activeQueue) && session.activeQueue.length) {
       const card = session.activeQueue[0] || null;
-      const subjectId = String(selectedSubject?.id || '').trim() || resolveCardSubjectId(card);
+      // In daily review the queue is cross-subject, so the subject is per-card:
+      // always resolve it from the card, never from the last-opened subject.
+      const isDailyReview = String(session?.mode || '') === 'daily-review';
+      const subjectId = isDailyReview
+        ? resolveCardSubjectId(card)
+        : (String(selectedSubject?.id || '').trim() || resolveCardSubjectId(card));
       return { subjectId, card };
     }
   } catch (_) { /* ignore */ }
@@ -225,8 +230,11 @@ function openAssistantPanel() {
     alert('The Claude assistant requires the Supabase (online) mode.');
     return;
   }
-  const subjectId = String(selectedSubject?.id || '').trim();
   const inSession = typeof session !== 'undefined' && session?.active === true;
+  // Daily review is cross-subject: the last-opened subject (selectedSubject) is
+  // NOT the current card's subject, so ignore it and resolve per-card below.
+  const isDailyReview = inSession && String(session?.mode || '') === 'daily-review';
+  const subjectId = isDailyReview ? '' : String(selectedSubject?.id || '').trim();
   if (!subjectId && !inSession) {
     alert('Open a subject first to use the assistant.');
     return;
@@ -239,7 +247,7 @@ function openAssistantPanel() {
   // own separate thread. Context key: plain subjectId, or __review__:<subjectId>,
   // or __review__ if no subject can be resolved.
   let contextId = subjectId;
-  let headerSubjectName = String(selectedSubject?.name || '').trim();
+  let headerSubjectName = isDailyReview ? '' : String(selectedSubject?.name || '').trim();
   let isReview = false;
   if (!contextId && inSession) {
     isReview = true;
