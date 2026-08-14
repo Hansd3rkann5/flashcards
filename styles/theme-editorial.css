@@ -458,7 +458,9 @@ html.theme-editorial .card-tile-mcq-option.is-correct {
   border-color: var(--success) !important;
   background: rgba(159, 176, 143, 0.14) !important;
 }
-html.theme-editorial .mcq-option.wrong {
+html.theme-editorial .mcq-option.wrong,
+html.theme-editorial .mcq-option.wrong-order,
+html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order {
   border-color: var(--danger) !important;
   background: rgba(199, 138, 118, 0.14) !important;
 }
@@ -1015,6 +1017,13 @@ html.theme-editorial .mcq-options.require-order .mcq-option.selected::after {
   background: var(--text) !important;
   color: var(--bg) !important;
   border-color: var(--text) !important;
+}
+/* ordered questions: a wrong-position order badge stays red (overrides the
+   neutral .selected::after above — same specificity, later wins). */
+html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order::after {
+  background: var(--danger) !important;
+  color: var(--bg) !important;
+  border-color: var(--danger) !important;
 }
 
 /* semantic green / teal glows → desaturated */
