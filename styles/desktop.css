@@ -2884,6 +2884,12 @@ textarea:focus-visible {
   transform: scale(var(--mcq-scale-active));
 }
 
+.mcq-option.correct.missed {
+  background: rgba(110, 26, 16, 0.35);
+  border-color: #9a2b1c;
+  transform: scale(var(--mcq-scale-rest));
+}
+
 .mcq-option.wrong {
   background: rgba(110, 26, 16, 0.35);
   border-color: #9a2b1c;
@@ -6172,6 +6178,11 @@ dialog.modal-table-builder {
   padding: 8px 10px;
   min-height: 38px;
   font-size: 0.92rem;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.45;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
 .table-builder-cell-input.table-align-left {

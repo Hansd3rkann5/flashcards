@@ -358,7 +358,7 @@ function renderMarkdownTableHtml(headerCells = [], alignments = [], bodyRows = [
       for (let c = idx + 1; c < idx + colSpan; c++) headerSkip.add(c);
     }
     const attrs = colSpan > 1 ? ` colspan="${colSpan}"` : '';
-    th.push(`<th class="md-table-cell md-table-align-${align}"${attrs}>${applyInlineMarkdown(parsed.text || '') || '&nbsp;'}</th>`);
+    th.push(`<th class="md-table-cell md-table-align-${align}"${attrs}>${applyInlineMarkdown(parsed.text || '').replace(/\n/g, '<br>') || '&nbsp;'}</th>`);
   }
 
   const bodySkip = Array.from({ length: safeBody.length }, () => Array.from({ length: cols }, () => false));
@@ -385,7 +385,7 @@ function renderMarkdownTableHtml(headerCells = [], alignments = [], bodyRows = [
         colSpan > 1 ? `colspan="${colSpan}"` : ''
       ].filter(Boolean).join(' ');
       const attrString = attrs ? ` ${attrs}` : '';
-      tds.push(`<td class="md-table-cell md-table-align-${align}"${attrString}>${applyInlineMarkdown(parsed.text || '') || '&nbsp;'}</td>`);
+      tds.push(`<td class="md-table-cell md-table-align-${align}"${attrString}>${applyInlineMarkdown(parsed.text || '').replace(/\n/g, '<br>') || '&nbsp;'}</td>`);
     }
     return `<tr>${tds.join('')}</tr>`;
   }).join('');

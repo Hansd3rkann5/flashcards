@@ -650,6 +650,20 @@ function flipPreviewFlashcard() {
   flashcard.classList.toggle('flipped');
 }
 
+// Visible length of an option's RAW text (LaTeX/markdown stripped), used to
+// decide the short-answer 2-column grid. Measured from the source string — not
+// the rendered textContent, which KaTeX inflates by duplicating math as MathML,
+// making short LaTeX options (e.g. "$CaCO_3$ -> …") look far longer than they are.
+const MCQ_SHORT_OPTION_MAX_LEN = 56;
+function mcqOptionVisibleLength(raw) {
+  let t = String(raw == null ? '' : raw);
+  t = t.replace(/\\[a-zA-Z]+/g, 'x'); // LaTeX command → one glyph
+  t = t.replace(/[$_^{}\\]/g, '');    // LaTeX delimiters / braces
+  t = t.replace(/[*`#>~]/g, '');      // markdown syntax
+  t = t.replace(/\s+/g, ' ').trim();
+  return t.length;
+}
+
 /**
  * @function applyMcqOptionsGridLayout
  * @description Applies adaptive MCQ options grid layout.
@@ -668,15 +682,16 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
   // Short-answer detection: when there are several options and every one is a
   // short label, flag it so the layout can use a multi-column (e.g. 2×N) grid
   // instead of a tall single column that pushes the question out of view.
-  const textNodes = Array.from(
-    optionsWrap.querySelectorAll('.mcq-option .mcq-text, .card-tile-mcq-option .mcq-text')
-  );
-  const measured = textNodes.length
-    ? textNodes
-    : Array.from(optionsWrap.querySelectorAll('.mcq-option, .card-tile-mcq-option'));
-  const allShort = measured.length > 0 && measured.every(
-    node => String(node.textContent || '').trim().length <= 28
-  );
+  // Measure each option by its stored visible length (source text, LaTeX/markdown
+  // stripped); fall back to textContent for previews that don't set it.
+  const optionEls = Array.from(optionsWrap.querySelectorAll('.mcq-option, .card-tile-mcq-option'));
+  const optionLen = node => {
+    const stored = Number(node?.dataset?.mcqLen);
+    if (Number.isFinite(stored) && stored > 0) return stored;
+    return String((node.querySelector('.mcq-text') || node).textContent || '').trim().length;
+  };
+  const allShort = optionEls.length > 0
+    && optionEls.every(node => optionLen(node) <= MCQ_SHORT_OPTION_MAX_LEN);
   const isShort = allShort && total >= 4;
   optionsWrap.classList.toggle('mcq-short-options', isShort);
 
@@ -689,7 +704,7 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
     let longest = null;
     let maxLen = -1;
     optionNodes.forEach(node => {
-      const len = String((node.querySelector('.mcq-text') || node).textContent || '').trim().length;
+      const len = optionLen(node);
       if (len > maxLen) { maxLen = len; longest = node; }
     });
     if (longest) {
@@ -1019,7 +1034,7 @@ function buildDisabledMcqAnswerZone(card) {
   const resetSelection = () => {
     selectionCounter = 0;
     optionsWrap.querySelectorAll('.mcq-option').forEach(btn => {
-      btn.classList.remove('selected', 'correct', 'wrong', 'wrong-order');
+      btn.classList.remove('selected', 'correct', 'wrong', 'wrong-order', 'missed');
       btn.dataset.selOrder = '';
     });
   };
@@ -1035,6 +1050,7 @@ function buildDisabledMcqAnswerZone(card) {
     optionEl.type = 'button';
     optionEl.className = 'mcq-option';
     optionEl.dataset.idx = String(originalIndex);
+    optionEl.dataset.mcqLen = String(mcqOptionVisibleLength(option?.text || ''));
     const expectedOrder = orderVal(option, originalIndex);
     if (requireOrder) optionEl.title = `Expected position ${expectedOrder}`;
     const textEl = document.createElement('span');
@@ -1146,7 +1162,7 @@ function buildDisabledMcqAnswerZone(card) {
 
       // Reset all classes
       buttons.forEach(btn => {
-        btn.classList.remove('correct', 'wrong', 'wrong-order');
+        btn.classList.remove('correct', 'wrong', 'wrong-order', 'missed');
       });
 
       // Positionsweiser Vergleich
@@ -1194,8 +1210,11 @@ function buildDisabledMcqAnswerZone(card) {
       });
       buttons.forEach(btn => {
         const optionIdx = Number(btn.dataset.idx);
-        btn.classList.remove('correct', 'wrong');
-        if (correctSet.has(optionIdx)) btn.classList.add('correct');
+        btn.classList.remove('correct', 'wrong', 'missed');
+        if (correctSet.has(optionIdx)) {
+          btn.classList.add('correct');
+          if (!btn.classList.contains('selected')) btn.classList.add('missed');
+        }
         if (btn.classList.contains('selected') && !correctSet.has(optionIdx)) btn.classList.add('wrong');
       });
       if (selectedWrong > 0) result = 'wrong';
@@ -1869,6 +1888,7 @@ function renderCardContent(card) {
       btn.type = 'button';
       btn.className = 'mcq-option';
       btn.dataset.idx = String(originalIndex);
+      btn.dataset.mcqLen = String(mcqOptionVisibleLength(option.text || ''));
       const keyNumber = renderIndex + 1;
       if (keyNumber <= 9) {
         btn.dataset.key = String(keyNumber);
@@ -1987,7 +2007,7 @@ function renderCardContent(card) {
 
         // Reset all classes
         buttons.forEach(btn => {
-          btn.classList.remove('correct', 'wrong', 'wrong-order');
+          btn.classList.remove('correct', 'wrong', 'wrong-order', 'missed');
         });
 
         // Positionsweiser Vergleich
@@ -2037,8 +2057,11 @@ function renderCardContent(card) {
 
         buttons.forEach(btn => {
           const optionIdx = Number(btn.dataset.idx);
-          btn.classList.remove('correct', 'wrong');
-          if (correctSet.has(optionIdx)) btn.classList.add('correct');
+          btn.classList.remove('correct', 'wrong', 'missed');
+          if (correctSet.has(optionIdx)) {
+            btn.classList.add('correct');
+            if (!btn.classList.contains('selected')) btn.classList.add('missed');
+          }
           if (btn.classList.contains('selected') && !correctSet.has(optionIdx)) btn.classList.add('wrong');
         });
 
@@ -2056,7 +2079,7 @@ function renderCardContent(card) {
       const advance = () => {
         checkBtn.textContent = 'Check';
         checkBtn.dataset.mode = 'check';
-        buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'wrong-order', 'selected'));
+        buttons.forEach(btn => btn.classList.remove('correct', 'wrong', 'wrong-order', 'missed', 'selected'));
         void gradeCardWithDesktopAutoMove(result);
       };
       if (cardHasExplanation(card)) {

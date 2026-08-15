@@ -1151,7 +1151,7 @@ function syncTableBuilderSelectionLabel() {
  */
 
 function applyTableBuilderInputAlign(input, align = 'left') {
-  if (!(input instanceof HTMLInputElement)) return;
+  if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
   const safeAlign = normalizeTableCellAlign(align);
   input.classList.remove('table-align-left', 'table-align-center', 'table-align-right');
   input.classList.add(`table-align-${safeAlign}`);
@@ -1178,8 +1178,8 @@ function syncTableBuilderControls() {
  */
 
 function createTableBuilderInput(zone = 'body', row = 0, col = 0, value = '', align = 'left') {
-  const input = document.createElement('input');
-  input.type = 'text';
+  const input = document.createElement('textarea');
+  input.rows = 1;
   input.autocomplete = 'off';
   input.className = 'table-builder-cell-input';
   input.dataset.zone = zone;
@@ -1191,6 +1191,17 @@ function createTableBuilderInput(zone = 'body', row = 0, col = 0, value = '', al
   attachAutoClose(input);
   input.addEventListener('keydown', handleInlineFormatShortcut);
   input.addEventListener('keydown', handleTextAlignShortcut);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const all = [...document.querySelectorAll('.table-builder-cell-input')];
+      const next = all[all.indexOf(input) + (e.shiftKey ? -1 : 1)];
+      if (next) { next.focus(); next.select?.(); }
+    }
+  });
+  const autoGrow = () => { input.style.height = '0'; input.style.height = input.scrollHeight + 'px'; };
+  input.addEventListener('input', autoGrow);
+  requestAnimationFrame(autoGrow);
   return input;
 }
 
@@ -1302,7 +1313,7 @@ function stepTableBuilderSize(axis = 'rows', delta = 1) {
 
 function handleTableBuilderInput(e) {
   const target = e.target;
-  if (!(target instanceof HTMLInputElement) || !target.classList.contains('table-builder-cell-input')) return;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) || !target.classList.contains('table-builder-cell-input')) return;
   const zone = target.dataset.zone || 'body';
   const row = Math.max(0, Number(target.dataset.row || 0));
   const col = Math.max(0, Number(target.dataset.col || 0));
@@ -1322,7 +1333,7 @@ function handleTableBuilderInput(e) {
 
 function handleTableBuilderPointerDown(e) {
   const target = e.target;
-  suppressTableBuilderFocusSelection = !!(target instanceof HTMLInputElement && target.classList.contains('table-builder-cell-input'));
+  suppressTableBuilderFocusSelection = !!((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) && target.classList.contains('table-builder-cell-input'));
 }
 
 /**
@@ -1332,7 +1343,7 @@ function handleTableBuilderPointerDown(e) {
 
 function handleTableBuilderSelection(e) {
   const target = e.target;
-  if (!(target instanceof HTMLInputElement) || !target.classList.contains('table-builder-cell-input')) return;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) || !target.classList.contains('table-builder-cell-input')) return;
   if (e.type === 'focusin' && (suppressTableBuilderFocusSelection || suppressTableBuilderProgrammaticFocusSelection)) {
     suppressTableBuilderProgrammaticFocusSelection = false;
     return;
@@ -1753,10 +1764,10 @@ function openTableDialog(targetId = '') {
       : '.table-builder-cell-input';
     const preferredCell = dialog.querySelector(preferredSelector);
     const firstCell = preferredCell || dialog.querySelector('.table-builder-cell-input');
-    if (firstCell instanceof HTMLInputElement) {
+    if (firstCell instanceof HTMLInputElement || firstCell instanceof HTMLTextAreaElement) {
       suppressTableBuilderProgrammaticFocusSelection = true;
       firstCell.focus();
-      firstCell.select();
+      firstCell.select?.();
     }
   }, 0);
 }
@@ -2593,6 +2604,7 @@ function openEditDialog(card) {
     excludeBtn.hidden = !inSession;
   }
   el('editCardDialog').showModal();
+  el('editCardPrompt')?.focus({ preventScroll: true });
 }
 
 /**

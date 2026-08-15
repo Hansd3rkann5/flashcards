@@ -27,15 +27,22 @@
 html.theme-editorial,
 body.theme-editorial {
   /* elevation grays (neutral, no blue tint) */
-  --bg: #141516;            /* app background — darkest      */
-  --panel: #1e2123;         /* panels / sidebar / sections   */
-  --panel-light: #262a2d;   /* raised surfaces               */
-  --edi-raised: #262a2d;    /* cards / tiles — lightest layer */
-  --edi-raised-2: #2f3336;  /* hover / selected              */
+  --bg: #141516;
+  /* app background — darkest      */
+  --panel: #1e2123;
+  /* panels / sidebar / sections   */
+  --panel-light: #262a2d;
+  /* raised surfaces               */
+  --edi-raised: #262a2d;
+  /* cards / tiles — lightest layer */
+  --edi-raised-2: #2f3336;
+  /* hover / selected              */
 
   /* ink */
-  --text: #e9ebe8;          /* chalk text                    */
-  --muted: #9aa09c;         /* secondary / labels            */
+  --text: #e9ebe8;
+  /* chalk text                    */
+  --muted: #9aa09c;
+  /* secondary / labels            */
 
   /* primary accent = silver "ink" (active / tags / highlights) */
   --accent: #c7cbc6;
@@ -51,9 +58,12 @@ body.theme-editorial {
 
   /* semantic states — deliberately desaturated so they read as warm/cool
      grays, not saturated colour, staying inside the grayscale look */
-  --success: #64dd60;       /* correct — muted sage          */
-  --danger: #e37a57;        /* wrong    — muted clay          */
-  --warn: #e1c124;          /* caution  — muted sand          */
+  --success: #64dd60;
+  /* correct — muted sage          */
+  --danger: #e37a57;
+  /* wrong    — muted clay          */
+  --warn: #e1c124;
+  /* caution  — muted sand          */
 
   /* flat editorial button: solid graphite instead of the neon gradient */
   --button: #33383b;
@@ -133,6 +143,7 @@ html.theme-editorial .sidebar button {
 html.theme-editorial body {
   background: var(--bg) !important;
 }
+
 html.theme-editorial body::before,
 html.theme-editorial body::after {
   background-image: none !important;
@@ -145,7 +156,7 @@ html.theme-editorial body::after {
 html.theme-editorial .sidebar,
 html.theme-editorial .sidebar-subjects,
 html.theme-editorial .section,
-html.theme-editorial .panel > .section,
+html.theme-editorial .panel>.section,
 html.theme-editorial .topic-list,
 html.theme-editorial .card-grid,
 html.theme-editorial .mcq-options,
@@ -159,6 +170,7 @@ html.theme-editorial #editorPanel .editor-sidebar {
   border-color: var(--edi-line) !important;
   box-shadow: none !important;
 }
+
 html.theme-editorial .section {
   border: 1px solid var(--edi-line) !important;
   border-radius: var(--radius) !important;
@@ -219,7 +231,7 @@ html.theme-editorial .deck-header-tile,
 html.theme-editorial .review-header-tile,
 html.theme-editorial .face,
 html.theme-editorial .session-card {
-  border-top: 6px solid var(--accent)          !important;
+  border-top: 6px solid var(--accent) !important;
 }
 
 html.theme-editorial .card-tile {
@@ -238,7 +250,8 @@ html.theme-editorial .face {
    so this stays colourful per-subject while the body stays graphite). */
 html.theme-editorial .subject-tile {
   border: 1.5px solid var(--subject-accent, var(--accent)) !important;
-  border-top-width: 4px !important;   /* accent border all around, thicker top */
+  border-top-width: 4px !important;
+  /* accent border all around, thicker top */
 }
 
 /* selected / hover raised state → slightly lighter + strong hairline */
@@ -250,15 +263,18 @@ html.theme-editorial .deck-tile.selected {
   background: var(--edi-raised-2) !important;
   border-color: var(--edi-line-strong) !important;
 }
+
 /* subject tiles keep their accent border even when selected */
 html.theme-editorial .subject-tile.selected {
   border-color: var(--subject-accent, var(--accent)) !important;
 }
+
 @media (hover: hover) and (pointer: fine) {
   html.theme-editorial .tile:hover {
     background: var(--accent) !important;
     border-color: var(--accent-glow-soft) !important;
   }
+
   /* topic + overview card tiles: very soft grey hover — stays readable, just
      barely lifts off the panel background instead of turning silver/white. */
   html.theme-editorial .topic-tile:hover,
@@ -266,6 +282,7 @@ html.theme-editorial .subject-tile.selected {
     background: var(--edi-raised-2) !important;
     border-color: var(--edi-line-strong) !important;
   }
+
   /* subject tiles: softly take on their accent colour as bg (not silver),
      keeping the accent border. color-mix tints the graphite surface. */
   html.theme-editorial .subject-tile:hover {
@@ -298,12 +315,14 @@ html.theme-editorial .sidebar button {
   box-shadow: none !important;
   transition: background .13s ease, border-color .13s ease, color .13s ease;
 }
+
 html.theme-editorial .btn:hover,
 html.theme-editorial .sidebar button:hover {
   background: var(--text) !important;
   border-color: var(--text) !important;
   color: var(--bg) !important;
 }
+
 /* primary / solid call-to-action → chalk fill, ink label */
 html.theme-editorial .btn.primary,
 html.theme-editorial button.act {
@@ -311,20 +330,24 @@ html.theme-editorial button.act {
   border: 1.5px solid var(--text) !important;
   color: var(--bg) !important;
 }
+
 html.theme-editorial .btn.primary:hover,
 html.theme-editorial button.act:hover {
   filter: brightness(0.9);
 }
+
 /* destructive → muted clay outline */
 html.theme-editorial .btn.red {
   background: transparent !important;
   border-color: var(--danger) !important;
   color: var(--danger) !important;
 }
+
 html.theme-editorial .btn.red:hover {
   background: var(--danger) !important;
   color: var(--bg) !important;
 }
+
 /* app icons inside buttons stay chalk on transparent, ink on hover-fill */
 html.theme-editorial .btn:hover .app-icon,
 html.theme-editorial .sidebar button:hover .app-icon {
@@ -339,24 +362,29 @@ html.theme-editorial .btn.traffic {
   background-image: none !important;
   box-shadow: none !important;
   border-style: solid !important;
-  border-width: 3px 1.5px 1.5px !important;   /* thicker top edge */
+  border-width: 3px 1.5px 1.5px !important;
+  /* thicker top edge */
   border-radius: var(--radius) !important;
 }
+
 html.theme-editorial .btn.traffic.green,
 html.theme-editorial .btn.traffic[data-grade="correct"] {
   color: var(--success) !important;
   border-color: var(--success) !important;
 }
+
 html.theme-editorial .btn.traffic.yellow,
 html.theme-editorial .btn.traffic[data-grade="partial"] {
   color: var(--warn) !important;
   border-color: var(--warn) !important;
 }
+
 html.theme-editorial .btn.traffic.red,
 html.theme-editorial .btn.traffic[data-grade="wrong"] {
   color: var(--danger) !important;
   border-color: var(--danger) !important;
 }
+
 /* hover: subtle tint in the grade colour, keep coloured text + border */
 html.theme-editorial .btn.traffic.green:hover,
 html.theme-editorial .btn.traffic[data-grade="correct"]:hover {
@@ -364,12 +392,14 @@ html.theme-editorial .btn.traffic[data-grade="correct"]:hover {
   background: var(--success) !important;
   border-color: var(--success) !important;
 }
+
 html.theme-editorial .btn.traffic.yellow:hover,
 html.theme-editorial .btn.traffic[data-grade="partial"]:hover {
   color: var(--panel) !important;
   background: var(--warn) !important;
   border-color: var(--warn) !important;
 }
+
 html.theme-editorial .btn.traffic.red:hover,
 html.theme-editorial .btn.traffic[data-grade="wrong"]:hover {
   color: var(--panel) !important;
@@ -410,11 +440,13 @@ html.theme-editorial .filter-chip {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+
 html.theme-editorial .chip:hover,
 html.theme-editorial .filter-chip:hover {
   border-color: var(--text) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .chip.active,
 html.theme-editorial .chip[aria-pressed="true"],
 html.theme-editorial .filter-chip.active {
@@ -435,6 +467,7 @@ html.theme-editorial .card-tile-mcq-option {
   color: var(--text) !important;
   box-shadow: none !important;
 }
+
 /* Dynamic (content-based) option heights: the study session runs a JS
    "equal height" pass (--mcq-equal-height) that stretches every option to the
    tallest one. In the serif editorial type that wastes space — single-line
@@ -449,25 +482,30 @@ html.theme-editorial .mcq-options.two-row-grid .mcq-option {
 html.theme-editorial .mcq-option:hover:not(:disabled) {
   border-color: var(--text) !important;
 }
+
 html.theme-editorial .mcq-option.selected {
   border-color: var(--text) !important;
   background: var(--panel-accent) !important;
 }
+
 html.theme-editorial .mcq-option.correct,
 html.theme-editorial .card-tile-mcq-option.is-correct {
   border-color: var(--success) !important;
   background: rgba(159, 176, 143, 0.14) !important;
 }
+
 html.theme-editorial .mcq-option.wrong,
 html.theme-editorial .mcq-option.wrong-order,
 html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order {
   border-color: var(--danger) !important;
   background: rgba(199, 138, 118, 0.14) !important;
 }
-html.theme-editorial .mcq-option.missed {
-  border-color: var(--success) !important;
-  border-style: dashed !important;
-  background: transparent !important;
+
+html.theme-editorial .mcq-option.correct.missed {
+  border-color: var(--danger) !important;
+  border-style: solid !important;
+  background: rgba(199, 138, 118, 0.14) !important;
+  transform: scale(var(--mcq-scale-rest)) !important;
 }
 
 /* ---------------------------------------------------------------------------
@@ -481,17 +519,20 @@ html.theme-editorial .bopt {
   background: var(--bg) !important;
   color: var(--muted) !important;
 }
+
 html.theme-editorial .bopt.sel,
 html.theme-editorial .cloze-blank.selected {
   background: var(--text) !important;
   border-color: var(--text) !important;
   color: var(--bg) !important;
 }
+
 html.theme-editorial .bopt.right {
   background: var(--success) !important;
   border-color: var(--success) !important;
   color: var(--bg) !important;
 }
+
 html.theme-editorial .bopt.wrong {
   background: var(--danger) !important;
   border-color: var(--danger) !important;
@@ -513,6 +554,7 @@ html.theme-editorial .input {
   color: var(--text) !important;
   font-family: var(--edi-serif);
 }
+
 html.theme-editorial input:focus,
 html.theme-editorial textarea:focus,
 html.theme-editorial select:focus,
@@ -554,6 +596,7 @@ html.theme-editorial .study-selection-grid {
   background: transparent !important;
   background-image: none !important;
 }
+
 html.theme-editorial .study-selection-card {
   background: var(--edi-raised) !important;
   background-image: none !important;
@@ -571,6 +614,7 @@ html.theme-editorial .review-progress-panel {
   border-radius: var(--radius) !important;
   box-shadow: none !important;
 }
+
 html.theme-editorial .topic-bulk-actions,
 html.theme-editorial .deck-bulk-actions {
   background: var(--panel) !important;
@@ -601,9 +645,11 @@ html.theme-editorial .rich-content .md-table {
   background: var(--bg) !important;
   border: 1px solid var(--edi-line) !important;
 }
+
 html.theme-editorial .rich-content .md-table-cell {
   border: 1px solid var(--edi-line) !important;
 }
+
 html.theme-editorial .rich-content .md-table thead .md-table-cell {
   background: var(--panel-light) !important;
   color: var(--text) !important;
@@ -627,9 +673,18 @@ html.theme-editorial .mcq-key-hint {
   border: 1px solid var(--edi-line-strong) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .card-corner-label {
   border-radius: var(--radius) !important;
+  box-shadow: none !important;
 }
+
+html.theme-editorial .card-corner-label:hover {
+  background-color: var(--text) !important;
+  color: var(--edi-raised) !important;
+  box-shadow: none !important;
+}
+
 html.theme-editorial .mcq-key-hint {
   color: var(--muted) !important;
 }
@@ -640,9 +695,11 @@ html.theme-editorial .pill-dot {
   background: var(--panel-light) !important;
   border: 1px solid var(--muted) !important;
 }
+
 html.theme-editorial .pill-dot.current {
   border-color: var(--text) !important;
 }
+
 html.theme-editorial .pill-dot.correct,
 html.theme-editorial .pill-dot.mastered,
 html.theme-editorial .pill-dot.near-master,
@@ -650,10 +707,12 @@ html.theme-editorial .pill-dot.review-ready {
   background: var(--success) !important;
   border-color: var(--success) !important;
 }
+
 html.theme-editorial .pill-dot.partial {
   background: var(--warn) !important;
   border-color: var(--warn) !important;
 }
+
 html.theme-editorial .pill-dot.wrong {
   background: var(--danger) !important;
   border-color: var(--danger) !important;
@@ -666,31 +725,37 @@ html.theme-editorial .assistant-fab {
   color: var(--bg) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
 }
+
 html.theme-editorial .assistant-panel {
   background: var(--panel) !important;
   background-image: none !important;
   border: 1px solid var(--edi-line-strong) !important;
 }
+
 html.theme-editorial .assistant-msg-user .assistant-msg-body {
   background: var(--edi-raised-2) !important;
   color: var(--text) !important;
   border: 1px solid var(--edi-line-strong) !important;
 }
+
 html.theme-editorial .assistant-msg-ai .assistant-msg-body {
   background: var(--edi-raised) !important;
   border: 1px solid var(--edi-line) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .assistant-input {
   border-top: 1px solid var(--edi-line-strong) !important;
   background: var(--panel) !important;
 }
+
 html.theme-editorial .assistant-input textarea {
   background: var(--bg) !important;
   border: 1px solid var(--edi-line) !important;
   border-radius: var(--radius) !important;
   color: var(--text) !important;
 }
+
 /* .assistant-send also carries the .btn class, so it inherits the standard
    editorial button behaviour: transparent + chalk text by default, white fill
    + dark text on hover. No special rule needed here (only the purple base
@@ -737,6 +802,7 @@ html.theme-editorial [class*="home-pull-refresh"],
 html.theme-editorial [class*="migration-log"] {
   border-color: var(--edi-line) !important;
 }
+
 html.theme-editorial [class*="daily-review"],
 html.theme-editorial [class*="daily-overview"],
 html.theme-editorial [class*="review-analytics"],
@@ -824,8 +890,16 @@ html.theme-editorial .back {
   border-radius: var(--radius) !important;
   box-shadow: none !important;
 }
+
 html.theme-editorial .assistant-typing-dot {
   background: var(--muted) !important;
+}
+
+html.theme-editorial .toolbar-btn.active {
+  background: var(--accent) !important;
+  border-color: var(--text) !important;
+  color: var(--edi-raised) !important;
+  box-shadow: none !important;
 }
 
 /* 16c. ACCENT ACTION BUTTONS — purple/cyan/blue/gradient → editorial */
@@ -842,17 +916,20 @@ html.theme-editorial .card-menu-item-duplicate {
   color: var(--bg) !important;
   border-radius: var(--radius) !important;
 }
+
 html.theme-editorial .start-daily-review-btn:hover,
 html.theme-editorial .explain-next-btn:hover {
   filter: brightness(0.9);
   background: var(--text) !important;
   color: var(--bg) !important;
 }
+
 html.theme-editorial .start-daily-review-btn:disabled {
   background: var(--panel-light) !important;
   border-color: var(--edi-line) !important;
   color: var(--muted) !important;
 }
+
 html.theme-editorial .mcq-explain-btn {
   background: transparent !important;
   border: 1px solid var(--edi-line-strong) !important;
@@ -867,6 +944,7 @@ html.theme-editorial .daily-review-range-end::-webkit-slider-thumb {
   background: var(--text) !important;
   border-color: var(--text) !important;
 }
+
 html.theme-editorial input[type="range"]::-moz-range-thumb,
 html.theme-editorial .daily-review-date-slider-wrap input[type="range"]::-moz-range-thumb,
 html.theme-editorial .daily-review-range-start::-moz-range-thumb,
@@ -874,6 +952,7 @@ html.theme-editorial .daily-review-range-end::-moz-range-thumb {
   background: var(--text) !important;
   border-color: var(--text) !important;
 }
+
 html.theme-editorial .daily-review-date-slider-wrap::before,
 html.theme-editorial .daily-review-date-slider-wrap::after {
   background: var(--edi-line-strong) !important;
@@ -886,12 +965,14 @@ html.theme-editorial .topic-all-btn.active {
   border-color: var(--text) !important;
   color: var(--bg) !important;
 }
+
 html.theme-editorial .session-filter-option input[type="checkbox"]:checked,
 html.theme-editorial .subject-review-info-icon:focus-visible {
   accent-color: var(--text) !important;
   border-color: var(--text) !important;
   outline-color: var(--accent-ring) !important;
 }
+
 html.theme-editorial .daily-review-subject-group,
 html.theme-editorial .daily-review-subject-group.is-expanded {
   border-color: var(--edi-line) !important;
@@ -919,6 +1000,7 @@ html.theme-editorial .flashcard.swipe-correct .face::after {
   border-color: var(--success) !important;
   background-color: rgba(159, 176, 143, 0.16) !important;
 }
+
 html.theme-editorial .topic-progress-notanswered,
 html.theme-editorial .topic-progress-legend-notanswered,
 html.theme-editorial .progress-state-not-answered,
@@ -927,6 +1009,7 @@ html.theme-editorial .progress-state-in-progress {
   border-color: var(--muted) !important;
   background-color: var(--panel-light) !important;
 }
+
 html.theme-editorial .flashcard.swipe-wrong .swipe-glow,
 html.theme-editorial .flashcard.swipe-wrong .swipe-badge {
   color: var(--danger) !important;
@@ -939,6 +1022,7 @@ html.theme-editorial .card-tile-overview.card-progress-glow-correct,
 html.theme-editorial .card-tile-overview.card-progress-glow-mastered {
   box-shadow: 0 0 0 1px var(--success) inset !important;
 }
+
 html.theme-editorial .card-tile-overview.card-progress-glow-in-progress {
   box-shadow: 0 0 0 1px var(--edi-line-strong) inset !important;
 }
@@ -951,9 +1035,11 @@ html.theme-editorial body.sidebar-open .sidebar-toggle {
   border-color: var(--edi-line-strong) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .sidebar-meta-line {
   color: var(--muted) !important;
 }
+
 html.theme-editorial textarea:focus-visible,
 html.theme-editorial select:focus-visible {
   border-color: var(--edi-line-strong) !important;
@@ -966,7 +1052,7 @@ html.theme-editorial select:focus-visible {
 
 /* surfaces + containers (blue bg/border) → graphite */
 html.theme-editorial #dailyReviewHomePanel .daily-review-start-controls,
-html.theme-editorial #moveCardsDialog .grid.two > div,
+html.theme-editorial #moveCardsDialog .grid.two>div,
 html.theme-editorial #progressCheckValueSearch,
 html.theme-editorial #sessionSizeValue .session-size-loader,
 html.theme-editorial .app-loader-card,
@@ -992,7 +1078,7 @@ html.theme-editorial #dailyReviewHomePanel .daily-review-start-controls .debug-l
 }
 
 /* light-blue text → chalk / muted */
-html.theme-editorial #moveCardsDialog .grid.two > div label,
+html.theme-editorial #moveCardsDialog .grid.two>div label,
 html.theme-editorial #moveCardsSelectionInfo,
 html.theme-editorial #settingsDialog .settings-intro,
 html.theme-editorial #settingsDialog .settings-toggle-row,
@@ -1001,6 +1087,7 @@ html.theme-editorial .session-quit-confirm-dialog .session-quit-confirm-message,
 html.theme-editorial .daily-review-date-tick.in-range {
   color: var(--text) !important;
 }
+
 html.theme-editorial #settingsDialog .settings-card-account {
   border-color: var(--edi-line) !important;
 }
@@ -1013,11 +1100,13 @@ html.theme-editorial .mcq-options.require-order .mcq-option.selected {
   border-color: var(--text) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .mcq-options.require-order .mcq-option.selected::after {
   background: var(--text) !important;
   color: var(--bg) !important;
   border-color: var(--text) !important;
 }
+
 /* ordered questions: correctly-placed = green, wrong-placed = red. These come
    after the neutral .require-order .selected rules above (equal specificity →
    later wins), colouring both the option box and its order badge (::after). */
@@ -1026,16 +1115,19 @@ html.theme-editorial .mcq-options.require-order .mcq-option.correct {
   border-color: var(--success) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .mcq-options.require-order .mcq-option.correct::after {
   background: var(--success) !important;
   color: var(--bg) !important;
   border-color: var(--success) !important;
 }
+
 html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order {
   background: rgba(199, 138, 118, 0.14) !important;
   border-color: var(--danger) !important;
   color: var(--text) !important;
 }
+
 html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order::after {
   background: var(--danger) !important;
   color: var(--bg) !important;
@@ -1048,6 +1140,7 @@ html.theme-editorial #homePanel.pull-refresh-armed .home-pull-refresh {
   color: var(--success) !important;
   border-color: var(--success) !important;
 }
+
 html.theme-editorial .tile-shatter-piece {
   background: var(--muted) !important;
 }
@@ -1059,14 +1152,17 @@ html.theme-editorial .toggle-slider {
   background: var(--panel-light) !important;
   border: 1px solid var(--edi-line-strong) !important;
 }
+
 html.theme-editorial .toggle-slider::after {
   background: var(--muted) !important;
 }
-html.theme-editorial .toggle input:checked + .toggle-slider {
+
+html.theme-editorial .toggle input:checked+.toggle-slider {
   background: var(--text) !important;
   border-color: var(--text) !important;
 }
-html.theme-editorial .toggle input:checked + .toggle-slider::after {
+
+html.theme-editorial .toggle input:checked+.toggle-slider::after {
   background: var(--bg) !important;
 }
 
