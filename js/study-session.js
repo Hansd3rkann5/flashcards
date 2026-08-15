@@ -677,11 +677,44 @@ function applyMcqOptionsGridLayout(optionsWrap, optionCount = 0) {
   const allShort = measured.length > 0 && measured.every(
     node => String(node.textContent || '').trim().length <= 28
   );
-  optionsWrap.classList.toggle('mcq-short-options', allShort && total >= 4);
+  const isShort = allShort && total >= 4;
+  optionsWrap.classList.toggle('mcq-short-options', isShort);
+
+  // Odd short grids: let the option with the LONGEST answer span both columns so
+  // the grid stays symmetric (no half-empty trailing row).
+  optionsWrap.querySelectorAll('.mcq-option.mcq-option-span')
+    .forEach(node => node.classList.remove('mcq-option-span'));
+  if (isShort && total % 2 === 1) {
+    const optionNodes = Array.from(optionsWrap.querySelectorAll('.mcq-option'));
+    let longest = null;
+    let maxLen = -1;
+    optionNodes.forEach(node => {
+      const len = String((node.querySelector('.mcq-text') || node).textContent || '').trim().length;
+      if (len > maxLen) { maxLen = len; longest = node; }
+    });
+    if (longest) {
+      longest.classList.add('mcq-option-span');
+      // Move it to the end so the full-width cell forms a clean bottom row —
+      // otherwise a span at an odd position leaves a grid gap (breaks symmetry).
+      optionsWrap.appendChild(longest);
+    }
+  }
+
   const cols = total >= 2 ? 2 : 1;
   optionsWrap.style.setProperty('--mcq-grid-cols', String(cols));
-  // On phone (≤520 px) let each option take its natural height.
-  if (window.innerWidth > 520) applyEqualMcqOptionTileSize(optionsWrap);
+
+  // Short grids equalise height PER ROW via CSS (align-items: stretch), so skip
+  // the global equal-height pass and clear any inline heights it left behind.
+  // Other grids keep the global equal-height. (Phones ≤520 px: natural height.)
+  if (isShort) {
+    optionsWrap.querySelectorAll('.mcq-option').forEach(node => {
+      node.style.removeProperty('--mcq-equal-height');
+      node.style.removeProperty('height');
+      node.style.removeProperty('min-height');
+    });
+  } else if (window.innerWidth > 520) {
+    applyEqualMcqOptionTileSize(optionsWrap);
+  }
 }
 
 /**
@@ -2361,6 +2394,19 @@ async function gradeCard(result) {
       target = remainingActiveCount; // end of queue
     } else {
       target = computeSessionFsrsReinsertIndex(fsrsAfterReview, result, remainingActiveCount);
+    }
+
+    // Review priority: a just-correct (green) card must never be re-inserted
+    // ahead of a still-weak (wrong/partial) card — otherwise FSRS urgency can
+    // push green in front of yellow/red. Clamp it behind the last weak card so
+    // green stays the lowest priority in daily review.
+    if (result === 'correct' && session.mode === 'daily-review') {
+      let lastWeakIdx = -1;
+      for (let i = 0; i < session.activeQueue.length; i += 1) {
+        const g = session.gradeMap?.[session.activeQueue[i]?.id];
+        if (g === 'wrong' || g === 'partial') lastWeakIdx = i;
+      }
+      if (target <= lastWeakIdx) target = lastWeakIdx + 1;
     }
 
     session.activeQueue.splice(target, 0, card);

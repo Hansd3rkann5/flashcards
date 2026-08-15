@@ -2917,9 +2917,17 @@ textarea:focus-visible {
    `mcq-short-options` flag is set by applyMcqOptionsGridLayout in JS. */
 .mcq-options.two-row-grid.mcq-short-options {
   grid-template-columns: 1fr 1fr;
+  /* The two cells in a row share the same height: a single-line option stretches
+     to match a two-line option beside it (per-row equal height). */
+  align-items: stretch;
 }
 .mcq-options.two-row-grid.mcq-short-options .mcq-option {
   max-width: none;
+}
+/* Odd number of options: the longest answer spans both columns so the grid
+   stays symmetric instead of leaving a half-empty trailing row. */
+.mcq-options.two-row-grid.mcq-short-options .mcq-option-span {
+  grid-column: 1 / -1;
 }
 
 .mcq-options.two-row-grid .mcq-option {
@@ -3243,6 +3251,17 @@ textarea:focus-visible {
   background: rgba(179, 58, 42, 0.35) !important;
   box-shadow: 0 0 5px 2px rgba(179, 58, 42, 0.6) !important;
   border-color: #9a2b1c !important;
+}
+
+/* Ordered questions: correctly-placed positions are green. The green comes from
+   .mcq-option.correct, but .require-order .selected otherwise forces a blue
+   border on it, so restore the green border (+ green order badge) here. */
+.mcq-options.require-order .mcq-option.correct {
+  border-color: #1b7a57;
+}
+.mcq-options.require-order .mcq-option.correct::after {
+  border-color: #1b7a57;
+  box-shadow: 0 0 0 1px rgba(27, 122, 87, 0.6);
 }
 
 .mcq-answer-zone {

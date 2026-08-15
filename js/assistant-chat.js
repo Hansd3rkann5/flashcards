@@ -68,12 +68,10 @@ function getStudySessionContext() {
   try {
     if (typeof session !== 'undefined' && session?.active && Array.isArray(session.activeQueue) && session.activeQueue.length) {
       const card = session.activeQueue[0] || null;
-      // In daily review the queue is cross-subject, so the subject is per-card:
-      // always resolve it from the card, never from the last-opened subject.
-      const isDailyReview = String(session?.mode || '') === 'daily-review';
-      const subjectId = isDailyReview
-        ? resolveCardSubjectId(card)
-        : (String(selectedSubject?.id || '').trim() || resolveCardSubjectId(card));
+      // In any session the CURRENT card's subject is authoritative (daily review
+      // is cross-subject), so resolve from the card first and only fall back to
+      // the last-opened subject if the card can't be mapped.
+      const subjectId = resolveCardSubjectId(card) || String(selectedSubject?.id || '').trim();
       return { subjectId, card };
     }
   } catch (_) { /* ignore */ }
@@ -719,16 +717,28 @@ async function sendAssistantTurn() {
     subjectId = contextId;
   }
 
-  // In a study session, always include the current card as context.
-  // In the subject panel (no active session) there is no card to include.
+  // In a study/review session the CURRENT card's subject is authoritative for
+  // which materials to load — a cross-subject daily review must ground each card
+  // on its own subject, even if the panel was opened on a different card. The
+  // topic directory can be empty after a cache invalidation, so make sure it is
+  // loaded before mapping the card → subject.
+  const inSession = typeof session !== 'undefined' && session?.active === true;
+  if (inSession && typeof preloadTopicDirectory === 'function') {
+    try { await preloadTopicDirectory({ uiBlocking: false }); } catch (_) { /* ignore */ }
+  }
   const chips = [];
   let apiContent = raw;
   const ctx = getStudySessionContext();
-  if (ctx?.card && (ctx.subjectId === subjectId || contextId.startsWith('__review__'))) {
+  if (ctx?.subjectId) subjectId = ctx.subjectId;
+  if (ctx?.card) {
     const q = assistantStripText(ctx.card.prompt, 200);
     const a = assistantStripText(ctx.card.answer, 200);
     apiContent = `Card: Q: ${q} / A: ${a}\n${raw}`;
     chips.push('📎 Current card');
+  }
+  if (inSession && typeof console !== 'undefined') {
+    console.info('[assistant] session subject resolved:', subjectId || '(none)',
+      '· mode:', session?.mode, '· cardTopicId:', ctx?.card?.topicId);
   }
 
   assistantState.msgs.push({ role: 'user', apiContent, uiText: raw, chips });

@@ -1018,8 +1018,24 @@ html.theme-editorial .mcq-options.require-order .mcq-option.selected::after {
   color: var(--bg) !important;
   border-color: var(--text) !important;
 }
-/* ordered questions: a wrong-position order badge stays red (overrides the
-   neutral .selected::after above — same specificity, later wins). */
+/* ordered questions: correctly-placed = green, wrong-placed = red. These come
+   after the neutral .require-order .selected rules above (equal specificity →
+   later wins), colouring both the option box and its order badge (::after). */
+html.theme-editorial .mcq-options.require-order .mcq-option.correct {
+  background: rgba(159, 176, 143, 0.14) !important;
+  border-color: var(--success) !important;
+  color: var(--text) !important;
+}
+html.theme-editorial .mcq-options.require-order .mcq-option.correct::after {
+  background: var(--success) !important;
+  color: var(--bg) !important;
+  border-color: var(--success) !important;
+}
+html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order {
+  background: rgba(199, 138, 118, 0.14) !important;
+  border-color: var(--danger) !important;
+  color: var(--text) !important;
+}
 html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order::after {
   background: var(--danger) !important;
   color: var(--bg) !important;
