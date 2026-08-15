@@ -2603,7 +2603,17 @@ function openEditDialog(card) {
     const inSession = typeof session !== 'undefined' && session?.active === true;
     excludeBtn.hidden = !inSession;
   }
-  el('editCardDialog').showModal();
+  const editDialog = el('editCardDialog');
+  const cardAccent = (typeof resolveCardSubjectAccent === 'function') ? resolveCardSubjectAccent(card) : null;
+  if (cardAccent && editDialog) {
+    const rgba = a => hexToRgba(cardAccent, a);
+    editDialog.style.setProperty('--subject-accent', cardAccent);
+    editDialog.style.setProperty('--accent', cardAccent);
+    editDialog.style.setProperty('--accent-glow', rgba(0.35));
+    editDialog.style.setProperty('--accent-ring', rgba(0.9));
+    editDialog.style.setProperty('--accent-glow-soft', rgba(0.14));
+  }
+  editDialog.showModal();
   el('editCardPrompt')?.focus({ preventScroll: true });
 }
 

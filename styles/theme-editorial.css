@@ -896,10 +896,14 @@ html.theme-editorial .assistant-typing-dot {
 }
 
 html.theme-editorial .toolbar-btn.active {
-  background: var(--accent) !important;
+  background: var(--subject-accent, var(--accent)) !important;
   border-color: var(--text) !important;
   color: var(--edi-raised) !important;
   box-shadow: none !important;
+}
+
+html.theme-editorial .toolbar-btn.active .app-icon {
+  filter: brightness(0) invert(0) !important;
 }
 
 /* 16c. ACCENT ACTION BUTTONS — purple/cyan/blue/gradient → editorial */
