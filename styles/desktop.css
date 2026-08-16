@@ -3742,15 +3742,16 @@ textarea:focus-visible {
   .session-images-wrap.multi-image {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: flex-start;
     margin-top: 10px;
   }
 
   .session-images-wrap.multi-image .session-card-image {
-    flex: 1 1 0;
+    flex: 1 1 calc(50% - 5px);
     min-width: 0;
-    max-width: 100%;
+    max-width: calc(50% - 5px);
     margin-top: 0;
   }
 }
