@@ -560,6 +560,7 @@ async function startSession(options = {}) {
         const status = getDailyReviewCardStatus(card.id);
         if (status === 'yellow') initialGradeMap[card.id] = 'partial';
         else if (status === 'red') initialGradeMap[card.id] = 'wrong';
+        else if (status === 'green') initialGradeMap[card.id] = 'correct';
       });
     } else if (typeof ensureProgressForCardIds === 'function' && typeof getCurrentProgressState === 'function') {
       await ensureProgressForCardIds(selectedCardIds, {

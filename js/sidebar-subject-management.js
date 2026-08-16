@@ -10,6 +10,8 @@ function applySubjectTheme(accent) {
   const normHex = normalizeHexColor(accent || '#2dd4bf');
   const rgba = a => hexToRgba(normHex, a);
   document.documentElement.style.setProperty('--accent', normHex);
+  document.documentElement.style.setProperty('--subject-accent', normHex);
+  document.documentElement.style.setProperty('--subject-accent-bg', rgba(0.18));
   document.documentElement.style.setProperty('--accent-glow', rgba(0.35));
   document.documentElement.style.setProperty('--accent-ring', rgba(0.9));
   document.documentElement.style.setProperty('--accent-glow-strong', rgba(0.6));
