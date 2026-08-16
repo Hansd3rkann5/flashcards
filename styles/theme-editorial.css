@@ -1209,4 +1209,8 @@ html.theme-editorial .assistant-fab-card {
   html.theme-editorial .face {
     border-radius: 0 0 20px 20px !important;
   }
+
+  html.theme-editorial .btn.start-daily-review-btn {
+    border-radius: 0 0 15px 15px !important;
+  }
 }

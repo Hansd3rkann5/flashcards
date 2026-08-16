@@ -5297,7 +5297,7 @@ dialog.modal .editor-separator {
   min-height: 44px;
   height: auto !important;
   line-height: 1.2;
-  align-self: center;
+  align-self: stretch;
 }
 
 .archive-dialog-meta {
