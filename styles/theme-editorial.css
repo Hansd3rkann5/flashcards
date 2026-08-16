@@ -1024,7 +1024,7 @@ html.theme-editorial .flashcard.swipe-correct .swipe-badge,
 html.theme-editorial .flashcard.swipe-correct .face::after {
   color: var(--success) !important;
   border-color: var(--success) !important;
-  background-color: rgba(159, 176, 143, 0.16) !important;
+  /* background-color: rgba(159, 176, 143, 0.16) !important; */
 }
 
 html.theme-editorial .topic-progress-notanswered,
