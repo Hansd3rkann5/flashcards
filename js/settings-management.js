@@ -1130,7 +1130,7 @@ async function importJSON(file, options = {}) {
       || null;
     const nextName = rowName || String(existing?.name || '').trim();
     if (!nextName) continue;
-    const nextId = rowId || String(existing?.id || '').trim() || uid();
+    const nextId = String(existing?.id || '').trim() || rowId || uid();
     const nextSubject = buildSubjectRecord({
       ...(existing || {}),
       ...safeRow,
@@ -1141,6 +1141,7 @@ async function importJSON(file, options = {}) {
     await put('subjects', nextSubject, { uiBlocking });
     if (!existing) createdSubjects += 1;
     subjectById.set(nextId, nextSubject);
+    if (rowId && rowId !== nextId) subjectById.set(rowId, nextSubject);
     subjectByName.set(normalizeImportLookupName(nextName), nextSubject);
   }
 
@@ -1165,7 +1166,7 @@ async function importJSON(file, options = {}) {
     const existing = (rowTopicId && topicById.get(rowTopicId))
       || topicByLookup.get(lookupKey)
       || null;
-    const nextTopicId = rowTopicId || String(existing?.id || '').trim() || uid();
+    const nextTopicId = String(existing?.id || '').trim() || rowTopicId || uid();
     const nextTopic = {
       ...(existing || {}),
       ...safeRow,
@@ -1176,6 +1177,7 @@ async function importJSON(file, options = {}) {
     await put('topics', nextTopic, { uiBlocking });
     if (!existing) createdTopics += 1;
     topicById.set(nextTopicId, nextTopic);
+    if (rowTopicId && rowTopicId !== nextTopicId) topicById.set(rowTopicId, nextTopic);
     topicByLookup.set(lookupKey, nextTopic);
   }
 
