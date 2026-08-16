@@ -981,10 +981,27 @@ html.theme-editorial .daily-review-subject-group,
 html.theme-editorial .daily-review-subject-group.is-expanded {
   border: 1px solid var(--daily-review-subject-accent, var(--accent)) !important;
   border-top-width: 4px !important;
-  border-radius: 0 !important;
+  border-radius: var(--radius) !important;
   box-shadow: none !important;
   background: var(--edi-raised) !important;
   background-image: none !important;
+}
+
+html.theme-editorial .daily-review-subject-expand-btn {
+  background: transparent !important;
+  border: 1.5px solid var(--edi-line-strong) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+}
+
+html.theme-editorial .daily-review-subject-expand-btn:hover {
+  background: var(--text) !important;
+  border-color: var(--text) !important;
+  box-shadow: none !important;
+}
+
+html.theme-editorial .daily-review-subject-expand-btn:hover .app-icon {
+  filter: brightness(0) invert(0) !important;
 }
 
 /* 16f. SEMANTIC colours → desaturated palette (correct/wrong/neutral) */
