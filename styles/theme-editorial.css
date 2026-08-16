@@ -1203,6 +1203,9 @@ html.theme-editorial .assistant-fab-card {
 @media (max-width: 768px) {
   html.theme-editorial .panel {
     padding: env(safe-area-inset-top, 0px) 0 0 !important;
+  }
+
+  html.theme-editorial .section {
     border: 0px !important;
   }
 
