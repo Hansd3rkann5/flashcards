@@ -188,7 +188,7 @@ html.theme-editorial .flashcard .face-content {
   margin-bottom: var(--space-2);
   background: var(--edi-raised) !important;
   background-image: none !important;
-  border: 1px solid var(--edi-line) !important;
+  /* border: 1px solid var(--edi-line) !important; */
   border-radius: 0px !important;
   box-shadow: none !important;
 }
@@ -218,7 +218,7 @@ html.theme-editorial .recent-storage-image-picker-item {
   background: var(--edi-raised) !important;
   background-image: none !important;
   border: 1px solid var(--accent) !important;
-  border-radius: 0px !important;
+  border-radius: var(--radius) !important;
   box-shadow: none !important;
 }
 
@@ -979,7 +979,12 @@ html.theme-editorial .subject-review-info-icon:focus-visible {
 
 html.theme-editorial .daily-review-subject-group,
 html.theme-editorial .daily-review-subject-group.is-expanded {
-  border-color: var(--edi-line) !important;
+  border: 1px solid var(--daily-review-subject-accent, var(--accent)) !important;
+  border-top-width: 4px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--edi-raised) !important;
+  background-image: none !important;
 }
 
 /* 16f. SEMANTIC colours → desaturated palette (correct/wrong/neutral) */
@@ -1198,5 +1203,9 @@ html.theme-editorial .assistant-fab-card {
 @media (max-width: 768px) {
   html.theme-editorial .panel {
     padding: env(safe-area-inset-top, 0px) 0 0 !important;
+  }
+
+  html.theme-editorial .face {
+    border-radius: 0 0 20px 20px !important;
   }
 }
