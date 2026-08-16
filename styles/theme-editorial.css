@@ -502,10 +502,10 @@ html.theme-editorial .mcq-options.require-order .mcq-option.wrong-order {
 }
 
 html.theme-editorial .mcq-option.correct.missed {
-  border-color: var(--danger) !important;
+  border-color: var(--success) !important;
   border-style: solid !important;
   background: rgba(199, 138, 118, 0.14) !important;
-  transform: scale(var(--mcq-scale-rest)) !important;
+  transform: scale(var(--mcq-scale-active)) !important;
 }
 
 /* ---------------------------------------------------------------------------

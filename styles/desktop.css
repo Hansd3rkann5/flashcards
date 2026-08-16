@@ -2886,8 +2886,8 @@ textarea:focus-visible {
 
 .mcq-option.correct.missed {
   background: rgba(110, 26, 16, 0.35);
-  border-color: #9a2b1c;
-  transform: scale(var(--mcq-scale-rest));
+  border-color: #1b7a57;
+  transform: scale(var(--mcq-scale-active));
 }
 
 .mcq-option.wrong {
