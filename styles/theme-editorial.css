@@ -1214,6 +1214,6 @@ html.theme-editorial .assistant-fab-card {
   }
 
   html.theme-editorial .btn.start-daily-review-btn {
-    border-radius: 0 0 15px 15px !important;
+    border-radius: var(--radius) var(--radius) 15px 15px !important;
   }
 }
