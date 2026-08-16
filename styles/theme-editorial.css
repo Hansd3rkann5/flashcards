@@ -491,7 +491,7 @@ html.theme-editorial .mcq-option.selected {
 html.theme-editorial .mcq-option.correct,
 html.theme-editorial .card-tile-mcq-option.is-correct {
   border-color: var(--success) !important;
-  background: rgba(159, 176, 143, 0.14) !important;
+  background: rgba(85, 211, 83, 0.632) !important;
 }
 
 html.theme-editorial .mcq-option.wrong,

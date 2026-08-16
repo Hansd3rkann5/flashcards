@@ -1172,10 +1172,31 @@ function appendCardImages(container, images = [], className = 'card-thumb', altP
 function appendSessionImages(container, images = [], altPrefix = 'Card image') {
   if (!container) return;
   const normalized = normalizeImageList(images);
+  if (!normalized.length) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'session-images-wrap';
   normalized.forEach((src, idx) => {
     const img = buildSessionCardImage(src, `${altPrefix} ${idx + 1}`);
-    container.appendChild(img);
+    wrap.appendChild(img);
   });
+  container.appendChild(wrap);
+
+  if (normalized.length > 1) {
+    wrap.classList.add('multi-image');
+    const imgs = [...wrap.querySelectorAll('.session-card-image')];
+    let loaded = 0;
+    const checkPortrait = () => {
+      loaded++;
+      if (loaded < imgs.length) return;
+      const allPortrait = imgs.every(img => img.naturalHeight > img.naturalWidth * 1.33);
+      if (allPortrait) wrap.classList.add('portrait-row');
+    };
+    imgs.forEach(img => {
+      if (img.complete && img.naturalWidth) checkPortrait();
+      else img.addEventListener('load', checkPortrait, { once: true });
+    });
+  }
 }
 
 /**

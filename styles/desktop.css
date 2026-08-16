@@ -3734,6 +3734,44 @@ textarea:focus-visible {
   border: 1px solid #2a3f66;
 }
 
+.session-images-wrap {
+  display: contents;
+}
+
+@media (min-width: 769px) {
+  .session-images-wrap.multi-image {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 10px;
+  }
+
+  .session-images-wrap.multi-image .session-card-image {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .session-images-wrap.portrait-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 10px;
+  }
+
+  .session-images-wrap.portrait-row .session-card-image {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 0;
+  }
+}
+
 .session-card-image {
   display: block;
   width: auto;
